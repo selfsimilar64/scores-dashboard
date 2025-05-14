@@ -1,7 +1,7 @@
 import sqlite3, pandas as pd, streamlit as st, plotly.express as px
 
 @st.cache_data  # keeps queries fast for all users :contentReference[oaicite:1]{index=1}
-def load_db(path="scores.sqlite"):
+def load_db(path="scores.db"):
     con = sqlite3.connect(path)
     df  = pd.read_sql("SELECT * FROM scores", con)  # table name
     con.close()
