@@ -176,7 +176,7 @@ elif view == "By athlete":
                                         title=f"Event Scores: {comp_year_display} vs {prev_comp_year_display}",
                                         labels={"Score": "Score", "Event": "Event", "CompYear": "Competition Year"},
                                         text="Score",
-                                        category_orders={"CompYear": sorted([comp_year_display, prev_comp_year_display], reverse=True)}
+                                        category_orders={"CompYear": sorted([comp_year_display, prev_comp_year_display], reverse=False)}
                                     )
                                     fig_compare.update_traces(texttemplate='%{text:.3f}', textposition='outside')
                                     fig_compare.update_layout(
