@@ -30,8 +30,8 @@ elif view == "By athlete":
     sub     = df[df.AthleteName == athlete]
     
     # Add CompYear dropdown
-    comp_years = sorted(sub.CompYear.unique())
-    selected_comp_year = st.sidebar.selectbox("Choose CompYear", comp_years)
+    comp_years = sorted(sub.CompYear.unique(), reverse=True)
+    selected_comp_year = st.sidebar.selectbox("Choose CompYear", comp_years, index=0)
     
     # Filter data by selected CompYear
     sub_year = sub[sub.CompYear == selected_comp_year]
@@ -44,6 +44,14 @@ elif view == "By athlete":
 
     # Events to plot
     events = ["Vault", "Bars", "Beam", "Floor", "All Around"]
+    # Define a color map for events
+    color_map = {
+        "Vault": "blue",
+        "Bars": "red",
+        "Beam": "green",
+        "Floor": "purple",
+        "All Around": "orange"
+    }
 
     for event in events:
         event_data = sub_year[sub_year.Event == event]
@@ -51,10 +59,21 @@ elif view == "By athlete":
             st.subheader(event)
             # Sort by MeetDate to ensure chronological order
             event_data = event_data.sort_values(by="MeetDate")
-            fig = px.line(event_data, x="MeetDate", y="Score", markers=True, title=event)
+            fig = px.line(event_data, x="MeetName", y="Score", markers=True, title=event,
+                            color_discrete_sequence=[color_map.get(event, "black")],
+                            text="Score") # Add text for data labels
+            fig.update_layout(height=600) # Increase graph height
+            fig.update_traces(line=dict(width=4), marker=dict(size=10), textposition="top center") # Position data labels
+
+            # Highlight highest score
+            if not event_data.empty:
+                max_score_row = event_data.loc[event_data['Score'].idxmax()]
+                fig.add_annotation(x=max_score_row['MeetName'], y=max_score_row['Score'],
+                                   text="⭐", showarrow=False, font=dict(size=20))
+
             if y_axis_range:
                 fig.update_yaxes(range=y_axis_range)
-            st.plotly_chart(fig)
+            st.plotly_chart(fig, use_container_width=True) # Make graph use full width
         else:
             st.subheader(event)
             st.write(f"No data available for {event} in {selected_comp_year}.")
