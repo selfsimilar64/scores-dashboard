@@ -181,6 +181,7 @@ elif view == "By athlete":
                                     fig_compare.update_traces(texttemplate='%{text:.3f}', textposition='outside')
                                     fig_compare.update_layout(
                                         yaxis_title="Score",
+                                        yaxis_range=[5.5, 10.0],
                                         legend_title_text="Year",
                                         height=500 
                                     )
