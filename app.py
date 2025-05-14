@@ -160,6 +160,12 @@ elif view == "By athlete":
 
                                     # Ensure CompYear is treated as categorical for distinct colors and legend
                                     comparison_df['CompYear'] = comparison_df['CompYear'].astype(str)
+
+                                    # --- START: Modify All Around score to be an average ---
+                                    if 'All Around' in comparison_df['Event'].values:
+                                        aa_condition = comparison_df['Event'] == 'All Around'
+                                        comparison_df.loc[aa_condition, 'Score'] = comparison_df.loc[aa_condition, 'Score'] / 4
+                                    # --- END: Modify All Around score to be an average ---
                                     
                                     fig_compare = px.bar(
                                         comparison_df,
