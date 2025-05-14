@@ -26,9 +26,36 @@ if view == "By team":
 elif view == "By athlete":
     athlete = st.sidebar.selectbox("Choose athlete", sorted(df.AthleteName.unique()))
     sub     = df[df.AthleteName == athlete]
+    
+    # Add CompYear dropdown
+    comp_years = sorted(sub.CompYear.unique())
+    selected_comp_year = st.sidebar.selectbox("Choose CompYear", comp_years)
+    
+    # Filter data by selected CompYear
+    sub_year = sub[sub.CompYear == selected_comp_year]
+    
     st.header(athlete)
-    st.plotly_chart(px.line(sub, x="CompYear", y="Score",
-                            color="Event", markers=True))
+    
+    # Y-axis toggle
+    fit_y_axis = st.sidebar.checkbox("Fit Y-axis to data", False)
+    y_axis_range = None if fit_y_axis else [4.0, 10.0]
+
+    # Events to plot
+    events = ["Vault", "Bars", "Beam", "Floor", "All Around"]
+
+    for event in events:
+        event_data = sub_year[sub_year.Event == event]
+        if not event_data.empty:
+            st.subheader(event)
+            # Sort by MeetDate to ensure chronological order
+            event_data = event_data.sort_values(by="MeetDate")
+            fig = px.line(event_data, x="MeetDate", y="Score", markers=True, title=event)
+            if y_axis_range:
+                fig.update_yaxes(range=y_axis_range)
+            st.plotly_chart(fig)
+        else:
+            st.subheader(event)
+            st.write(f"No data available for {event} in {selected_comp_year}.")
 
 else:  # All athletes
     pool = df.groupby(["CompYear", "Event"]).Score.mean().reset_index()
