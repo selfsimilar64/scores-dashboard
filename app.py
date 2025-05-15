@@ -27,7 +27,7 @@ def custom_round(value):
     return round(value * 20) / 20
 
 # ----- SIDEBAR DRILL-DOWN ----------------------------------------------------
-view = st.sidebar.radio("View", ["All athletes", "By team", "By athlete"])
+view = st.sidebar.radio("View", ["All athletes", "By team", "By athlete", "By meet"])
 
 if view == "By team":
     selected_level_team = st.sidebar.selectbox("Choose team (Level)", sorted(df.Level.unique()), key="team_level_selector")
@@ -482,6 +482,163 @@ elif view == "By athlete":
                 st.sidebar.info(f"{athlete} has only competed at Level {current_level_athlete} in a single year ({int(all_comp_years_at_this_level_numeric_athlete[0])}). Multi-year meet comparison not available.")
             else:
                 st.sidebar.info(f"{athlete} has no competition year data for Level {current_level_athlete}. Multi-year comparison not available.")
+
+elif view == "By meet":
+    st.header("View by Meet")
+    # Get unique meet names for the selector
+    meet_names = sorted(df.MeetName.unique())
+    if not meet_names:
+        st.warning("No meet data available.")
+        st.stop()
+    
+    selected_meet = st.sidebar.selectbox("Choose Meet", meet_names, key="meet_selector")
+    
+    if not selected_meet:
+        st.info("Please select a meet from the sidebar.")
+        st.stop()
+
+    st.subheader(f"Results for: {selected_meet}")
+    meet_data = df[df.MeetName == selected_meet].copy()
+
+    if meet_data.empty:
+        st.warning(f"No data available for the selected meet: {selected_meet}.")
+        st.stop()
+
+    # Define custom sort order for levels
+    level_order = [str(i) for i in range(1, 11)] + ["XB", "XS", "XG", "XP", "XD"]
+    
+    # Define color mapping for levels
+    numbered_level_colors = px.colors.sequential.Blues_r  # _r to reverse, lighter for lower numbers
+    
+    level_color_map = {}
+    # Assign colors to numbered levels (1-10)
+    for i, level in enumerate([str(j) for j in range(1, 11)]):
+        # Ensure we have enough colors, cycle if necessary
+        level_color_map[level] = numbered_level_colors[i % len(numbered_level_colors)] 
+        
+    # Assign specific colors for X levels
+    level_color_map.update({
+        "XB": "rgb(205, 127, 50)",   # Bronze
+        "XS": "rgb(192, 192, 192)", # Silver
+        "XG": "rgb(255, 215, 0)",   # Gold
+        "XP": "rgb(229, 228, 226)", # Platinum
+        "XD": "rgb(185, 242, 255)"  # Diamond-like (light blue)
+    })
+
+    events_to_graph = ["Vault", "Bars", "Beam", "Floor", "All Around"]
+
+    for event_name in events_to_graph:
+        st.markdown(f"### {event_name} Scores")
+        event_meet_data = meet_data[meet_data.Event == event_name]
+
+        if event_meet_data.empty:
+            st.write(f"No data for {event_name} at this meet.")
+            continue
+
+        # Calculate average score per Level
+        avg_scores_by_level = event_meet_data.groupby("Level").Score.mean().reset_index()
+        
+        # Ensure Level is treated as a category with the custom order
+        avg_scores_by_level['Level'] = pd.Categorical(avg_scores_by_level['Level'], categories=level_order, ordered=True)
+        avg_scores_by_level = avg_scores_by_level.dropna(subset=['Level']) # Drop levels not in our defined order if any
+        avg_scores_by_level = avg_scores_by_level.sort_values("Level")
+        
+        if avg_scores_by_level.empty:
+            st.write(f"No aggregated data for {event_name} by level at this meet.")
+            continue
+
+        # --- START: Stat Cards for Meet View ---
+        cols = st.columns(2)
+        
+        # Max Team Score (Level Average)
+        if not avg_scores_by_level.empty:
+            max_avg_level_score_details = avg_scores_by_level.loc[avg_scores_by_level['Score'].idxmax()]
+            max_avg_level_score_val = custom_round(max_avg_level_score_details['Score'])
+            max_avg_level_name = max_avg_level_score_details['Level']
+            cols[0].metric(label=f"Max Avg. Level Score ({event_name})", value=f"{max_avg_level_score_val:.3f}",
+                           help=f"Highest average score for a Level: {max_avg_level_name}")
+            # Create a small visual cue for the level's color
+            if max_avg_level_name in level_color_map:
+                 cols[0].markdown(f"<span style='color:{level_color_map[max_avg_level_name]};'>●</span> Level {max_avg_level_name}", unsafe_allow_html=True)
+            else:
+                 cols[0].caption(f"Level: {max_avg_level_name}")
+
+
+        # Max Individual Score
+        if not event_meet_data.empty:
+            max_individual_score_details = event_meet_data.loc[event_meet_data['Score'].idxmax()]
+            max_individual_score_val = custom_round(max_individual_score_details['Score'])
+            max_individual_athlete = max_individual_score_details['AthleteName']
+            max_individual_level = max_individual_score_details['Level']
+            cols[1].metric(label=f"Max Individual Score ({event_name})", value=f"{max_individual_score_val:.3f}",
+                           help=f"Athlete: {max_individual_athlete} (Level {max_individual_level})")
+            cols[1].caption(f"Athlete: {max_individual_athlete} (Level {max_individual_level})")
+        # --- END: Stat Cards for Meet View ---
+
+        # Assign colors to the bars
+        bar_colors = [level_color_map.get(level, "grey") for level in avg_scores_by_level['Level']]
+
+        fig_meet_event = px.bar(avg_scores_by_level, x="Level", y="Score",
+                                title=f"Average {event_name} Scores by Level",
+                                labels={"Score": "Average Score", "Level": "Team Level"},
+                                text="Score",
+                                color="Level", # Use Level for legend and color mapping
+                                color_discrete_map=level_color_map) # Apply the full map
+        
+        fig_meet_event.update_traces(marker=dict(line=dict(width=1, color='DarkSlateGrey')), 
+                                     texttemplate='%{text:.3f}', textposition='outside')
+        fig_meet_event.update_layout(xaxis={'categoryorder':'array', 'categoryarray': level_order},
+                                     yaxis_title=f"Average Score ({event_name})",
+                                     showlegend=True) # Show legend to see level colors
+        
+        if event_name == "All Around":
+            fig_meet_event.update_yaxes(range=[max(0, avg_scores_by_level.Score.min() - 2), min(40, avg_scores_by_level.Score.max() + 2)] if not avg_scores_by_level.empty else [30,40])
+        else:
+            fig_meet_event.update_yaxes(range=[max(0, avg_scores_by_level.Score.min() - 0.5), min(10, avg_scores_by_level.Score.max() + 0.5)] if not avg_scores_by_level.empty else [5.5,10])
+
+        st.plotly_chart(fig_meet_event, use_container_width=True)
+        st.markdown("---") # Separator after each event graph
+
+    # --- START: Team Score Bar Graph (sum of top 3 AA scores per level) ---
+    st.markdown("### Team Scores (Sum of Top 3 All Around Scores)")
+    aa_meet_data = meet_data[meet_data.Event == "All Around"]
+    team_scores_list = []
+
+    if not aa_meet_data.empty:
+        for level_val in level_order: # Iterate in the desired order
+            level_aa_data = aa_meet_data[aa_meet_data.Level == level_val]
+            if len(level_aa_data) >= 3:
+                top_3_scores = level_aa_data.nlargest(3, 'Score')['Score']
+                team_score = top_3_scores.sum()
+                team_scores_list.append({'Level': level_val, 'TeamScore': team_score})
+        
+        if team_scores_list:
+            team_scores_df = pd.DataFrame(team_scores_list)
+            # Ensure Level is treated as a category with the custom order for the plot
+            team_scores_df['Level'] = pd.Categorical(team_scores_df['Level'], categories=level_order, ordered=True)
+            team_scores_df = team_scores_df.sort_values("Level")
+
+            # Assign colors to the bars
+            team_score_bar_colors = [level_color_map.get(level, "grey") for level in team_scores_df['Level']]
+
+            fig_team_score = px.bar(team_scores_df, x="Level", y="TeamScore",
+                                    title="Team Scores by Level (Top 3 AA)",
+                                    labels={"TeamScore": "Team Score (Sum of Top 3 AA)", "Level": "Team Level"},
+                                    text="TeamScore",
+                                    color="Level", # Use Level for legend and color mapping
+                                    color_discrete_map=level_color_map) # Apply the full map
+            
+            fig_team_score.update_traces(marker=dict(line=dict(width=1, color='DarkSlateGrey')),
+                                         texttemplate='%{text:.3f}', textposition='outside')
+            fig_team_score.update_layout(xaxis={'categoryorder':'array', 'categoryarray': level_order},
+                                         yaxis_title="Team Score",
+                                         showlegend=True)
+            st.plotly_chart(fig_team_score, use_container_width=True)
+        else:
+            st.write("Not enough data (fewer than 3 athletes in AA per level) to calculate Team Scores for this meet.")
+    else:
+        st.write("No All Around data available for this meet to calculate Team Scores.")
+    # --- END: Team Score Bar Graph ---
 
 else:  # All athletes
     pool = df.groupby(["CompYear", "Event"]).Score.mean().reset_index()
