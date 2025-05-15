@@ -1,6 +1,6 @@
 import sqlite3, pandas as pd, streamlit as st, plotly.express as px
 
-st.title("TESTING DEPLOYMENT - NEW VERSION v6.2")
+st.title("TESTING DEPLOYMENT - NEW VERSION v6.3")
 
 @st.cache_data  # keeps queries fast for all users :contentReference[oaicite:1]{index=1}
 def load_db(path="scores.db"):
