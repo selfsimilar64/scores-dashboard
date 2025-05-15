@@ -569,8 +569,16 @@ elif view == "By meet":
         avg_scores_by_level = avg_scores_by_level.dropna(subset=['Level']) # Drop levels not in our defined order if any
         avg_scores_by_level = avg_scores_by_level.sort_values("Level")
         
+        # Filter out levels with no data for the current selection to prevent gaps in x-axis
+        avg_scores_by_level = avg_scores_by_level[avg_scores_by_level['Score'].notna()]
+        
         if avg_scores_by_level.empty:
             st.write(f"No aggregated data for {event_name} by level at this meet.")
+            continue
+            
+        levels_with_data_event = avg_scores_by_level['Level'].unique().tolist()
+        if not levels_with_data_event:
+            st.write(f"No data with defined levels for {event_name} at this meet.")
             continue
 
         # --- START: Stat Cards for Meet View ---
@@ -613,55 +621,69 @@ elif view == "By meet":
         
         fig_meet_event.update_traces(marker=dict(line=dict(width=1, color='DarkSlateGrey')), 
                                      texttemplate='%{text:.3f}', textposition='outside')
-        fig_meet_event.update_layout(xaxis={'type': 'category', 'categoryorder':'array', 'categoryarray': level_order},
+        fig_meet_event.update_layout(xaxis={'type': 'category', 'categoryorder':'array', 'categoryarray': levels_with_data_event}, # Use filtered levels
                                      yaxis_title=f"Average Score ({event_name})",
                                      showlegend=True) # Show legend to see level colors
         
+        # Set default y-axis ranges
         if event_name == "All Around":
-            fig_meet_event.update_yaxes(range=[max(0, avg_scores_by_level.Score.min() - 2), min(40, avg_scores_by_level.Score.max() + 2)] if not avg_scores_by_level.empty else [30,40])
+            fig_meet_event.update_yaxes(range=[30.0, 40.0])
         else:
-            fig_meet_event.update_yaxes(range=[max(0, avg_scores_by_level.Score.min() - 0.5), min(10, avg_scores_by_level.Score.max() + 0.5)] if not avg_scores_by_level.empty else [5.5,10])
+            fig_meet_event.update_yaxes(range=[5.5, 10.0])
 
         st.plotly_chart(fig_meet_event, use_container_width=True)
         st.markdown("---") # Separator after each event graph
 
-    # --- START: Team Score Bar Graph (sum of top 3 AA scores per level) ---
-    st.markdown("### Team Scores (Sum of Top 3 All Around Scores)")
+    # --- START: Team Score Bar Graph (average of top 3 AA scores per level) ---
+    st.markdown("### Team Scores (Average of Top 3 All Around Scores)")
     aa_meet_data = meet_data[meet_data.Event == "All Around"]
     team_scores_list = []
 
     if not aa_meet_data.empty:
+        # Ensure Level is categorical for proper grouping and iteration
+        aa_meet_data['Level'] = pd.Categorical(aa_meet_data['Level'], categories=level_order, ordered=True)
+        aa_meet_data = aa_meet_data.dropna(subset=['Level'])
+
         for level_val in level_order: # Iterate in the desired order
             level_aa_data = aa_meet_data[aa_meet_data.Level == level_val]
             if len(level_aa_data) >= 3:
                 top_3_scores = level_aa_data.nlargest(3, 'Score')['Score']
-                team_score = top_3_scores.sum()
-                team_scores_list.append({'Level': level_val, 'TeamScore': team_score})
+                team_score_avg = top_3_scores.mean() # Calculate average instead of sum
+                if pd.notna(team_score_avg):
+                    team_scores_list.append({'Level': level_val, 'TeamScore': team_score_avg})
         
         if team_scores_list:
             team_scores_df = pd.DataFrame(team_scores_list)
             # Ensure Level is treated as a category with the custom order for the plot
             team_scores_df['Level'] = pd.Categorical(team_scores_df['Level'], categories=level_order, ordered=True)
             team_scores_df = team_scores_df.sort_values("Level")
-
-            # Assign colors to the bars
-            team_score_bar_colors = [level_color_map.get(level, "grey") for level in team_scores_df['Level']]
-
-            fig_team_score = px.bar(team_scores_df, x="Level", y="TeamScore",
-                                    title="Team Scores by Level (Top 3 AA)",
-                                    labels={"TeamScore": "Team Score (Sum of Top 3 AA)", "Level": "Team Level"},
-                                    text="TeamScore",
-                                    color="Level", # Use Level for legend and color mapping
-                                    color_discrete_map=level_color_map) # Apply the full map
             
-            fig_team_score.update_traces(marker=dict(line=dict(width=1, color='DarkSlateGrey')),
-                                         texttemplate='%{text:.3f}', textposition='outside')
-            fig_team_score.update_layout(xaxis={'type': 'category', 'categoryorder':'array', 'categoryarray': level_order},
-                                         yaxis_title="Team Score",
-                                         showlegend=True)
-            st.plotly_chart(fig_team_score, use_container_width=True)
+            # Filter out levels with no team score data to prevent gaps
+            team_scores_df = team_scores_df[team_scores_df['TeamScore'].notna()]
+            levels_with_team_data = team_scores_df['Level'].unique().tolist()
+
+            if levels_with_team_data:
+                # Assign colors to the bars
+                team_score_bar_colors = [level_color_map.get(level, "grey") for level in team_scores_df['Level']]
+
+                fig_team_score = px.bar(team_scores_df, x="Level", y="TeamScore",
+                                        title="Team Scores by Level (Average of Top 3 AA)", # Updated title
+                                        labels={"TeamScore": "Average Team Score (Top 3 AA)", "Level": "Team Level"}, # Updated labels
+                                        text="TeamScore",
+                                        color="Level", # Use Level for legend and color mapping
+                                        color_discrete_map=level_color_map) # Apply the full map
+                
+                fig_team_score.update_traces(marker=dict(line=dict(width=1, color='DarkSlateGrey')),
+                                             texttemplate='%{text:.3f}', textposition='outside')
+                fig_team_score.update_layout(xaxis={'type': 'category', 'categoryorder':'array', 'categoryarray': levels_with_team_data}, # Use filtered levels
+                                             yaxis_title="Average Team Score", # Updated y-axis title
+                                             yaxis_range=[30.0, 40.0], # Set y-axis range
+                                             showlegend=True)
+                st.plotly_chart(fig_team_score, use_container_width=True)
+            else:
+                st.write("Not enough data to display Team Scores for this meet after filtering.")
         else:
-            st.write("Not enough data (fewer than 3 athletes in AA per level) to calculate Team Scores for this meet.")
+            st.write("Not enough data (fewer than 3 athletes in AA per level or scores are NaN) to calculate Team Scores for this meet.")
     else:
         st.write("No All Around data available for this meet to calculate Team Scores.")
     # --- END: Team Score Bar Graph ---
