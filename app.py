@@ -488,7 +488,7 @@ elif view == "By meet":
 
     # Define custom sort order and color mapping for levels
     level_order = [str(i) for i in range(1, 11)] + ["XB", "XS", "XG", "XP", "XD"]
-    numbered_level_colors = px.colors.sequential.Blues_r
+    numbered_level_colors = px.colors.sequential.Jet
     level_color_map = {}
     for i, level in enumerate([str(j) for j in range(1, 11)]):
         level_color_map[level] = numbered_level_colors[i % len(numbered_level_colors)]
