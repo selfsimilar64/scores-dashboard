@@ -167,6 +167,7 @@ elif view == "By athlete":
             data_to_plot['CompYear'] = data_to_plot['CompYear'].astype(str)
 
     fit_y_axis = st.sidebar.checkbox("Fit Y-axis to data", False)
+    calc_method = st.sidebar.radio("Calculation Method for Stats", ["Median", "Mean"], key="calc_method_athlete")
     y_axis_range = None
 
     # Events to plot
@@ -185,38 +186,126 @@ elif view == "By athlete":
             # Ensure max_score_year is taken from the specific row, could be string or number based on prior CompYear processing
             max_score_year = str(max_score_details['CompYear']) 
             
-            median_score_val = event_data_for_plot['Score'].median()
+            # Calculate Median or Mean based on selection
+            if calc_method == "Median":
+                chosen_stat_val = event_data_for_plot['Score'].median()
+                chosen_stat_label = "Median Score"
+            else: # Mean
+                chosen_stat_val = event_data_for_plot['Score'].mean()
+                chosen_stat_label = "Mean Score"
             
-            improvement_val = None
-            improvement_delta_text = ""
+            improvement_val = None # Initialize
+            improvement_delta_text = "" # Initialize
 
-            # Calculate improvement only if not showing current year only AND multiple years exist in event_data_for_plot for this level
-            if not show_current_year_only and 'CompYear' in event_data_for_plot.columns and event_data_for_plot['CompYear'].nunique() > 1:
-                # CompYear is already string in event_data_for_plot if multiple years are shown (due to data_to_plot processing)
+            # Determine if we are in a multi-year view for this event's data where comparison is possible
+            is_multi_year_scenario_for_comparison = (
+                not show_current_year_only and 
+                'CompYear' in event_data_for_plot.columns and 
+                event_data_for_plot['CompYear'].nunique() > 1
+            )
+            
+            # Determine if we are effectively in a single year view for this event's data
+            # This is true if "show_current_year_only" is checked OR if it's not checked but only one year of data exists for this event & level.
+            effective_comp_years_for_event = event_data_for_plot['CompYear'].unique()
+            is_effectively_single_year_view_for_event = show_current_year_only or (len(effective_comp_years_for_event) == 1)
+
+            if is_multi_year_scenario_for_comparison:
+                improvement_delta_text = "Improvement" # Will be appended with year later
+                # CompYear is already string in event_data_for_plot if multiple years are shown
                 unique_comp_years_str = sorted(event_data_for_plot['CompYear'].unique(), key=lambda y_str: int(y_str), reverse=True)
 
-                if len(unique_comp_years_str) >= 2:
+                # This check is implicitly handled by is_multi_year_scenario_for_comparison, but good for clarity
+                if len(unique_comp_years_str) >= 2: 
                     latest_year_str = unique_comp_years_str[0]
                     previous_year_str = unique_comp_years_str[1]
                     
-                    median_latest = event_data_for_plot[event_data_for_plot['CompYear'] == latest_year_str]['Score'].median()
-                    median_previous = event_data_for_plot[event_data_for_plot['CompYear'] == previous_year_str]['Score'].median()
+                    if calc_method == "Median":
+                        stat_latest = event_data_for_plot[event_data_for_plot['CompYear'] == latest_year_str]['Score'].median()
+                        stat_previous = event_data_for_plot[event_data_for_plot['CompYear'] == previous_year_str]['Score'].median()
+                    else: # Mean
+                        stat_latest = event_data_for_plot[event_data_for_plot['CompYear'] == latest_year_str]['Score'].mean()
+                        stat_previous = event_data_for_plot[event_data_for_plot['CompYear'] == previous_year_str]['Score'].mean()
                     
-                    if pd.notna(median_latest) and pd.notna(median_previous):
-                        improvement_val = median_latest - median_previous
+                    if pd.notna(stat_latest) and pd.notna(stat_previous):
+                        improvement_val = stat_latest - stat_previous
                         improvement_delta_text = f"Improvement (vs {previous_year_str})"
+                    else:
+                        improvement_val = None # Calculation failed
+                        improvement_delta_text = f"Improvement (vs {previous_year_str}, N/A)"
 
+
+            elif is_effectively_single_year_view_for_event and not event_data_for_plot.empty:
+                improvement_delta_text = "Intra-Year Trend"
+                # Ensure MeetDate is present and sort by it
+                if 'MeetDate' not in event_data_for_plot.columns:
+                    improvement_val = "N/A (Missing MeetDate)"
+                else:
+                    # Sort by MeetDate to ensure correct chronological order for trend
+                    year_event_scores_for_trend = event_data_for_plot.sort_values(by="MeetDate")
+                    num_meets = len(year_event_scores_for_trend)
+
+                    if num_meets < 2:
+                        improvement_val = "N/A" # Not enough data for trend
+                    else:
+                        scores_series = year_event_scores_for_trend['Score']
+                        
+                        first_period_scores_data = pd.Series(dtype=float)
+                        second_period_scores_data = pd.Series(dtype=float)
+
+                        if num_meets % 2 == 0: # Even number of meets
+                            # For 2 meets: first_half=[0], second_half=[1]
+                            # For 4 meets: first_half=[0,1], second_half=[2,3]
+                            first_period_scores_data = scores_series.iloc[:num_meets//2]
+                            second_period_scores_data = scores_series.iloc[num_meets//2:]
+                        else: # Odd number of meets (num_meets >= 3)
+                            # For 3 meets: middle_idx=1. first=[0,1], second=[1,2]
+                            # For 5 meets: middle_idx=2. first=[0,1,2], second=[2,3,4]
+                            middle_idx = num_meets // 2 
+                            first_period_scores_data = scores_series.iloc[:middle_idx + 1]
+                            second_period_scores_data = scores_series.iloc[middle_idx:]
+                        
+                        if first_period_scores_data.empty or first_period_scores_data.isnull().all() or \
+                           second_period_scores_data.empty or second_period_scores_data.isnull().all():
+                            improvement_val = "N/A" # Not enough valid scores in one or both periods
+                        else:
+                            if calc_method == "Median":
+                                stat_first = first_period_scores_data.median()
+                                stat_second = second_period_scores_data.median()
+                            else: # Mean
+                                stat_first = first_period_scores_data.mean()
+                                stat_second = second_period_scores_data.mean()
+                            
+                            if pd.notna(stat_first) and pd.notna(stat_second):
+                                calculated_trend = stat_second - stat_first
+                                improvement_val = f"{calculated_trend:+.3f}" # Format as string with sign
+                            else:
+                                improvement_val = "N/A" # Stat calculation failed for a period
+            
+            # --- END: Stat Cards (Calculation part) ---
+
+            # Display logic for stat cards
             num_cols = 2
-            if improvement_val is not None:
+            # improvement_val can be: float (multi-year), string ("+0.123", "N/A", "N/A (Missing MeetDate)"), or None
+            if improvement_val is not None: 
                 num_cols = 3
             
             cols = st.columns(num_cols)
             cols[0].metric(label="Max Score", value=f"{max_score_val:.3f}")
             cols[0].caption(f"Meet: {max_score_meet}, Year: {max_score_year}")
-            cols[1].metric(label="Median Score", value=f"{median_score_val:.3f}")
+            cols[1].metric(label=chosen_stat_label, value=f"{chosen_stat_val:.3f}")
+            
             if improvement_val is not None:
-                cols[2].metric(label=improvement_delta_text, value=f"{improvement_val:+.3f}", delta_color="normal")
-            # --- END: Stat Cards ---
+                display_value_for_metric = improvement_val
+                # If it's a number (float/int), format it. Otherwise, it's already a string ("N/A", "+0.123", etc.)
+                if isinstance(improvement_val, (float, int)): 
+                    display_value_for_metric = f"{improvement_val:+.3f}"
+                
+                # Ensure improvement_delta_text is set if improvement_val is not None
+                # (It should be, based on the logic above, but as a fallback)
+                current_delta_label = improvement_delta_text if improvement_delta_text else "Trend/Improvement"
+
+                cols[2].metric(label=current_delta_label, value=str(display_value_for_metric), delta_color="off")
+            # --- END: Stat Cards (Display part) ---
 
             # Sort by CompYear then MeetDate to ensure chronological stitching of year blocks
             # event_data_for_plot['CompYear'] is already string if multiple years, handle sorting carefully
