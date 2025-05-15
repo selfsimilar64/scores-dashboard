@@ -491,7 +491,8 @@ elif view == "By meet":
     numbered_level_colors = px.colors.sequential.Purp
     level_color_map = {}
     for i, level in enumerate([str(j) for j in range(1, 11)]):
-        level_color_map[level] = numbered_level_colors[(i % len(numbered_level_colors))+1]
+        t = i/10.0
+        level_color_map[level] = numbered_level_colors[int(t*len(numbered_level_colors))]
     level_color_map.update({
         "XB": "rgb(205, 127, 50)",   # Bronze
         "XS": "rgb(192, 192, 192)", # Silver
