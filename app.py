@@ -486,6 +486,20 @@ elif view == "By athlete":
 elif view == "By meet":
     st.header("View by Meet")
 
+    # Define custom sort order and color mapping for levels
+    level_order = [str(i) for i in range(1, 11)] + ["XB", "XS", "XG", "XP", "XD"]
+    numbered_level_colors = px.colors.sequential.Blues_r
+    level_color_map = {}
+    for i, level in enumerate([str(j) for j in range(1, 11)]):
+        level_color_map[level] = numbered_level_colors[i % len(numbered_level_colors)]
+    level_color_map.update({
+        "XB": "rgb(205, 127, 50)",   # Bronze
+        "XS": "rgb(192, 192, 192)", # Silver
+        "XG": "rgb(255, 215, 0)",   # Gold
+        "XP": "rgb(229, 228, 226)", # Platinum
+        "XD": "rgb(185, 242, 255)"  # Diamond-like (light blue)
+    })
+
     # --- CompYear Selector ---
     available_years_for_meets = sorted(df.CompYear.unique(), reverse=True)
     if not available_years_for_meets:
@@ -516,12 +530,27 @@ elif view == "By meet":
     meet_data = year_specific_df[year_specific_df.MeetName == selected_meet].copy()
 
     if meet_data.empty:
-        st.warning(f"No data available for the selected meet: {selected_meet}.")
+        st.warning(f"No data available for the selected meet: {selected_meet} in {selected_comp_year}.")
         st.stop()
 
-    # Define custom sort order for levels
-    level_order = [str(i) for i in range(1, 11)] + ["XB", "XS", "XG", "XP", "XD"]
-    
+    # Clean and normalize 'Level' column in meet_data
+    if 'Level' in meet_data.columns:
+        # Create a map from lowercase level names to canonical form in level_order
+        # e.g., {"xb": "XB", "xs": "XS", "1": "1"}
+        canonical_level_map = {lo.lower(): lo for lo in level_order}
+
+        def normalize_level(level_val_input):
+            if pd.isna(level_val_input):
+                return level_val_input
+            s_level_val = str(level_val_input).strip()
+            # Map to canonical form using lowercase version as key
+            return canonical_level_map.get(s_level_val.lower(), s_level_val)
+
+        meet_data['Level'] = meet_data['Level'].apply(normalize_level)
+        # Filter out any levels that are not in level_order after normalization
+        # This can happen if normalize_level returns a value not in canonical_level_map values
+        meet_data = meet_data[meet_data['Level'].isin(level_order)]
+
     # Define color mapping for levels
     numbered_level_colors = px.colors.sequential.Blues_r  # _r to reverse, lighter for lower numbers
     
