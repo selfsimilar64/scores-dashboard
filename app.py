@@ -1,5 +1,21 @@
 import sqlite3, pandas as pd, streamlit as st, plotly.express as px
 
+st.set_page_config(
+    page_title="Gymnastics Scores Dashboard",
+    page_icon="🤸",  # Example emoji
+    layout="wide",   # Or "centered"
+    initial_sidebar_state="expanded",
+    menu_items={
+        'Get Help': 'mailto:youremail@example.com', # Replace with your help info
+        'Report a bug': "mailto:youremail@example.com", # Replace
+        'About': "# Gymnastics Scores Dashboard\nThis app visualizes gymnastics competition scores."
+    }
+)
+
+# Example: Define a simple theme (can be customized further)
+# You can put this directly in st.set_page_config or modify via config.toml
+# For now, let's keep it simple. More advanced theming can use a .streamlit/config.toml file.
+
 st.title("TESTING DEPLOYMENT - NEW VERSION v6.3")
 
 @st.cache_data  # keeps queries fast for all users :contentReference[oaicite:1]{index=1}
@@ -27,31 +43,37 @@ def custom_round(value):
     return round(value * 20) / 20
 
 # ----- SIDEBAR DRILL-DOWN ----------------------------------------------------
-view = st.sidebar.radio("View", ["All athletes", "By team", "By athlete", "By meet"])
+view = st.sidebar.radio("View", ["By Level", "By Gymnast", "By Meet"])
 
-if view == "By team":
-    selected_level_team = st.sidebar.selectbox("Choose team (Level)", sorted(df.Level.unique()), key="team_level_selector")
+if view == "By Level":
+    level_options = ["All teams"] + sorted(df.Level.unique())
+    selected_level_team = st.sidebar.selectbox("Choose team (Level)", level_options, key="team_level_selector")
     calc_method_team = st.sidebar.radio("Calculation Method for Team Stats", ["Median", "Mean"], key="calc_method_team")
     
-    team_data_for_level = df[df.Level == selected_level_team]
+    if selected_level_team == "All teams":
+        team_data_for_level = df.copy() # Use all data
+        level_display_name = "All Teams"
+    else:
+        team_data_for_level = df[df.Level == selected_level_team]
+        level_display_name = f"Level {selected_level_team}"
 
     if team_data_for_level.empty:
-        st.warning(f"No data available for Level {selected_level_team}.")
+        st.warning(f"No data available for {level_display_name}.")
         st.stop()
 
     available_years = sorted(team_data_for_level.CompYear.unique(), reverse=True)
     if not available_years:
-        st.warning(f"No competition year data available for Level {selected_level_team}.")
+        st.warning(f"No competition year data available for {level_display_name}.")
         st.stop()
     
     selected_year = st.sidebar.selectbox("Choose CompYear", available_years, key="team_year_selector")
     
-    st.header(f"Team {selected_level_team} - Average Scores in {selected_year}")
+    st.header(f"Team {level_display_name} - Average Scores in {selected_year}")
 
     year_team_data_for_level = team_data_for_level[team_data_for_level.CompYear == selected_year]
 
     if year_team_data_for_level.empty:
-        st.warning(f"No data available for Level {selected_level_team} in {selected_year}.")
+        st.warning(f"No data available for {level_display_name} in {selected_year}.")
         st.stop()
 
     events = ["Vault", "Bars", "Beam", "Floor", "All Around"]
@@ -141,10 +163,11 @@ if view == "By team":
                     xaxis_title_font_size=18,
                     yaxis_title_font_size=18,
                     legend_title_font_size=16, 
-                    legend_font_size=14
+                    legend_font_size=14,
+                    title_text=""  # Ensure title is blank
                 )
                 # Round plotted scores (text on graph) to two decimal places
-                fig.update_traces(line=dict(width=4), marker=dict(size=10), textposition="top center", texttemplate='%{text:.2f}')
+                fig.update_traces(line=dict(width=5), marker=dict(size=12), textposition="top center", texttemplate='%{text:.2f}')
 
                 if not avg_event_scores.empty:
                     max_score_row = avg_event_scores.loc[avg_event_scores['Score'].idxmax()]
@@ -162,7 +185,7 @@ if view == "By team":
             # st.subheader(event) # Already called
             st.write(f"No data available for {event} for Level {selected_level_team} in {selected_year}.")
 
-elif view == "By athlete":
+elif view == "By Gymnast":
     athlete = st.sidebar.selectbox("Choose athlete", sorted(df.AthleteName.unique()))
     sub     = df[df.AthleteName == athlete]
 
@@ -375,11 +398,12 @@ elif view == "By athlete":
                 xaxis_title="Meet (Year)",
                 yaxis_title_font_size=18,
                 legend_title_font_size=16,
-                legend_font_size=14
+                legend_font_size=14,
+                title_text="" # Ensure title is blank
             )
             # Athlete text template already had .3f, let's make it consistent or decide if it needs rounding.
             # For now, keeping athlete's plotted text at .3f as per original structure.
-            fig_athlete.update_traces(line=dict(width=4), marker=dict(size=10), textposition="top center", texttemplate='%{text:.3f}')
+            fig_athlete.update_traces(line=dict(width=5), marker=dict(size=12), textposition="top center", texttemplate='%{text:.3f}')
 
 
             if not event_data_for_plot.empty:
@@ -461,12 +485,12 @@ elif view == "By athlete":
                                 y="Score",
                                 color="CompYear",
                                 barmode="group",
-                                title=f"Event Scores at {selected_comparison_meet_athlete} (Level {current_level_athlete})", # Title kept for bar chart
+                                title="", # Title set to blank
                                 labels={"Score": "Score (AA / 4)", "Event": "Event", "CompYear": "Competition Year"},
                                 text="Score",
                                 category_orders={"CompYear": sorted_comp_years_for_chart_athlete}
                             )
-                            fig_compare_athlete.update_traces(texttemplate='%{text:.3f}', textposition='outside') # AA can be .25, so .3f is fine
+                            fig_compare_athlete.update_traces(texttemplate='%{text:.3f}', textposition='outside', marker=dict(line=dict(width=2, color='DarkSlateGrey'))) # Added marker outline
                             fig_compare_athlete.update_layout(
                                 yaxis_title="Score (AA scores are divided by 4)",
                                 yaxis_range=[0.0, 10.5],
@@ -483,7 +507,7 @@ elif view == "By athlete":
             else:
                 st.sidebar.info(f"{athlete} has no competition year data for Level {current_level_athlete}. Multi-year comparison not available.")
 
-elif view == "By meet":
+elif view == "By Meet":
     st.header("View by Meet")
 
     # Define custom sort order and color mapping for levels
@@ -614,13 +638,13 @@ elif view == "By meet":
         bar_colors = [level_color_map.get(level, "grey") for level in avg_scores_by_level['Level']]
 
         fig_meet_event = px.bar(avg_scores_by_level, x="Level", y="Score",
-                                title=f"Average {event_name} Scores by Level",
-                                labels={"Score": "Average Score", "Level": "Team Level"},
+                                title="", # Title set to blank
+                                labels={"Score": "Average Score", "Level": "Level"},
                                 text="Score",
                                 color="Level", # Use Level for legend and color mapping
                                 color_discrete_map=level_color_map) # Apply the full map
         
-        fig_meet_event.update_traces(marker=dict(line=dict(width=1, color='DarkSlateGrey')), 
+        fig_meet_event.update_traces(marker=dict(line=dict(width=2, color='DarkSlateGrey')), # Increased width
                                      texttemplate='%{text:.3f}', textposition='outside')
         fig_meet_event.update_layout(xaxis={'type': 'category', 'categoryorder':'array', 'categoryarray': levels_with_data_event}, # Use filtered levels
                                      yaxis_title=f"Average Score ({event_name})",
@@ -668,13 +692,13 @@ elif view == "By meet":
                 team_score_bar_colors = [level_color_map.get(level, "grey") for level in team_scores_df['Level']]
 
                 fig_team_score = px.bar(team_scores_df, x="Level", y="TeamScore",
-                                        title="Team Scores by Level (Average of Top 3 AA)", # Updated title
+                                        title="", # Title set to blank
                                         labels={"TeamScore": "Average Team Score (Top 3 AA)", "Level": "Team Level"}, # Updated labels
                                         text="TeamScore",
                                         color="Level", # Use Level for legend and color mapping
                                         color_discrete_map=level_color_map) # Apply the full map
                 
-                fig_team_score.update_traces(marker=dict(line=dict(width=1, color='DarkSlateGrey')),
+                fig_team_score.update_traces(marker=dict(line=dict(width=2, color='DarkSlateGrey')), # Increased width
                                              texttemplate='%{text:.3f}', textposition='outside')
                 fig_team_score.update_layout(xaxis={'type': 'category', 'categoryorder':'array', 'categoryarray': levels_with_team_data}, # Use filtered levels
                                              yaxis_title="Average Team Score", # Updated y-axis title
@@ -688,9 +712,3 @@ elif view == "By meet":
     else:
         st.write("No All Around data available for this meet to calculate Team Scores.")
     # --- END: Team Score Bar Graph ---
-
-else:  # All athletes
-    pool = df.groupby(["CompYear", "Event"]).Score.mean().reset_index()
-    st.header("Entire Pool – Average Scores")
-    st.plotly_chart(px.line(pool, x="CompYear", y="Score",
-                            color="Event", markers=True))
