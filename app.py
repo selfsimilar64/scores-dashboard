@@ -108,13 +108,23 @@ elif view == "By athlete":
     athlete = st.sidebar.selectbox("Choose athlete", sorted(df.AthleteName.unique()))
     sub     = df[df.AthleteName == athlete]
 
-    # Get unique levels for the athlete
-    levels = sorted(sub.Level.unique())
-    if not levels:
-        st.warning(f"No data available for athlete {athlete}.")
+    # Get unique levels for the athlete, sorted by recency of CompYear
+    if not sub.empty:
+        athlete_levels_years = sub.groupby('Level')['CompYear'].max().reset_index()
+        # Ensure CompYear is numeric before sorting, in case it's read as string
+        athlete_levels_years['CompYear'] = pd.to_numeric(athlete_levels_years['CompYear'], errors='coerce')
+        athlete_levels_years = athlete_levels_years.sort_values(by='CompYear', ascending=False)
+        athlete_levels_years.dropna(subset=['CompYear'], inplace=True) # Remove levels if CompYear became NaN
+        
+        if athlete_levels_years.empty:
+            st.warning(f"No valid level and competition year data available for athlete {athlete}.")
+            st.stop()
+            
+        sorted_levels = athlete_levels_years.Level.tolist()
+        selected_level = st.sidebar.selectbox("Choose Level", sorted_levels, index=0) # Defaults to most recent year's level
+    else:
+        st.warning(f"No data available for athlete {athlete}.") # Should ideally not be reached if df has data
         st.stop()
-
-    selected_level = st.sidebar.selectbox("Choose Level", levels, index=0)
     
     show_current_year_only = st.sidebar.checkbox("Show most recent CompYear only", False)
     
@@ -138,13 +148,18 @@ elif view == "By athlete":
         st.warning(f"No valid date data available for {athlete} at Level {selected_level}.")
         st.stop()
 
+    current_comp_year_header_info = ""
     if show_current_year_only:
         if not data_to_plot.empty:
+            # Ensure CompYear is numeric for max() if it's not already
+            data_to_plot['CompYear'] = pd.to_numeric(data_to_plot['CompYear'], errors='coerce')
             most_recent_comp_year = data_to_plot.CompYear.max()
             data_to_plot = data_to_plot[data_to_plot.CompYear == most_recent_comp_year]
-            st.header(f"{athlete} - Level {selected_level} ({most_recent_comp_year})")
-        else:
-            st.header(f"{athlete} - Level {selected_level}") # Should not happen if sub_level_data was not empty
+            current_comp_year_header_info = f" ({most_recent_comp_year})"
+            # Convert CompYear to string for display consistency if it became numeric for filtering
+            if 'CompYear' in data_to_plot.columns:
+                 data_to_plot['CompYear'] = data_to_plot['CompYear'].astype(str)
+        st.header(f"{athlete} - Level {selected_level}{current_comp_year_header_info}")
     else:
         st.header(f"{athlete} - Level {selected_level} (All Years)")
         # Ensure CompYear is string for categorical coloring, and sort for legend
@@ -158,15 +173,65 @@ elif view == "By athlete":
     events = ["Vault", "Bars", "Beam", "Floor", "All Around"]
     
     for event in events:
-        event_data = data_to_plot[data_to_plot.Event == event].copy() # Use .copy()
-        if not event_data.empty:
-            st.subheader(event)
-            # Sort by CompYear then MeetDate to ensure chronological stitching of year blocks
-            event_data = event_data.sort_values(by=["CompYear", "MeetDate"])
+        event_data_for_plot = data_to_plot[data_to_plot.Event == event].copy() # Use .copy()
+        
+        st.subheader(event) # Display event title first
+
+        if not event_data_for_plot.empty:
+            # --- START: Stat Cards ---
+            max_score_details = event_data_for_plot.loc[event_data_for_plot['Score'].idxmax()]
+            max_score_val = max_score_details['Score']
+            max_score_meet = max_score_details['MeetName']
+            # Ensure max_score_year is taken from the specific row, could be string or number based on prior CompYear processing
+            max_score_year = str(max_score_details['CompYear']) 
             
+            median_score_val = event_data_for_plot['Score'].median()
+            
+            improvement_val = None
+            improvement_delta_text = ""
+
+            # Calculate improvement only if not showing current year only AND multiple years exist in event_data_for_plot for this level
+            if not show_current_year_only and 'CompYear' in event_data_for_plot.columns and event_data_for_plot['CompYear'].nunique() > 1:
+                # CompYear is already string in event_data_for_plot if multiple years are shown (due to data_to_plot processing)
+                unique_comp_years_str = sorted(event_data_for_plot['CompYear'].unique(), key=lambda y_str: int(y_str), reverse=True)
+
+                if len(unique_comp_years_str) >= 2:
+                    latest_year_str = unique_comp_years_str[0]
+                    previous_year_str = unique_comp_years_str[1]
+                    
+                    median_latest = event_data_for_plot[event_data_for_plot['CompYear'] == latest_year_str]['Score'].median()
+                    median_previous = event_data_for_plot[event_data_for_plot['CompYear'] == previous_year_str]['Score'].median()
+                    
+                    if pd.notna(median_latest) and pd.notna(median_previous):
+                        improvement_val = median_latest - median_previous
+                        improvement_delta_text = f"Improvement (vs {previous_year_str})"
+
+            num_cols = 2
+            if improvement_val is not None:
+                num_cols = 3
+            
+            cols = st.columns(num_cols)
+            cols[0].metric(label="Max Score", value=f"{max_score_val:.3f}")
+            cols[0].caption(f"Meet: {max_score_meet}, Year: {max_score_year}")
+            cols[1].metric(label="Median Score", value=f"{median_score_val:.3f}")
+            if improvement_val is not None:
+                cols[2].metric(label=improvement_delta_text, value=f"{improvement_val:+.3f}", delta_color="normal")
+            # --- END: Stat Cards ---
+
+            # Sort by CompYear then MeetDate to ensure chronological stitching of year blocks
+            # event_data_for_plot['CompYear'] is already string if multiple years, handle sorting carefully
+            if 'CompYear' in event_data_for_plot.columns:
+                 event_data_for_plot['CompYear_numeric'] = pd.to_numeric(event_data_for_plot['CompYear'])
+                 event_data_for_plot = event_data_for_plot.sort_values(by=["CompYear_numeric", "MeetDate"])
+                 event_data_for_plot.drop(columns=['CompYear_numeric'], inplace=True)
+            else: # Should not happen if CompYear exists
+                 event_data_for_plot = event_data_for_plot.sort_values(by=["MeetDate"])
+
+
             # Create a unique x-axis representation for each meet instance
-            # Ensure CompYear is string for concatenation, especially if it was numeric
-            event_data['x_display'] = event_data['MeetName'] + ' (' + event_data['CompYear'].astype(str) + ')'
+            # Ensure CompYear is string for concatenation
+            event_data_for_plot['CompYear_str'] = event_data_for_plot['CompYear'].astype(str)
+            event_data_for_plot['x_display'] = event_data_for_plot['MeetName'] + ' (' + event_data_for_plot['CompYear_str'] + ')'
             
             current_y_axis_range = None
             if not fit_y_axis:
@@ -175,97 +240,99 @@ elif view == "By athlete":
                 else:
                     current_y_axis_range = [5.5, 10.0]
             
-            plot_color_arg = "CompYear" if not show_current_year_only and len(event_data.CompYear.unique()) > 1 else None
+            plot_color_arg = "CompYear" if not show_current_year_only and event_data_for_plot.CompYear.nunique() > 1 else None
             
-            # Use the event-specific color from color_map if not coloring by CompYear
             discrete_color_sequence = [color_map.get(event, "black")] if plot_color_arg is None else None
 
-            fig = px.line(event_data, x="x_display", y="Score", # Use new x_display
+            fig = px.line(event_data_for_plot, x="x_display", y="Score",
                             color=plot_color_arg,
-                            markers=True, title=event,
+                            markers=True, title="", # Title handled by st.subheader + stat cards
                             color_discrete_sequence=discrete_color_sequence,
-                            text="Score") # Add text for data labels
+                            text="Score")
             fig.update_layout(
                 height=600,
-                title_font_size=24,      # Increase title font size
-                xaxis_title_font_size=18, # Increase x-axis label font size
-                xaxis_title="Meet (Year)", # Updated x-axis title
-                yaxis_title_font_size=18, # Increase y-axis label font size
-                legend_title_font_size=16, # Increase legend title font size
-                legend_font_size=14       # Increase legend font size
+                title_font_size=24,
+                xaxis_title_font_size=18,
+                xaxis_title="Meet (Year)",
+                yaxis_title_font_size=18,
+                legend_title_font_size=16,
+                legend_font_size=14
             )
-            fig.update_traces(line=dict(width=4), marker=dict(size=10), textposition="top center") # Position data labels
+            fig.update_traces(line=dict(width=4), marker=dict(size=10), textposition="top center", texttemplate='%{text:.3f}')
 
-            # Highlight highest score
-            if not event_data.empty:
-                max_score_row = event_data.loc[event_data['Score'].idxmax()]
-                fig.add_annotation(x=max_score_row['x_display'], y=max_score_row['Score'], # Use x_display
+            if not event_data_for_plot.empty:
+                max_score_row_for_star = event_data_for_plot.loc[event_data_for_plot['Score'].idxmax()]
+                fig.add_annotation(x=max_score_row_for_star['x_display'], y=max_score_row_for_star['Score'],
                                    text="⭐", showarrow=False, font=dict(size=20))
 
-            if current_y_axis_range: # Apply the determined y-axis range
+            if current_y_axis_range:
                 fig.update_yaxes(range=current_y_axis_range)
-            st.plotly_chart(fig, use_container_width=True) # Make graph use full width
+            st.plotly_chart(fig, use_container_width=True)
         else:
-            st.subheader(event)
-            st.write(f"No data available for {event} at Level {selected_level}" + (f" in {most_recent_comp_year}." if show_current_year_only and 'most_recent_comp_year' in locals() else "."))
+            # st.subheader(event) # Already called
+            no_data_message = f"No data available for {event} at Level {selected_level}"
+            if show_current_year_only and 'most_recent_comp_year' in locals() and most_recent_comp_year is not pd.NA:
+                 no_data_message += f" in {int(most_recent_comp_year)}."
+            else:
+                 no_data_message += "."
+            st.write(no_data_message)
 
     # --- START: Multi-Year Comparison Logic ---
-    # This logic is largely replaced or made redundant by the new Level-based multi-year line charts.
-    # Commenting out for now.
-    '''
-    if not sub_year.empty: # Athlete has data for the selected_comp_year
-        current_level_series = sub_year.Level.unique()
-        
-        if len(current_level_series) == 1: # Athlete competed at a single, unambiguous level in selected_comp_year
-            current_level = current_level_series[0]
+    if not show_current_year_only: # Condition for attempting multi-year comparison
+        # sub_level_data is the data for the current athlete at selected_level, all years
+        # selected_level is the currently chosen level
 
-            # Get all data for this athlete at this specific level across all years
-            all_data_at_current_level = sub[sub.Level == current_level]
-            
-            # Get all unique competition years the athlete competed at this level
-            all_comp_years_at_this_level = sorted(all_data_at_current_level.CompYear.unique())
+        if not sub_level_data.empty:
+            current_level = selected_level
+            all_data_at_selected_level = sub_level_data.copy()
 
-            if len(all_comp_years_at_this_level) > 1: # Only offer comparison if athlete competed at this level in multiple years
-                
-                # Meets attended by the athlete in the primary selected_comp_year at current_level
-                meets_in_selected_year_at_level = sorted(sub_year[sub_year.Level == current_level].MeetName.unique())
+            if 'CompYear' in all_data_at_selected_level.columns:
+                all_data_at_selected_level['CompYear_numeric'] = pd.to_numeric(all_data_at_selected_level['CompYear'], errors='coerce')
+                all_data_at_selected_level.dropna(subset=['CompYear_numeric'], inplace=True)
+                all_comp_years_at_this_level_numeric = sorted(all_data_at_selected_level.CompYear_numeric.unique())
+            else:
+                all_comp_years_at_this_level_numeric = []
 
-                if meets_in_selected_year_at_level:
-                    st.sidebar.markdown("---") # Visual separator in sidebar
-                    st.sidebar.subheader(f"Multi-Year Meet Comparison (Level {current_level})")
-                    
+            if len(all_comp_years_at_this_level_numeric) > 1:
+                st.sidebar.markdown("---")
+                st.sidebar.subheader(f"Multi-Year Meet Comparison (Level {current_level})")
+
+                primary_comp_year_for_meets = int(all_comp_years_at_this_level_numeric[-1]) # Most recent year, as int
+
+                meets_in_primary_year_at_level = sorted(
+                    all_data_at_selected_level[
+                        all_data_at_selected_level.CompYear_numeric == primary_comp_year_for_meets
+                    ].MeetName.unique()
+                )
+
+                if meets_in_primary_year_at_level:
                     selected_comparison_meet = st.sidebar.selectbox(
-                        f"Select Meet to Compare (Level {current_level})",
-                        meets_in_selected_year_at_level,
-                        index=0, # Default to the first meet
-                        key=f"multi_year_comparison_meet_{athlete}_{selected_comp_year}_{current_level}" # Unique key
+                        f"Select Meet to Compare (from year {primary_comp_year_for_meets}, Level {current_level})",
+                        meets_in_primary_year_at_level,
+                        index=0,
+                        key=f"multi_year_comparison_meet_{athlete}_{current_level}"
                     )
 
                     if selected_comparison_meet:
-                        # Filter all data at current_level for the selected_comparison_meet
-                        comparison_df = all_data_at_current_level[all_data_at_current_level.MeetName == selected_comparison_meet]
-                        
-                        # Ensure we are only comparing years where the athlete actually participated in this meet at this level
-                        # This is mostly handled by the MeetName filter but good to be explicit with CompYear scope
-                        comparison_df = comparison_df[comparison_df.CompYear.isin(all_comp_years_at_this_level)]
+                        comparison_df = all_data_at_selected_level[
+                            (all_data_at_selected_level.MeetName == selected_comparison_meet) &
+                            (all_data_at_selected_level.CompYear_numeric.isin(all_comp_years_at_this_level_numeric))
+                        ].copy() # Ensure it's a copy
 
-                        if not comparison_df.empty:
-                            st.markdown("---") # Visual separator in main area
+                        if not comparison_df.empty and comparison_df.CompYear_numeric.nunique() > 1:
+                            st.markdown("---")
                             st.header(f"Score Comparison: {selected_comparison_meet} (Level {current_level})")
                             
-                            # Sort CompYear for chronological display in legend and bars
-                            # Ensure CompYear is string for Plotly categorical coloring, then sort numerically
-                            comparison_df['CompYear'] = comparison_df['CompYear'].astype(str)
-                            sorted_comp_years_for_chart = sorted(comparison_df.CompYear.unique(), key=lambda y_str: int(y_str))
+                            comparison_df['CompYear'] = comparison_df['CompYear_numeric'].astype(int).astype(str) # For display and coloring
+                            sorted_comp_years_for_chart = sorted(comparison_df.CompYear.unique(), key=int)
                             
                             st.subheader(f"Comparing Years: {', '.join(sorted_comp_years_for_chart)}")
                             
                             events_order = ["Vault", "Bars", "Beam", "Floor", "All Around"]
                             comparison_df['Event'] = pd.Categorical(comparison_df['Event'], categories=events_order, ordered=True)
-                            comparison_df = comparison_df.dropna(subset=['Event']) # Drop if event is not in our defined list
+                            comparison_df = comparison_df.dropna(subset=['Event'])
                             comparison_df = comparison_df.sort_values('Event')
 
-                            # Apply All Around average: Score / 4
                             if 'All Around' in comparison_df['Event'].values:
                                 aa_condition = comparison_df['Event'] == 'All Around'
                                 comparison_df.loc[aa_condition, 'Score'] = comparison_df.loc[aa_condition, 'Score'] / 4
@@ -277,29 +344,28 @@ elif view == "By athlete":
                                 color="CompYear",
                                 barmode="group",
                                 title=f"Event Scores at {selected_comparison_meet} (Level {current_level})",
-                                labels={"Score": "Score", "Event": "Event", "CompYear": "Competition Year"},
+                                labels={"Score": "Score (AA / 4)", "Event": "Event", "CompYear": "Competition Year"},
                                 text="Score",
-                                category_orders={"CompYear": sorted_comp_years_for_chart} # Chronological order
+                                category_orders={"CompYear": sorted_comp_years_for_chart}
                             )
                             fig_compare.update_traces(texttemplate='%{text:.3f}', textposition='outside')
                             fig_compare.update_layout(
-                                yaxis_title="Score",
-                                yaxis_range=[5.5, 10.0], # User-defined fixed y-axis
+                                yaxis_title="Score (AA scores are divided by 4)",
+                                yaxis_range=[0.0, 10.5],
                                 legend_title_text="Year",
                                 height=500 
                             )
                             st.plotly_chart(fig_compare, use_container_width=True)
                         else:
-                            st.info(f"No detailed score data available to compare for {selected_comparison_meet} across relevant years at Level {current_level}.")
+                            st.info(f"Not enough data (multiple years) for {selected_comparison_meet} at Level {current_level} to compare.")
                 else:
-                    st.sidebar.info(f"No meets found for {athlete} in {selected_comp_year} at Level {current_level} to enable multi-year comparison.")
+                    st.sidebar.info(f"No meets found in {primary_comp_year_for_meets} (most recent year at Level {current_level}) to enable comparison. Or, athlete did not participate in any single meet across multiple years at this level.")
+            elif len(all_comp_years_at_this_level_numeric) == 1:
+                st.sidebar.info(f"{athlete} has only competed at Level {current_level} in a single year ({int(all_comp_years_at_this_level_numeric[0])}). Multi-year meet comparison not available.")
             else:
-                st.sidebar.info(f"{athlete} has not competed at Level {current_level} in multiple years. Multi-year comparison not available.")
-        elif len(current_level_series) == 0:
-             st.sidebar.warning(f"No level information found for {athlete} in {selected_comp_year}.")
-        else: # len(current_level_series) > 1
-            st.sidebar.warning(f"{athlete} competed at multiple levels in {selected_comp_year}. Please refine data or select a year with a single level for comparison.")
-    '''
+                st.sidebar.info(f"{athlete} has no competition year data for Level {current_level}. Multi-year comparison not available.")
+        # No 'else' needed here as sub_level_data.empty is caught when trying to plot line charts.
+
     # --- END: Multi-Year Comparison Logic ---
 
 else:  # All athletes
