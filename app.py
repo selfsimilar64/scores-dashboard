@@ -127,6 +127,17 @@ elif view == "By athlete":
 
     data_to_plot = sub_level_data.copy()
     
+    if 'MeetDate' in data_to_plot.columns:
+        data_to_plot['MeetDate'] = pd.to_datetime(data_to_plot['MeetDate'], errors='coerce')
+        data_to_plot.dropna(subset=['MeetDate'], inplace=True)
+    else:
+        st.error("MeetDate column missing, cannot plot athlete data chronologically.")
+        st.stop()
+
+    if data_to_plot.empty: # Check if empty after potential dropna
+        st.warning(f"No valid date data available for {athlete} at Level {selected_level}.")
+        st.stop()
+
     if show_current_year_only:
         if not data_to_plot.empty:
             most_recent_comp_year = data_to_plot.CompYear.max()
@@ -147,11 +158,15 @@ elif view == "By athlete":
     events = ["Vault", "Bars", "Beam", "Floor", "All Around"]
     
     for event in events:
-        event_data = data_to_plot[data_to_plot.Event == event]
+        event_data = data_to_plot[data_to_plot.Event == event].copy() # Use .copy()
         if not event_data.empty:
             st.subheader(event)
-            # Sort by MeetDate to ensure chronological order, then by CompYear if MeetNames are not unique across years
+            # Sort by CompYear then MeetDate to ensure chronological stitching of year blocks
             event_data = event_data.sort_values(by=["CompYear", "MeetDate"])
+            
+            # Create a unique x-axis representation for each meet instance
+            # Ensure CompYear is string for concatenation, especially if it was numeric
+            event_data['x_display'] = event_data['MeetName'] + ' (' + event_data['CompYear'].astype(str) + ')'
             
             current_y_axis_range = None
             if not fit_y_axis:
@@ -165,7 +180,7 @@ elif view == "By athlete":
             # Use the event-specific color from color_map if not coloring by CompYear
             discrete_color_sequence = [color_map.get(event, "black")] if plot_color_arg is None else None
 
-            fig = px.line(event_data, x="MeetName", y="Score", 
+            fig = px.line(event_data, x="x_display", y="Score", # Use new x_display
                             color=plot_color_arg,
                             markers=True, title=event,
                             color_discrete_sequence=discrete_color_sequence,
@@ -174,6 +189,7 @@ elif view == "By athlete":
                 height=600,
                 title_font_size=24,      # Increase title font size
                 xaxis_title_font_size=18, # Increase x-axis label font size
+                xaxis_title="Meet (Year)", # Updated x-axis title
                 yaxis_title_font_size=18, # Increase y-axis label font size
                 legend_title_font_size=16, # Increase legend title font size
                 legend_font_size=14       # Increase legend font size
@@ -183,7 +199,7 @@ elif view == "By athlete":
             # Highlight highest score
             if not event_data.empty:
                 max_score_row = event_data.loc[event_data['Score'].idxmax()]
-                fig.add_annotation(x=max_score_row['MeetName'], y=max_score_row['Score'],
+                fig.add_annotation(x=max_score_row['x_display'], y=max_score_row['Score'], # Use x_display
                                    text="⭐", showarrow=False, font=dict(size=20))
 
             if current_y_axis_range: # Apply the determined y-axis range
