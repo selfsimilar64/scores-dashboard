@@ -485,10 +485,25 @@ elif view == "By athlete":
 
 elif view == "By meet":
     st.header("View by Meet")
-    # Get unique meet names for the selector
-    meet_names = sorted(df.MeetName.unique())
+
+    # --- CompYear Selector ---
+    available_years_for_meets = sorted(df.CompYear.unique(), reverse=True)
+    if not available_years_for_meets:
+        st.warning("No competition year data available.")
+        st.stop()
+    selected_comp_year = st.sidebar.selectbox("Choose CompYear", available_years_for_meets, key="meet_comp_year_selector")
+
+    if not selected_comp_year:
+        st.info("Please select a competition year.")
+        st.stop()
+
+    # Filter data for the selected CompYear first
+    year_specific_df = df[df.CompYear == selected_comp_year]
+
+    # Get unique meet names for the selector, filtered by CompYear
+    meet_names = sorted(year_specific_df.MeetName.unique())
     if not meet_names:
-        st.warning("No meet data available.")
+        st.warning(f"No meet data available for {selected_comp_year}.")
         st.stop()
     
     selected_meet = st.sidebar.selectbox("Choose Meet", meet_names, key="meet_selector")
@@ -497,8 +512,8 @@ elif view == "By meet":
         st.info("Please select a meet from the sidebar.")
         st.stop()
 
-    st.subheader(f"Results for: {selected_meet}")
-    meet_data = df[df.MeetName == selected_meet].copy()
+    st.subheader(f"Results for: {selected_meet} ({selected_comp_year})")
+    meet_data = year_specific_df[year_specific_df.MeetName == selected_meet].copy()
 
     if meet_data.empty:
         st.warning(f"No data available for the selected meet: {selected_meet}.")
