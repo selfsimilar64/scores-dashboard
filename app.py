@@ -500,7 +500,7 @@ elif view == "By meet":
         "XD": "rgb(185, 242, 255)"  # Diamond-like (light blue)
     })
 
-    # --- CompYear Selector ---
+    # --- START: CompYear Selector ---
     available_years_for_meets = sorted(df.CompYear.unique(), reverse=True)
     if not available_years_for_meets:
         st.warning("No competition year data available.")
@@ -550,24 +550,6 @@ elif view == "By meet":
         # Filter out any levels that are not in level_order after normalization
         # This can happen if normalize_level returns a value not in canonical_level_map values
         meet_data = meet_data[meet_data['Level'].isin(level_order)]
-
-    # Define color mapping for levels
-    numbered_level_colors = px.colors.sequential.Blues_r  # _r to reverse, lighter for lower numbers
-    
-    level_color_map = {}
-    # Assign colors to numbered levels (1-10)
-    for i, level in enumerate([str(j) for j in range(1, 11)]):
-        # Ensure we have enough colors, cycle if necessary
-        level_color_map[level] = numbered_level_colors[i % len(numbered_level_colors)] 
-        
-    # Assign specific colors for X levels
-    level_color_map.update({
-        "XB": "rgb(205, 127, 50)",   # Bronze
-        "XS": "rgb(192, 192, 192)", # Silver
-        "XG": "rgb(255, 215, 0)",   # Gold
-        "XP": "rgb(229, 228, 226)", # Platinum
-        "XD": "rgb(185, 242, 255)"  # Diamond-like (light blue)
-    })
 
     events_to_graph = ["Vault", "Bars", "Beam", "Floor", "All Around"]
 
@@ -631,7 +613,7 @@ elif view == "By meet":
         
         fig_meet_event.update_traces(marker=dict(line=dict(width=1, color='DarkSlateGrey')), 
                                      texttemplate='%{text:.3f}', textposition='outside')
-        fig_meet_event.update_layout(xaxis={'categoryorder':'array', 'categoryarray': level_order},
+        fig_meet_event.update_layout(xaxis={'type': 'category', 'categoryorder':'array', 'categoryarray': level_order},
                                      yaxis_title=f"Average Score ({event_name})",
                                      showlegend=True) # Show legend to see level colors
         
@@ -674,7 +656,7 @@ elif view == "By meet":
             
             fig_team_score.update_traces(marker=dict(line=dict(width=1, color='DarkSlateGrey')),
                                          texttemplate='%{text:.3f}', textposition='outside')
-            fig_team_score.update_layout(xaxis={'categoryorder':'array', 'categoryarray': level_order},
+            fig_team_score.update_layout(xaxis={'type': 'category', 'categoryorder':'array', 'categoryarray': level_order},
                                          yaxis_title="Team Score",
                                          showlegend=True)
             st.plotly_chart(fig_team_score, use_container_width=True)
