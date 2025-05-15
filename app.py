@@ -140,6 +140,9 @@ elif view == "By athlete":
         if 'CompYear' in data_to_plot.columns:
             data_to_plot['CompYear'] = data_to_plot['CompYear'].astype(str)
 
+    fit_y_axis = st.sidebar.checkbox("Fit Y-axis to data", False)
+    y_axis_range = None
+
     # Events to plot
     events = ["Vault", "Bars", "Beam", "Floor", "All Around"]
     
