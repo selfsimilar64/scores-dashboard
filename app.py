@@ -45,12 +45,12 @@ div[data-testid="stColumn"] > div[data-testid="stVerticalBlockBorderWrapper"] > 
 div[data-testid="stColumn"] > div[data-testid="stVerticalBlockBorderWrapper"] > div[data-testid="stVerticalBlock"] .stMetric label,
 div[data-testid="stColumn"] > div[data-testid="stVerticalBlockBorderWrapper"] > div[data-testid="stVerticalBlock"] .stMetric div[data-testid="stMetricValue"],
 div[data-testid="stColumn"] > div[data-testid="stVerticalBlockBorderWrapper"] > div[data-testid="stVerticalBlock"] .stMetric span { /* For delta */
-    color: var(--text-color) !important;
+    color: #FFFFFF !important;
 }
 
 /* Style for st.caption (rendered as markdown) within these cards */
 div[data-testid="stColumn"] > div[data-testid="stVerticalBlockBorderWrapper"] > div[data-testid="stVerticalBlock"] div[data-testid="stCaptionContainer"] p {
-    color: var(--text-color) !important;
+    color: #FFFFFF !important;
     opacity: 0.75; /* Slightly less prominent caption */
     font-size: 0.875rem; /* Smaller font for caption */
 }
