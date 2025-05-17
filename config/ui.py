@@ -74,3 +74,30 @@ div[data-testid="stColumn"] > div[data-testid="stVerticalBlockBorderWrapper"] > 
 
 # Font configuration (example, can be expanded)
 FONT_FAMILY = "Roboto, sans-serif" # A common sans-serif font 
+
+# Tab styling
+TAB_FONT_SIZE = "1.1rem" # Default: 1rem. Increased for better readability
+
+CUSTOM_TAB_CSS = f"""
+<style>
+    /* Target the tab buttons for font size and padding */
+    button[data-baseweb="tab"] {{
+        font-size: {TAB_FONT_SIZE} !important;
+        padding-left: 1.5rem !important; /* Increase left padding */
+        padding-right: 1.5rem !important; /* Increase right padding */
+        padding-top: 0.75rem !important; /* Increase top padding for more height */
+        padding-bottom: 0.75rem !important; /* Increase bottom padding for more height */
+    }}
+
+    /* Target the tab list container for spacing between tabs */
+    div[data-baseweb="tab-list"] {{
+        gap: 0.5rem; /* Add space between tab buttons */
+    }}
+
+    /* Target the active tab indicator line */
+    div[data-baseweb="tab-highlight"] {{
+        height: 3px !important; /* Make the indicator line thicker */
+        background-color: #1E88E5 !important; /* Optional: Change indicator color if needed, using a generic blue for now */
+    }}
+</style>
+""" 

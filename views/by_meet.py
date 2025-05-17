@@ -12,11 +12,13 @@ from config import (
     MEET_VIEW_TEAM_SCORE_Y_RANGE,
     XAXIS_TICKFONT_SIZE,
     YAXIS_TICKFONT_SIZE,
-    MARKER_TEXTFONT_SIZE
+    MARKER_TEXTFONT_SIZE,
+    CUSTOM_TAB_CSS
 )
 
 def render_by_meet_view(df: pd.DataFrame):
     st.sidebar.header("Meet View Options") # Added header for clarity
+    st.markdown(CUSTOM_TAB_CSS, unsafe_allow_html=True) # Apply custom tab styles
 
     col1_meet, col2_meet = st.columns(2)
 
@@ -60,76 +62,76 @@ def render_by_meet_view(df: pd.DataFrame):
         meet_data['Level'] = meet_data['Level'].apply(normalize_level)
         meet_data = meet_data[meet_data['Level'].isin(MEET_VIEW_LEVEL_ORDER)]
 
-    for event_name in MEET_VIEW_EVENTS_TO_GRAPH:
-        st.markdown(f"### {event_name} Scores")
-        event_meet_data = meet_data[meet_data.Event == event_name]
+    # Create tabs for each event
+    event_tabs = st.tabs(MEET_VIEW_EVENTS_TO_GRAPH)
 
-        if event_meet_data.empty:
-            st.write(f"No data for {event_name} at this meet.")
-            st.markdown("---")
-            continue
+    for i, event_name in enumerate(MEET_VIEW_EVENTS_TO_GRAPH):
+        with event_tabs[i]:
+            # st.markdown(f"### {event_name} Scores") # Title is now in the tab label
+            event_meet_data = meet_data[meet_data.Event == event_name]
 
-        avg_scores_by_level = event_meet_data.groupby("Level").Score.mean().reset_index()
-        avg_scores_by_level['Level'] = pd.Categorical(avg_scores_by_level['Level'], categories=MEET_VIEW_LEVEL_ORDER, ordered=True)
-        avg_scores_by_level = avg_scores_by_level.dropna(subset=['Level'])
-        avg_scores_by_level = avg_scores_by_level.sort_values("Level")
-        avg_scores_by_level = avg_scores_by_level[avg_scores_by_level['Score'].notna()]
-        
-        if avg_scores_by_level.empty:
-            st.write(f"No aggregated data for {event_name} by level at this meet.")
-            st.markdown("---")
-            continue
+            if event_meet_data.empty:
+                st.write(f"No data for {event_name} at this meet.")
+                continue
+
+            avg_scores_by_level = event_meet_data.groupby("Level").Score.mean().reset_index()
+            avg_scores_by_level['Level'] = pd.Categorical(avg_scores_by_level['Level'], categories=MEET_VIEW_LEVEL_ORDER, ordered=True)
+            avg_scores_by_level = avg_scores_by_level.dropna(subset=['Level'])
+            avg_scores_by_level = avg_scores_by_level.sort_values("Level")
+            avg_scores_by_level = avg_scores_by_level[avg_scores_by_level['Score'].notna()]
             
-        levels_with_data_event = avg_scores_by_level['Level'].unique().tolist()
-        if not levels_with_data_event:
-            st.write(f"No data with defined levels for {event_name} at this meet.")
-            st.markdown("---")
-            continue
+            if avg_scores_by_level.empty:
+                st.write(f"No aggregated data for {event_name} by level at this meet.")
+                continue
+            
+            levels_with_data_event = avg_scores_by_level['Level'].unique().tolist()
+            if not levels_with_data_event:
+                st.write(f"No data with defined levels for {event_name} at this meet.")
+                continue
 
-        cols = st.columns(2)
-        with cols[0]:
-            max_avg_score_row = avg_scores_by_level.loc[avg_scores_by_level['Score'].idxmax()]
-            max_avg_level_score_val = custom_round(max_avg_score_row['Score'])
-            max_avg_level_name = max_avg_score_row['Level']
-            st.metric(label=f"Max Avg. Level Score ({event_name})", value=f"{max_avg_level_score_val:.3f}",
-                       help=f"Highest average score for a Level: {max_avg_level_name}")
-            if max_avg_level_name in LEVEL_COLORS:
-                 st.markdown(f"<span style='color:{LEVEL_COLORS[max_avg_level_name]};'>●</span> Level {max_avg_level_name}", unsafe_allow_html=True)
-            else:
-                 st.caption(f"Level: {max_avg_level_name}")
+            cols = st.columns(2)
+            with cols[0]:
+                max_avg_score_row = avg_scores_by_level.loc[avg_scores_by_level['Score'].idxmax()]
+                max_avg_level_score_val = custom_round(max_avg_score_row['Score'])
+                max_avg_level_name = max_avg_score_row['Level']
+                st.metric(label=f"Max Avg. Level Score ({event_name})", value=f"{max_avg_level_score_val:.3f}",
+                           help=f"Highest average score for a Level: {max_avg_level_name}")
+                if max_avg_level_name in LEVEL_COLORS:
+                     st.markdown(f"<span style='color:{LEVEL_COLORS[max_avg_level_name]};'>●</span> Level {max_avg_level_name}", unsafe_allow_html=True)
+                else:
+                     st.caption(f"Level: {max_avg_level_name}")
 
-        with cols[1]:
-            max_individual_score_details = event_meet_data.loc[event_meet_data['Score'].idxmax()]
-            max_individual_score_val = custom_round(max_individual_score_details['Score'])
-            max_individual_athlete = max_individual_score_details['AthleteName']
-            max_individual_level = max_individual_score_details['Level']
-            st.metric(label=f"Max Individual Score ({event_name})", value=f"{max_individual_score_val:.3f}",
-                       help=f"Athlete: {max_individual_athlete} (Level {max_individual_level})")
-            st.caption(f"Athlete: {max_individual_athlete} (Level {max_individual_level})")
+            with cols[1]:
+                max_individual_score_details = event_meet_data.loc[event_meet_data['Score'].idxmax()]
+                max_individual_score_val = custom_round(max_individual_score_details['Score'])
+                max_individual_athlete = max_individual_score_details['AthleteName']
+                max_individual_level = max_individual_score_details['Level']
+                st.metric(label=f"Max Individual Score ({event_name})", value=f"{max_individual_score_val:.3f}",
+                           help=f"Athlete: {max_individual_athlete} (Level {max_individual_level})")
+                st.caption(f"Athlete: {max_individual_athlete} (Level {max_individual_level})")
 
-        fig_meet_event = px.bar(avg_scores_by_level, x="Level", y="Score",
-                                labels={"Score": "Average Score", "Level": "Level"},
-                                text="Score",
-                                color="Level",
-                                color_discrete_map=LEVEL_COLORS)
-        
-        fig_meet_event.update_traces(
-            **COMMON_BAR_TRACE_ARGS, 
-            texttemplate='%{text:.3f}',
-            textfont=dict(size=MARKER_TEXTFONT_SIZE)
-        )
-        current_layout_args = COMMON_LAYOUT_ARGS.copy()
-        current_layout_args['xaxis'] = {'type': 'category', 'categoryorder':'array', 'categoryarray': levels_with_data_event, 'tickfont': dict(size=XAXIS_TICKFONT_SIZE)}
-        current_layout_args['yaxis'] = {'tickfont': dict(size=YAXIS_TICKFONT_SIZE)}
-        current_layout_args['yaxis_title'] = f"Average Score ({event_name})"
-        current_layout_args['showlegend'] = True
-        fig_meet_event.update_layout(**current_layout_args)
-        
-        y_range = DEFAULT_Y_RANGE.all_around if event_name == "All Around" else DEFAULT_Y_RANGE.event
-        fig_meet_event.update_yaxes(range=y_range)
+            fig_meet_event = px.bar(avg_scores_by_level, x="Level", y="Score",
+                                    labels={"Score": "Average Score", "Level": "Level"},
+                                    text="Score",
+                                    color="Level",
+                                    color_discrete_map=LEVEL_COLORS)
+            
+            fig_meet_event.update_traces(
+                **COMMON_BAR_TRACE_ARGS, 
+                texttemplate='%{text:.3f}',
+                textfont=dict(size=MARKER_TEXTFONT_SIZE)
+            )
+            current_layout_args = COMMON_LAYOUT_ARGS.copy()
+            current_layout_args['xaxis'] = {'type': 'category', 'categoryorder':'array', 'categoryarray': levels_with_data_event, 'tickfont': dict(size=XAXIS_TICKFONT_SIZE)}
+            current_layout_args['yaxis'] = {'tickfont': dict(size=YAXIS_TICKFONT_SIZE)}
+            current_layout_args['yaxis_title'] = f"Average Score ({event_name})"
+            current_layout_args['showlegend'] = True
+            fig_meet_event.update_layout(**current_layout_args)
+            
+            y_range = DEFAULT_Y_RANGE.all_around if event_name == "All Around" else DEFAULT_Y_RANGE.event
+            fig_meet_event.update_yaxes(range=y_range)
 
-        st.plotly_chart(fig_meet_event, use_container_width=True)
-        st.markdown("---")
+            st.plotly_chart(fig_meet_event, use_container_width=True)
 
     # Team Score Bar Graph
     st.markdown("### Team Scores (Average of Top 3 All Around Scores)")
