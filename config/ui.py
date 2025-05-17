@@ -80,24 +80,54 @@ TAB_FONT_SIZE = "2.0rem" # Default: 1rem. Increased for better readability
 
 CUSTOM_TAB_CSS = f"""
 <style>
-    /* Target the tab buttons for font size and padding */
+    /* General tab button styling */
     button[data-baseweb="tab"] {{
-        font-size: {TAB_FONT_SIZE} !important;
-        padding-left: 1.5rem !important; /* Increase left padding */
-        padding-right: 1.5rem !important; /* Increase right padding */
-        padding-top: 0.75rem !important; /* Increase top padding for more height */
-        padding-bottom: 0.75rem !important; /* Increase bottom padding for more height */
+        padding-left: 1.5rem !important;
+        padding-right: 1.5rem !important;
+        padding-top: 0.75rem !important;
+        padding-bottom: 0.75rem !important;
+        border: none !important;
+        background-color: transparent !important;
+        border-radius: 0.5rem !important; /* Rounded corners for all tabs */
+        transition: background-color 0.2s ease-in-out;
     }}
 
-    /* Target the tab list container for spacing between tabs */
-    div[data-baseweb="tab-list"] {{
-        gap: 0.5rem; /* Add space between tab buttons */
+    /* Text within all tab buttons */
+    button[data-baseweb="tab"] div[data-testid="stMarkdownContainer"] p {{
+        font-size: {{TAB_FONT_SIZE}} !important;
+        color: #A0AEC0 !important; /* Light gray for inactive tab text */
+        margin: 0 !important;
+        line-height: 1.2 !important; /* Adjust for large font sizes */
+        font-weight: 500 !important;
     }}
 
-    /* Target the active tab indicator line */
+    /* Active tab button specific styling */
+    button[data-baseweb="tab"][aria-selected="true"] {{
+        background-color: #36404F !important; /* Solid, contrasting background for active tab */
+    }}
+
+    /* Text within active tab button */
+    button[data-baseweb="tab"][aria-selected="true"] div[data-testid="stMarkdownContainer"] p {{
+        color: #FFFFFF !important; /* White text for active tab */
+        font-weight: 600 !important; /* Bolder text for active tab */
+    }}
+
+    /* Optional: Hover effect for non-active tabs */
+    button[data-baseweb="tab"]:not([aria-selected="true"]):hover {{
+        background-color: #2A3038 !important; /* Slightly darker background on hover */
+    }}
+    button[data-baseweb="tab"]:not([aria-selected="true"]):hover div[data-testid="stMarkdownContainer"] p {{
+        color: #E2E8F0 !important; /* Slightly lighter text on hover */
+    }}
+
+    /* Hide the default underline indicator */
     div[data-baseweb="tab-highlight"] {{
-        height: 5px !important; /* Make the indicator line thicker */
-        background-color: #1E88E5 !important; /* Optional: Change indicator color if needed, using a generic blue for now */
+        display: none !important;
+    }}
+
+    /* Tab list container for spacing */
+    div[data-baseweb="tab-list"] {{
+        gap: 0.5rem !important; /* Space between tab buttons */
     }}
 </style>
 """ 
