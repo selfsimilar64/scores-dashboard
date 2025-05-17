@@ -14,7 +14,16 @@ EVENT_COLORS = {
 LEVEL_ORDER = [str(i) for i in range(1, 11)] + ["XB", "XS", "XG", "XP", "XD"]
 
 numbered_level_colors = sequential.Purp # Using Purp as in the original code for numbered levels
-LEVEL_COLORS = {}
+LEVEL_COLORS = {
+    "3": "rgb(188, 237, 228)",
+    "4": "rgb(141, 230, 255)",
+    "5": "rgb(190, 205, 255)",
+    "6": "rgb(232, 197, 251)",
+    "7": "rgb(255, 177, 216)",
+    "8": "rgb(168, 50, 64)",
+    "9": "rgb(205, 127, 50)",
+    "10": "rgb(185, 242, 255)"
+}
 for i, level in enumerate([str(j) for j in range(1, 11)]):
     # Scale index to fit within the length of the Purp color sequence
     # The original code had `t = i/10.0` and `numbered_level_colors[int(t*len(numbered_level_colors))]`
@@ -42,7 +51,7 @@ div[data-testid="stColumn"] > div[data-testid="stVerticalBlockBorderWrapper"] {
 div[data-testid="stColumn"] > div[data-testid="stVerticalBlockBorderWrapper"] > div[data-testid="stVerticalBlock"]:has(.stMetric) {
     background-color: #2E2E4A !important; /* Uses theme color, !important to override defaults */
     padding: 1.25rem; /* 20px */
-    border-radius: 0.5rem; /* 8px */
+    border-radius: 1.5rem; /* 8px */
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1); /* Subtle shadow */
     height: 100%; /* Make the card itself take full height of its wrapper */
     width: 100%; /* Ensure it takes full width of the column content area */
