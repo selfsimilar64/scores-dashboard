@@ -74,7 +74,7 @@ def render_by_level_view(df: pd.DataFrame):
                     event_data_for_team_year = event_data_for_team_year.copy()
                     # Assign a placeholder date for 'States' to group them together and sort last
                     # Using a date far in the future for sorting purposes.
-                    event_data_for_team_year.loc[event_data_for_team_year['MeetName'] == 'States', 'MeetDate'] = pd.to_datetime('2999-12-31')
+                    event_data_for_team_year.loc[event_data_for_team_year['MeetName'] == 'States', 'MeetDate'] = pd.to_datetime('2200-12-31')
 
                 if 'MeetDate' not in event_data_for_team_year.columns:
                     st.error("MeetDate column is missing, cannot guarantee chronological order for meets.")
