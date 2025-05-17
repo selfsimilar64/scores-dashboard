@@ -19,13 +19,18 @@ st.set_page_config(
 st.markdown("""
 <style>
 /* Styles for metric cards when they are the content of an st.column */
+div[data-testid="stColumn"] > div[data-testid="stVerticalBlockBorderWrapper"] {
+    height: 100%; /* Make the wrapper take full column height */
+    display: flex; /* Ensure the child (stVerticalBlock) can effectively use height: 100% */
+}
+
 div[data-testid="stColumn"] > div[data-testid="stVerticalBlockBorderWrapper"] > div[data-testid="stVerticalBlock"] {
-    background-color: var(--secondary-background-color); /* Uses theme color */
+    background-color: var(--secondary-background-color) !important; /* Uses theme color, !important to override defaults */
     padding: 1.25rem; /* 20px */
     border-radius: 0.5rem; /* 8px */
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1); /* Subtle shadow */
-    /* border: 1px solid rgba(255, 255, 255, 0.08); /* Optional: subtle border for dark themes */
-    height: 100%; /* Attempt to make cards in a row equal height */
+    height: 100%; /* Make the card itself take full height of its wrapper */
+    width: 100%; /* Ensure it takes full width of the column content area */
 }
 
 /* Ensure st.metric within these cards has a transparent background */
@@ -78,9 +83,14 @@ view = st.sidebar.radio("View", ["By Level", "By Gymnast", "By Meet"])
 
 if view == "By Level":
     level_options = ["All teams"] + sorted(df.Level.unique())
-    selected_level_team = st.sidebar.selectbox("Choose team (Level)", level_options, key="team_level_selector")
     calc_method_team = st.sidebar.radio("Calculation Method for Team Stats", ["Median", "Mean"], key="calc_method_team")
     
+    # --- START: Main page selectors for By Level ---
+    col1, col2 = st.columns(2)
+    with col1:
+        selected_level_team = st.selectbox("Choose team (Level)", level_options, key="main_team_level_selector")
+    # --- END: Main page selectors for By Level ---
+
     if selected_level_team == "All teams":
         team_data_for_level = df.copy() # Use all data
         level_display_name = "All Teams"
@@ -97,10 +107,9 @@ if view == "By Level":
         st.warning(f"No competition year data available for {level_display_name}.")
         st.stop()
     
-    selected_year = st.sidebar.selectbox("Choose CompYear", available_years, key="team_year_selector")
+    with col2: # Continue from col1 for selectors
+        selected_year = st.selectbox("Choose CompYear", available_years, key="main_team_year_selector")
     
-    st.header(f"Team {level_display_name} - Average Scores in {selected_year}")
-
     year_team_data_for_level = team_data_for_level[team_data_for_level.CompYear == selected_year]
 
     if year_team_data_for_level.empty:
@@ -225,10 +234,15 @@ if view == "By Level":
                 st.write(f"No data available for {event} for Level {selected_level_team} in {selected_year}.")
 
 elif view == "By Gymnast":
+    # --- START: Main page selectors for By Gymnast ---
+    col1_gymnast, col2_gymnast = st.columns(2)
+    with col1_gymnast:
+        athlete = st.selectbox("Choose athlete", sorted(df.AthleteName.unique()), key="main_athlete_selector")
+    # --- END: Main page selectors for By Gymnast ---
     
-    athlete = st.sidebar.selectbox("Choose athlete", sorted(df.AthleteName.unique()))
-    sub     = df[df.AthleteName == athlete]
+    sub = df[df.AthleteName == athlete]
 
+    selected_level = None # Initialize selected_level
     if not sub.empty:
         athlete_levels_years = sub.groupby('Level')['CompYear'].max().reset_index()
         athlete_levels_years['CompYear'] = pd.to_numeric(athlete_levels_years['CompYear'], errors='coerce')
@@ -240,11 +254,16 @@ elif view == "By Gymnast":
             st.stop()
             
         sorted_levels = athlete_levels_years.Level.tolist()
-        selected_level = st.sidebar.selectbox("Choose Level", sorted_levels, index=0) 
+        with col2_gymnast: # Continue from col1_gymnast for selectors
+            selected_level = st.selectbox("Choose Level", sorted_levels, index=0, key="main_gymnast_level_selector")
     else:
         st.warning(f"No data available for athlete {athlete}.") 
         st.stop()
     
+    if selected_level is None: # If athlete had no data, selected_level might not be set
+        st.warning("Please select an athlete with available levels.")
+        st.stop()
+
     show_current_year_only = st.sidebar.checkbox("Show most recent CompYear only", False)
     
     sub_level_data = sub[sub.Level == selected_level]
@@ -266,20 +285,13 @@ elif view == "By Gymnast":
         st.warning(f"No valid date data available for {athlete} at Level {selected_level}.")
         st.stop()
 
-    current_comp_year_header_info = ""
     if show_current_year_only:
         if not data_to_plot.empty:
             data_to_plot['CompYear'] = pd.to_numeric(data_to_plot['CompYear'], errors='coerce')
             most_recent_comp_year_val = data_to_plot.CompYear.max() # Keep as numeric for filtering
             data_to_plot = data_to_plot[data_to_plot.CompYear == most_recent_comp_year_val]
-            current_comp_year_header_info = f" ({int(most_recent_comp_year_val)})" if pd.notna(most_recent_comp_year_val) else ""
             if 'CompYear' in data_to_plot.columns:
                  data_to_plot['CompYear'] = data_to_plot['CompYear'].astype(str) # Convert back to string for display consistency
-        st.header(f"{athlete} - Level {selected_level}{current_comp_year_header_info}")
-    else:
-        st.header(f"{athlete} - Level {selected_level} (All Years)")
-        if 'CompYear' in data_to_plot.columns:
-            data_to_plot['CompYear'] = data_to_plot['CompYear'].astype(str)
 
     fit_y_axis = st.sidebar.checkbox("Fit Y-axis to data", False)
     calc_method = st.sidebar.radio("Calculation Method for Stats", ["Median", "Mean"], key="calc_method_athlete")
@@ -395,7 +407,7 @@ elif view == "By Gymnast":
                 athlete_stat_cols = st.columns(3)
                 with athlete_stat_cols[0]:
                     st.metric(label="Max Score", value=f"{max_score_val_athlete:.2f}")
-                    st.caption(f"Meet: {max_score_meet_athlete}, Year: {max_score_year_athlete}")
+                    # st.caption(f"Meet: {max_score_meet_athlete}, Year: {max_score_year_athlete}")
                 
                 with athlete_stat_cols[1]:
                     st.metric(label=chosen_stat_label_athlete, value=f"{chosen_stat_val_athlete:.2f}")
@@ -559,7 +571,7 @@ elif view == "By Gymnast":
                 st.sidebar.info(f"{athlete} has no competition year data for Level {current_level_athlete}. Multi-year comparison not available.")
 
 elif view == "By Meet":
-    st.header("View by Meet")
+    # st.header("View by Meet") # This header is now implicitly handled by the selectors
 
     # Define custom sort order and color mapping for levels
     level_order = [str(i) for i in range(1, 11)] + ["XB", "XS", "XG", "XP", "XD"]
@@ -576,12 +588,18 @@ elif view == "By Meet":
         "XD": "rgb(185, 242, 255)"  # Diamond-like (light blue)
     })
 
+    # --- START: Main page selectors for By Meet ---
+    col1_meet, col2_meet = st.columns(2)
+    # --- END: Main page selectors for By Meet ---
+
     # --- START: CompYear Selector ---
     available_years_for_meets = sorted(df.CompYear.unique(), reverse=True)
     if not available_years_for_meets:
         st.warning("No competition year data available.")
         st.stop()
-    selected_comp_year = st.sidebar.selectbox("Choose CompYear", available_years_for_meets, key="meet_comp_year_selector")
+    # selected_comp_year = st.sidebar.selectbox("Choose CompYear", available_years_for_meets, key="meet_comp_year_selector") # MOVED
+    with col1_meet:
+        selected_comp_year = st.selectbox("Choose CompYear", available_years_for_meets, key="main_meet_comp_year_selector")
 
     if not selected_comp_year:
         st.info("Please select a competition year.")
@@ -596,13 +614,15 @@ elif view == "By Meet":
         st.warning(f"No meet data available for {selected_comp_year}.")
         st.stop()
     
-    selected_meet = st.sidebar.selectbox("Choose Meet", meet_names, key="meet_selector")
+    # selected_meet = st.sidebar.selectbox("Choose Meet", meet_names, key="meet_selector") # MOVED
+    with col2_meet:
+        selected_meet = st.selectbox("Choose Meet", meet_names, key="main_meet_selector")
     
     if not selected_meet:
-        st.info("Please select a meet from the sidebar.")
+        st.info("Please select a meet from the sidebar.") # This message might need to change as it's no longer in sidebar
         st.stop()
 
-    st.subheader(f"Results for: {selected_meet} ({selected_comp_year})")
+    # st.subheader(f"Results for: {selected_meet} ({selected_comp_year})") # REMOVED SUBHEADER
     meet_data = year_specific_df[year_specific_df.MeetName == selected_meet].copy()
 
     if meet_data.empty:
