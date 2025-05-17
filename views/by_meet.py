@@ -20,6 +20,9 @@ def render_by_meet_view(df: pd.DataFrame):
     st.sidebar.header("Meet View Options") # Added header for clarity
     st.markdown(CUSTOM_TAB_CSS, unsafe_allow_html=True) # Apply custom tab styles
 
+    # Add Fit Y-axis toggle
+    fit_y_axis = st.sidebar.checkbox("Fit Y-axis to data", True, key="meet_fit_y_axis")
+
     col1_meet, col2_meet = st.columns(2)
 
     available_years_for_meets = sorted(df.CompYear.unique(), reverse=True)
@@ -62,8 +65,9 @@ def render_by_meet_view(df: pd.DataFrame):
         meet_data['Level'] = meet_data['Level'].apply(normalize_level)
         meet_data = meet_data[meet_data['Level'].isin(MEET_VIEW_LEVEL_ORDER)]
 
-    # Create tabs for each event
-    event_tabs = st.tabs(MEET_VIEW_EVENTS_TO_GRAPH)
+    # Create tabs for each event and team scores
+    tab_labels = MEET_VIEW_EVENTS_TO_GRAPH + ["Team Scores"]
+    event_tabs = st.tabs(tab_labels)
 
     for i, event_name in enumerate(MEET_VIEW_EVENTS_TO_GRAPH):
         with event_tabs[i]:
@@ -129,57 +133,56 @@ def render_by_meet_view(df: pd.DataFrame):
             fig_meet_event.update_layout(**current_layout_args)
             
             y_range = DEFAULT_Y_RANGE.all_around if event_name == "All Around" else DEFAULT_Y_RANGE.event
-            fig_meet_event.update_yaxes(range=y_range)
+            # only apply static y-range when toggle is off
+            if not fit_y_axis:
+                fig_meet_event.update_yaxes(range=y_range)
 
             st.plotly_chart(fig_meet_event, use_container_width=True)
 
-    # Team Score Bar Graph
-    st.markdown("### Team Scores (Average of Top 3 All Around Scores)")
-    aa_meet_data = meet_data[meet_data.Event == "All Around"]
-    team_scores_list = []
-
-    if not aa_meet_data.empty:
-        aa_meet_data['Level'] = pd.Categorical(aa_meet_data['Level'], categories=MEET_VIEW_LEVEL_ORDER, ordered=True)
-        aa_meet_data = aa_meet_data.dropna(subset=['Level'])
-
-        for level_val in MEET_VIEW_LEVEL_ORDER:
-            level_aa_data = aa_meet_data[aa_meet_data.Level == level_val]
-            if len(level_aa_data) >= 3:
-                top_3_scores = level_aa_data.nlargest(3, 'Score')['Score']
-                team_score_avg = top_3_scores.mean()
-                if pd.notna(team_score_avg):
-                    team_scores_list.append({'Level': level_val, 'TeamScore': team_score_avg})
-        
-        if team_scores_list:
-            team_scores_df = pd.DataFrame(team_scores_list)
-            team_scores_df['Level'] = pd.Categorical(team_scores_df['Level'], categories=MEET_VIEW_LEVEL_ORDER, ordered=True)
-            team_scores_df = team_scores_df.sort_values("Level")
-            team_scores_df = team_scores_df[team_scores_df['TeamScore'].notna()]
-            levels_with_team_data = team_scores_df['Level'].unique().tolist()
-
-            if levels_with_team_data:
-                fig_team_score = px.bar(team_scores_df, x="Level", y="TeamScore",
-                                        labels={"TeamScore": "Average Team Score (Top 3 AA)", "Level": "Team Level"},
-                                        text="TeamScore",
-                                        color="Level",
-                                        color_discrete_map=LEVEL_COLORS)
-                
-                fig_team_score.update_traces(
-                    **COMMON_BAR_TRACE_ARGS, 
-                    texttemplate='%{text:.3f}',
-                    textfont=dict(size=MARKER_TEXTFONT_SIZE)
-                )
-                team_score_layout_args = COMMON_LAYOUT_ARGS.copy()
-                team_score_layout_args['xaxis'] = {'type': 'category', 'categoryorder':'array', 'categoryarray': levels_with_team_data, 'tickfont': dict(size=XAXIS_TICKFONT_SIZE)}
-                team_score_layout_args['yaxis'] = {'tickfont': dict(size=YAXIS_TICKFONT_SIZE)}
-                team_score_layout_args['yaxis_title'] = "Average Team Score"
-                team_score_layout_args['yaxis_range'] = MEET_VIEW_TEAM_SCORE_Y_RANGE
-                team_score_layout_args['showlegend'] = True
-                fig_team_score.update_layout(**team_score_layout_args)
-                st.plotly_chart(fig_team_score, use_container_width=True)
+    # Team Scores Tab
+    with event_tabs[len(MEET_VIEW_EVENTS_TO_GRAPH)]:
+        st.markdown("### Team Scores (Average of Top 3 All Around Scores)")
+        aa_meet_data = meet_data[meet_data.Event == "All Around"]
+        team_scores_list = []
+        if not aa_meet_data.empty:
+            aa_meet_data['Level'] = pd.Categorical(aa_meet_data['Level'], categories=MEET_VIEW_LEVEL_ORDER, ordered=True)
+            aa_meet_data = aa_meet_data.dropna(subset=['Level'])
+            for level_val in MEET_VIEW_LEVEL_ORDER:
+                level_aa_data = aa_meet_data[aa_meet_data.Level == level_val]
+                if len(level_aa_data) >= 3:
+                    top_3_scores = level_aa_data.nlargest(3, 'Score')['Score']
+                    team_score_avg = top_3_scores.mean()
+                    if pd.notna(team_score_avg):
+                        team_scores_list.append({'Level': level_val, 'TeamScore': team_score_avg})
+            if team_scores_list:
+                team_scores_df = pd.DataFrame(team_scores_list)
+                team_scores_df['Level'] = pd.Categorical(team_scores_df['Level'], categories=MEET_VIEW_LEVEL_ORDER, ordered=True)
+                team_scores_df = team_scores_df.sort_values("Level")
+                team_scores_df = team_scores_df[team_scores_df['TeamScore'].notna()]
+                levels_with_team_data = team_scores_df['Level'].unique().tolist()
+                if levels_with_team_data:
+                    fig_team_score = px.bar(team_scores_df, x="Level", y="TeamScore",
+                                            labels={"TeamScore": "Average Team Score (Top 3 AA)", "Level": "Team Level"},
+                                            text="TeamScore",
+                                            color="Level",
+                                            color_discrete_map=LEVEL_COLORS)
+                    fig_team_score.update_traces(
+                        **COMMON_BAR_TRACE_ARGS,
+                        texttemplate='%{text:.3f}',
+                        textfont=dict(size=MARKER_TEXTFONT_SIZE)
+                    )
+                    team_score_layout_args = COMMON_LAYOUT_ARGS.copy()
+                    team_score_layout_args['xaxis'] = {'type': 'category', 'categoryorder':'array', 'categoryarray': levels_with_team_data, 'tickfont': dict(size=XAXIS_TICKFONT_SIZE)}
+                    team_score_layout_args['yaxis'] = {'tickfont': dict(size=YAXIS_TICKFONT_SIZE)}
+                    team_score_layout_args['yaxis_title'] = "Average Team Score"
+                    if not fit_y_axis:
+                        team_score_layout_args['yaxis_range'] = MEET_VIEW_TEAM_SCORE_Y_RANGE
+                    team_score_layout_args['showlegend'] = True
+                    fig_team_score.update_layout(**team_score_layout_args)
+                    st.plotly_chart(fig_team_score, use_container_width=True)
+                else:
+                    st.write("Not enough data to display Team Scores for this meet after filtering.")
             else:
-                st.write("Not enough data to display Team Scores for this meet after filtering.")
+                st.write("Not enough data (fewer than 3 athletes in AA per level or scores are NaN) to calculate Team Scores for this meet.")
         else:
-            st.write("Not enough data (fewer than 3 athletes in AA per level or scores are NaN) to calculate Team Scores for this meet.")
-    else:
-        st.write("No All Around data available for this meet to calculate Team Scores.") 
+            st.write("No All Around data available for this meet to calculate Team Scores.") 

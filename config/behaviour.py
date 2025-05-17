@@ -1,8 +1,8 @@
 # Defines default behaviours and static choice lists for the application
 
 # --- View Configuration ---
-VIEWS = ["By Level", "By Gymnast", "By Meet"]
-DEFAULT_VIEW = "By Level"
+VIEWS = ["By Gymnast", "By Level", "By Meet"]
+DEFAULT_VIEW = "By Gymnast"
 
 # --- Calculation Methods ---
 CALC_METHODS = ["Median", "Mean"]

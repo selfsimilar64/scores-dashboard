@@ -29,6 +29,8 @@ def render_by_level_view(df: pd.DataFrame):
         index=CALC_METHODS.index(DEFAULT_CALC_METHOD_TEAM), 
         key="calc_method_team"
     )
+    # Add Fit Y-axis toggle
+    fit_y_axis = st.sidebar.checkbox("Fit Y-axis to data", True, key="level_fit_y_axis")
     
     col1, col2 = st.columns(2)
     with col1:
@@ -164,7 +166,8 @@ def render_by_level_view(df: pd.DataFrame):
                         fig.add_annotation(x=max_score_row['MeetName'], y=max_score_row['Score'],
                                            text="⭐", showarrow=False, font=dict(size=STAR_ANNOTATION_FONT_SIZE))
 
-                    if current_y_axis_range:
+                    if not fit_y_axis:
+                        # only apply static y-range when toggle is off
                         fig.update_yaxes(range=current_y_axis_range)
                     
                     st.plotly_chart(fig, use_container_width=True)
