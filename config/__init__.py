@@ -15,7 +15,7 @@ from .behaviour import (
     DEFAULT_FIT_Y_AXIS_ATHLETE,
     MEET_VIEW_LEVEL_ORDER,
     MEET_VIEW_EVENTS_TO_GRAPH,
-    MEET_VIEW_TEAM_SCORE_Y_RANGE
+    MEET_VIEW_TEAM_SCORE_Y_RANGE,
 )
 
 from .plot import (
@@ -38,7 +38,7 @@ from .ui import (
     DARK_CARD_CSS,
     FONT_FAMILY,
     TAB_FONT_SIZE,
-    CUSTOM_TAB_CSS
+    CUSTOM_TAB_CSS,
 )
 
 __all__ = [
