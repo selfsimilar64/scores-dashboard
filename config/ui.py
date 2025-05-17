@@ -93,11 +93,11 @@ TAB_FONT_SIZE = "2.0rem" # Default: 1rem. Increased for better readability
 CUSTOM_TAB_CSS = f"""
 <style>
 
-    div[data-baseweb="tab-list"] {
+    div[data-baseweb="tab-list"] {{
         gap: 0.5rem !important; /* Space between tab buttons */
         justify-content: center !important; /* Center the tab buttons horizontally */
         display: flex !important; /* Ensure flex layout for centering */
-    }
+    }}
 
     /* General tab button styling */
     button[data-baseweb="tab"] {{
