@@ -172,4 +172,4 @@ def render_by_level_view(df: pd.DataFrame):
                     
                     st.plotly_chart(fig, use_container_width=True)
                 else:
-                    st.write(f"No data available for {event} for {level_display_name} in {selected_year}.") 
+                    st.write(f"No data available for {event} for {level_display_name} in {selected_year}") 
