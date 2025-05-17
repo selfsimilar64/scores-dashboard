@@ -20,11 +20,10 @@ from config import (
     STAR_ANNOTATION_FONT_SIZE,
     CUSTOM_TAB_CSS
 )
-from utils.data_processing import add_comp_date_to_meet_name
 
 def render_by_gymnast_view(df: pd.DataFrame):
-    st.sidebar.header("Gymnast View Options")
-    st.markdown(CUSTOM_TAB_CSS, unsafe_allow_html=True)
+    st.sidebar.header("Gymnast View Options") # Added header for clarity
+    st.markdown(CUSTOM_TAB_CSS, unsafe_allow_html=True) # Apply custom tab styles for tabs
 
     col1_gymnast, col2_gymnast = st.columns(2)
     with col1_gymnast:

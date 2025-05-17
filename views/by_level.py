@@ -1,11 +1,11 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
-from datetime import datetime
+from data.loader import load_db
+from utils.maths import custom_round
 from config import (
-    LEVEL_COLORS,
-    DEFAULT_Y_RANGE,
     EVENT_COLORS,
+    DEFAULT_Y_RANGE,
     COMMON_LAYOUT_ARGS,
     COMMON_LINE_TRACE_ARGS,
     EVENTS_ORDER,
@@ -18,12 +18,10 @@ from config import (
     STAR_ANNOTATION_FONT_SIZE,
     CUSTOM_TAB_CSS
 )
-from utils.data_processing import add_comp_date_to_meet_name
 
 def render_by_level_view(df: pd.DataFrame):
-    st.sidebar.header("Level View Options")
-    st.markdown(CUSTOM_TAB_CSS, unsafe_allow_html=True)
-
+    st.sidebar.header("Level View Options") # Added header for clarity
+    st.markdown(CUSTOM_TAB_CSS, unsafe_allow_html=True) # Apply custom tab styles for tabs
     level_options = [LEVEL_OPTIONS_PREFIX] + sorted(df.Level.unique())
     calc_method_team = st.sidebar.radio(
         "Calculation Method for Team Stats", 
@@ -68,28 +66,27 @@ def render_by_level_view(df: pd.DataFrame):
             event_data_for_team_year = year_team_data_for_level[year_team_data_for_level.Event == event]
             
             if not event_data_for_team_year.empty:
-                # Special handling for 'States' meet when 'All Teams' is selected
-                if selected_level_team == LEVEL_OPTIONS_PREFIX and 'MeetDate' in event_data_for_team_year.columns:
-                    # Create a copy to avoid SettingWithCopyWarning
-                    event_data_for_team_year = event_data_for_team_year.copy()
-                    # Assign a placeholder date for 'States' to group them together and sort last
-                    # Using a date far in the future for sorting purposes.
-                    event_data_for_team_year.loc[event_data_for_team_year['MeetName'] == 'States', 'MeetDate'] = pd.to_datetime('2200-12-31')
-
-                if 'MeetDate' not in event_data_for_team_year.columns:
-                    st.error("MeetDate column is missing, cannot guarantee chronological order for meets.")
-                    avg_event_scores = event_data_for_team_year.groupby("MeetName", as_index=False).Score.mean()
-                    # For 'States' meet, ensure it's identifiable if no MeetDate was present
-                    if selected_level_team == LEVEL_OPTIONS_PREFIX:
-                        avg_event_scores['is_states_meet'] = avg_event_scores['MeetName'] == 'States'
-                        avg_event_scores = avg_event_scores.sort_values(by=['is_states_meet', 'MeetName'], ascending=[True, True])
-                        avg_event_scores = avg_event_scores.drop(columns=['is_states_meet'])
+                if selected_level_team == LEVEL_OPTIONS_PREFIX:
+                    # All Teams: group by MeetName only, aggregate across dates, sorting by the latest date
+                    if 'MeetDate' in event_data_for_team_year.columns:
+                        avg_event_scores = event_data_for_team_year.groupby("MeetName", as_index=False).agg(
+                            Score=("Score", "mean"), MeetDate=("MeetDate", "max")
+                        )
+                        avg_event_scores = avg_event_scores.sort_values(by="MeetDate")
+                        avg_event_scores = avg_event_scores.drop(columns=["MeetDate"])
+                    else:
+                        avg_event_scores = event_data_for_team_year.groupby("MeetName", as_index=False).Score.mean()
+                        avg_event_scores = avg_event_scores.sort_values(by="MeetName")
                 else:
-                    avg_event_scores = event_data_for_team_year.groupby(["MeetName", "MeetDate"], as_index=False).Score.mean()
-                    # Sort by MeetDate to ensure chronological order, 'States' will be last due to the placeholder date
-                    avg_event_scores = avg_event_scores.sort_values(by="MeetDate")
-                    # Optional: Clean up the placeholder date for display if necessary,
-                    # or rely on MeetName for display which should be fine.
+                    # Single Level: original grouping by MeetName & MeetDate for chronology
+                    if 'MeetDate' not in event_data_for_team_year.columns:
+                        st.error("MeetDate column is missing, cannot guarantee chronological order for meets.")
+                        avg_event_scores = event_data_for_team_year.groupby("MeetName", as_index=False).Score.mean()
+                    else:
+                        avg_event_scores = event_data_for_team_year.groupby([
+                            "MeetName", "MeetDate"
+                        ], as_index=False).Score.mean()
+                        avg_event_scores = avg_event_scores.sort_values(by="MeetDate")
 
                 if not avg_event_scores.empty:
                     team_max_score_details = avg_event_scores.loc[avg_event_scores['Score'].idxmax()]
@@ -172,6 +169,4 @@ def render_by_level_view(df: pd.DataFrame):
                     
                     st.plotly_chart(fig, use_container_width=True)
                 else:
-                    st.write(f"No average score data available for {event} for {level_display_name} in {selected_year}.")
-            else:
-                st.write(f"No data available for {event} for {level_display_name} in {selected_year}.") 
+                    st.write(f"No data available for {event} for {level_display_name} in {selected_year}.") 
