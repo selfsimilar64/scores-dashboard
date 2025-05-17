@@ -1,6 +1,6 @@
 [theme]
 primaryColor="#6200ee"
-backgroundColor="#1d1d33"
-secondaryBackgroundColor="#12121a"
+backgroundColor="#1d1d33" # Dark main background
+secondaryBackgroundColor="#2E2E4A" # Slightly lighter for cards, sidebar, etc.
 textColor="#ffffff"
 font="sans serif" # Or "Roboto", "Lato", etc. (ensure font is available)

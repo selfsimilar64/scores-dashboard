@@ -18,6 +18,30 @@ st.set_page_config(
 
 st.title("TESTING DEPLOYMENT - NEW VERSION v6.3")
 
+st.markdown("""
+<style>
+.metric-card-container {
+    background-color: var(--secondary-background-color);
+    padding: 1.5rem; /* Increased padding */
+    border-radius: 0.75rem; /* 12px */
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15); /* Adjusted shadow */
+    margin-bottom: 1.5rem; /* Increased margin */
+}
+.metric-card-container .stMetric {
+    background-color: transparent !important;
+}
+.metric-card-container .stMetric label,
+.metric-card-container .stMetric p, /* Target paragraph for value */
+.metric-card-container .stMetric span { /* Target span if used for value/delta */
+    color: var(--text-color) !important;
+}
+.metric-card-container .stMetric .stMarkdown p { /* If caption is markdown */
+    color: var(--text-color) !important;
+    opacity: 0.8; /* Make caption slightly less prominent */
+}
+</style>
+""", unsafe_allow_html=True)
+
 @st.cache_data  # keeps queries fast for all users :contentReference[oaicite:1]{index=1}
 def load_db(path="scores.db"):
     con = sqlite3.connect(path)
@@ -77,113 +101,118 @@ if view == "By Level":
         st.stop()
 
     events = ["Vault", "Bars", "Beam", "Floor", "All Around"]
+    
+    # Create tabs for each event
+    event_tabs = st.tabs(events)
 
-    for event in events:
-        event_data_for_team_year = year_team_data_for_level[year_team_data_for_level.Event == event]
-        
-        st.subheader(event) # Display event title first
-
-        if not event_data_for_team_year.empty:
-            # Calculate average score per meet, ensuring chronological order by MeetDate
-            if 'MeetDate' not in event_data_for_team_year.columns:
-                st.error("MeetDate column is missing, cannot guarantee chronological order for meets.")
-                avg_event_scores = event_data_for_team_year.groupby("MeetName", as_index=False).Score.mean()
-            else:
-                avg_event_scores = event_data_for_team_year.groupby(["MeetName", "MeetDate"], as_index=False).Score.mean()
-                avg_event_scores = avg_event_scores.sort_values(by="MeetDate")
-
-            if not avg_event_scores.empty:
-                # --- START: Team Stat Cards ---
-                team_max_score_details = avg_event_scores.loc[avg_event_scores['Score'].idxmax()]
-                team_max_score_val = custom_round(team_max_score_details['Score'])
-                team_max_score_meet = team_max_score_details['MeetName']
-                
-                team_chosen_stat_val = None
-                team_chosen_stat_label = ""
-                if calc_method_team == "Median":
-                    team_chosen_stat_val = custom_round(avg_event_scores['Score'].median())
-                    team_chosen_stat_label = "Median Team Score"
-                else: # Mean
-                    team_chosen_stat_val = custom_round(avg_event_scores['Score'].mean())
-                    team_chosen_stat_label = "Mean Team Score"
-
-                team_trend_val = None
-                team_trend_label = "Intra-Year Team Trend"
-
-                num_meets_for_trend = len(avg_event_scores)
-                if num_meets_for_trend < 2:
-                    team_trend_val = "N/A"
-                else:
-                    team_scores_series = avg_event_scores['Score']
-                    first_period_scores = pd.Series(dtype=float)
-                    second_period_scores = pd.Series(dtype=float)
-
-                    if num_meets_for_trend % 2 == 0:
-                        first_period_scores = team_scores_series.iloc[:num_meets_for_trend//2]
-                        second_period_scores = team_scores_series.iloc[num_meets_for_trend//2:]
-                    else:
-                        middle_idx = num_meets_for_trend // 2
-                        first_period_scores = team_scores_series.iloc[:middle_idx + 1]
-                        second_period_scores = team_scores_series.iloc[middle_idx:]
-                    
-                    if first_period_scores.empty or first_period_scores.isnull().all() or \
-                       second_period_scores.empty or second_period_scores.isnull().all():
-                        team_trend_val = "N/A"
-                    else:
-                        stat_first_period = custom_round(first_period_scores.median() if calc_method_team == "Median" else first_period_scores.mean())
-                        stat_second_period = custom_round(second_period_scores.median() if calc_method_team == "Median" else second_period_scores.mean())
-
-                        if pd.notna(stat_first_period) and pd.notna(stat_second_period):
-                            calculated_team_trend = stat_second_period - stat_first_period
-                            team_trend_val = f"{custom_round(calculated_team_trend):+.2f}"
-                        else:
-                            team_trend_val = "N/A"
-                
-                team_stat_cols = st.columns(3)
-                team_stat_cols[0].metric(label="Max Team Score", value=f"{team_max_score_val:.2f}")
-                team_stat_cols[0].caption(f"Meet: {team_max_score_meet}")
-                team_stat_cols[1].metric(label=team_chosen_stat_label, value=f"{team_chosen_stat_val:.2f}")
-                team_stat_cols[2].metric(label=team_trend_label, value=str(team_trend_val), delta_color="off")
-                # --- END: Team Stat Cards ---
-                
-                current_y_axis_range = None
-                if event == "All Around":
-                    current_y_axis_range = [30.0, 40.0] 
-                else:
-                    current_y_axis_range = [5.5, 10.0]
+    for i, event in enumerate(events):
+        with event_tabs[i]: # Use the specific tab for this event
+            # st.subheader(event) # Subheader is replaced by tab label
+            event_data_for_team_year = year_team_data_for_level[year_team_data_for_level.Event == event]
             
-                fig = px.line(avg_event_scores, x="MeetName", y="Score", 
-                                markers=True, title="", # Removed specific title
-                                color_discrete_sequence=[color_map.get(event, "black")],
-                                text="Score")
-                
-                fig.update_layout(
-                    height=600,
-                    title_font_size=24,
-                    xaxis_title_font_size=18,
-                    yaxis_title_font_size=18,
-                    legend_title_font_size=16, 
-                    legend_font_size=14,
-                    title_text=""  # Ensure title is blank
-                )
-                # Round plotted scores (text on graph) to two decimal places
-                fig.update_traces(line=dict(width=5), marker=dict(size=12), textposition="top center", texttemplate='%{text:.2f}')
+            if not event_data_for_team_year.empty:
+                # Calculate average score per meet, ensuring chronological order by MeetDate
+                if 'MeetDate' not in event_data_for_team_year.columns:
+                    st.error("MeetDate column is missing, cannot guarantee chronological order for meets.")
+                    avg_event_scores = event_data_for_team_year.groupby("MeetName", as_index=False).Score.mean()
+                else:
+                    avg_event_scores = event_data_for_team_year.groupby(["MeetName", "MeetDate"], as_index=False).Score.mean()
+                    avg_event_scores = avg_event_scores.sort_values(by="MeetDate")
 
                 if not avg_event_scores.empty:
-                    max_score_row = avg_event_scores.loc[avg_event_scores['Score'].idxmax()]
-                    fig.add_annotation(x=max_score_row['MeetName'], y=max_score_row['Score'],
-                                       text="⭐", showarrow=False, font=dict(size=20))
+                    st.markdown("<div class='metric-card-container'>", unsafe_allow_html=True) # Start card
+                    # --- START: Team Stat Cards ---
+                    team_max_score_details = avg_event_scores.loc[avg_event_scores['Score'].idxmax()]
+                    team_max_score_val = custom_round(team_max_score_details['Score'])
+                    team_max_score_meet = team_max_score_details['MeetName']
+                    
+                    team_chosen_stat_val = None
+                    team_chosen_stat_label = ""
+                    if calc_method_team == "Median":
+                        team_chosen_stat_val = custom_round(avg_event_scores['Score'].median())
+                        team_chosen_stat_label = "Median Team Score"
+                    else: # Mean
+                        team_chosen_stat_val = custom_round(avg_event_scores['Score'].mean())
+                        team_chosen_stat_label = "Mean Team Score"
 
-                if current_y_axis_range:
-                    fig.update_yaxes(range=current_y_axis_range)
+                    team_trend_val = None
+                    team_trend_label = "Intra-Year Team Trend"
+
+                    num_meets_for_trend = len(avg_event_scores)
+                    if num_meets_for_trend < 2:
+                        team_trend_val = "N/A"
+                    else:
+                        team_scores_series = avg_event_scores['Score']
+                        first_period_scores = pd.Series(dtype=float)
+                        second_period_scores = pd.Series(dtype=float)
+
+                        if num_meets_for_trend % 2 == 0:
+                            first_period_scores = team_scores_series.iloc[:num_meets_for_trend//2]
+                            second_period_scores = team_scores_series.iloc[num_meets_for_trend//2:]
+                        else:
+                            middle_idx = num_meets_for_trend // 2
+                            first_period_scores = team_scores_series.iloc[:middle_idx + 1]
+                            second_period_scores = team_scores_series.iloc[middle_idx:]
+                        
+                        if first_period_scores.empty or first_period_scores.isnull().all() or \
+                           second_period_scores.empty or second_period_scores.isnull().all():
+                            team_trend_val = "N/A"
+                        else:
+                            stat_first_period = custom_round(first_period_scores.median() if calc_method_team == "Median" else first_period_scores.mean())
+                            stat_second_period = custom_round(second_period_scores.median() if calc_method_team == "Median" else second_period_scores.mean())
+
+                            if pd.notna(stat_first_period) and pd.notna(stat_second_period):
+                                calculated_team_trend = stat_second_period - stat_first_period
+                                team_trend_val = f"{custom_round(calculated_team_trend):+.2f}"
+                            else:
+                                team_trend_val = "N/A"
+                    
+                    team_stat_cols = st.columns(3)
+                    team_stat_cols[0].metric(label="Max Team Score", value=f"{team_max_score_val:.2f}")
+                    team_stat_cols[0].caption(f"Meet: {team_max_score_meet}")
+                    team_stat_cols[1].metric(label=team_chosen_stat_label, value=f"{team_chosen_stat_val:.2f}")
+                    team_stat_cols[2].metric(label=team_trend_label, value=str(team_trend_val), delta_color="off")
+                    st.markdown("</div>", unsafe_allow_html=True) # End card
+                    # --- END: Team Stat Cards ---
+                    
+                    current_y_axis_range = None
+                    if event == "All Around":
+                        current_y_axis_range = [30.0, 40.0] 
+                    else:
+                        current_y_axis_range = [5.5, 10.0]
                 
-                st.plotly_chart(fig, use_container_width=True)
+                    fig = px.line(avg_event_scores, x="MeetName", y="Score", 
+                                    markers=True, title="", # Removed specific title
+                                    color_discrete_sequence=[color_map.get(event, "black")],
+                                    text="Score")
+                    
+                    fig.update_layout(
+                        height=600,
+                        title_font_size=24,
+                        xaxis_title_font_size=18,
+                        yaxis_title_font_size=18,
+                        legend_title_font_size=16, 
+                        legend_font_size=14,
+                        title_text=""  # Ensure title is blank
+                    )
+                    # Round plotted scores (text on graph) to two decimal places
+                    fig.update_traces(line=dict(width=5), marker=dict(size=12), textposition="top center", texttemplate='%{text:.2f}')
+
+                    if not avg_event_scores.empty:
+                        max_score_row = avg_event_scores.loc[avg_event_scores['Score'].idxmax()]
+                        fig.add_annotation(x=max_score_row['MeetName'], y=max_score_row['Score'],
+                                           text="⭐", showarrow=False, font=dict(size=20))
+
+                    if current_y_axis_range:
+                        fig.update_yaxes(range=current_y_axis_range)
+                    
+                    st.plotly_chart(fig, use_container_width=True)
+                else:
+                    # st.subheader(event) # Already called
+                    st.write(f"No average score data available for {event} for Level {selected_level_team} in {selected_year}.")
             else:
                 # st.subheader(event) # Already called
-                st.write(f"No average score data available for {event} for Level {selected_level_team} in {selected_year}.")
-        else:
-            # st.subheader(event) # Already called
-            st.write(f"No data available for {event} for Level {selected_level_team} in {selected_year}.")
+                st.write(f"No data available for {event} for Level {selected_level_team} in {selected_year}.")
 
 elif view == "By Gymnast":
     athlete = st.sidebar.selectbox("Choose athlete", sorted(df.AthleteName.unique()))
