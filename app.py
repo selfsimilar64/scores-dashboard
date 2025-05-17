@@ -46,6 +46,6 @@ def render_selected_view(selected_view, data_frame):
     elif selected_view == "By Meet":
         by_meet.render_by_meet_view(data_frame)
     else:
-        st.error("Invalid view selected or view module not correctly loaded.")
+        st.error("Invalid view selected or view module not correctly loaded")
 
 render_selected_view(view_selection, df)
