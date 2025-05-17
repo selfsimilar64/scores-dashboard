@@ -25,12 +25,15 @@ div[data-testid="stColumn"] > div[data-testid="stVerticalBlockBorderWrapper"] {
 }
 
 div[data-testid="stColumn"] > div[data-testid="stVerticalBlockBorderWrapper"] > div[data-testid="stVerticalBlock"] {
-    background-color: var(--secondary-background-color) !important; /* Uses theme color, !important to override defaults */
+    background-color: #2E2E4A !important; /* Uses theme color, !important to override defaults */
     padding: 1.25rem; /* 20px */
     border-radius: 0.5rem; /* 8px */
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1); /* Subtle shadow */
     height: 100%; /* Make the card itself take full height of its wrapper */
     width: 100%; /* Ensure it takes full width of the column content area */
+    display: flex; /* Added to help manage internal content distribution */
+    flex-direction: column; /* Stack content (metric, caption) vertically */
+    /* justify-content: space-between; */ /* Optional: if you want to push caption to bottom */
 }
 
 /* Ensure st.metric within these cards has a transparent background */
