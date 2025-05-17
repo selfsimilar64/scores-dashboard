@@ -1,5 +1,17 @@
 from plotly.colors import sequential
 
+# Theme Colors (from .streamlit/config.toml)
+PRIMARY_COLOR = "#9A55FD"
+BACKGROUND_COLOR = "#1d1d33"
+SECONDARY_BACKGROUND_COLOR = "#2E2E4A"
+TEXT_COLOR = "#ffffff"
+
+# Specific UI Element Colors (derived or specific choices)
+INACTIVE_TEXT_COLOR = "#A0AEC0" # Light gray for inactive tab text
+TAB_HOVER_BG_COLOR = "#242440" # User-defined hover background for tabs
+INACTIVE_HOVER_TEXT_COLOR = "#E2E8F0" # Lighter text on hover for inactive tabs
+ACTIVE_TAB_BG_COLOR = "#36404F" # Existing active tab background, can be aliased to SECONDARY_BACKGROUND_COLOR or kept specific
+
 # Color palettes
 EVENT_COLORS = {
     "Vault": "blue",
@@ -33,15 +45,15 @@ LEVEL_COLORS.update({
     "XD": "rgb(185, 242, 255)"  # Diamond-like (light blue)
 })
 
-DARK_CARD_CSS = """
+DARK_CARD_CSS = f"""
 /* Styles for metric cards when they are the content of an st.column */
-div[data-testid="stColumn"] > div[data-testid="stVerticalBlockBorderWrapper"] {
+div[data-testid="stColumn"] > div[data-testid="stVerticalBlockBorderWrapper"] {{
     height: 100%; /* Make the wrapper take full column height */
     display: flex; /* Ensure the child (stVerticalBlock) can effectively use height: 100% */
-}
+}}
 
-div[data-testid="stColumn"] > div[data-testid="stVerticalBlockBorderWrapper"] > div[data-testid="stVerticalBlock"]:has(.stMetric) {
-    background-color: #2E2E4A !important; /* Uses theme color, !important to override defaults */
+div[data-testid="stColumn"] > div[data-testid="stVerticalBlockBorderWrapper"] > div[data-testid="stVerticalBlock"]:has(.stMetric) {{
+    background-color: {SECONDARY_BACKGROUND_COLOR} !important; /* Uses theme color */
     padding: 1.25rem; /* 20px */
     border-radius: 1.5rem; /* 8px */
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1); /* Subtle shadow */
@@ -49,27 +61,26 @@ div[data-testid="stColumn"] > div[data-testid="stVerticalBlockBorderWrapper"] > 
     width: 100%; /* Ensure it takes full width of the column content area */
     display: flex; /* Added to help manage internal content distribution */
     flex-direction: column; /* Stack content (metric, caption) vertically */
-    /* justify-content: space-between; */ /* Optional: if you want to push caption to bottom */
-}
+}}
 
 /* Ensure st.metric within these cards has a transparent background */
-div[data-testid="stColumn"] > div[data-testid="stVerticalBlockBorderWrapper"] > div[data-testid="stVerticalBlock"]:has(.stMetric) .stMetric {
+div[data-testid="stColumn"] > div[data-testid="stVerticalBlockBorderWrapper"] > div[data-testid="stVerticalBlock"]:has(.stMetric) .stMetric {{
     background-color: transparent !important;
-}
+}}
 
 /* Ensure text color for label, value, and delta within st.metric respects the theme */
 div[data-testid="stColumn"] > div[data-testid="stVerticalBlockBorderWrapper"] > div[data-testid="stVerticalBlock"]:has(.stMetric) .stMetric label,
 div[data-testid="stColumn"] > div[data-testid="stVerticalBlockBorderWrapper"] > div[data-testid="stVerticalBlock"]:has(.stMetric) .stMetric div[data-testid="stMetricValue"],
-div[data-testid="stColumn"] > div[data-testid="stVerticalBlockBorderWrapper"] > div[data-testid="stVerticalBlock"]:has(.stMetric) .stMetric span { /* For delta */
-    color: #FFFFFF !important;
-}
+div[data-testid="stColumn"] > div[data-testid="stVerticalBlockBorderWrapper"] > div[data-testid="stVerticalBlock"]:has(.stMetric) .stMetric span {{ /* For delta */
+    color: {TEXT_COLOR} !important;
+}}
 
 /* Style for st.caption (rendered as markdown) within these cards */
-div[data-testid="stColumn"] > div[data-testid="stVerticalBlockBorderWrapper"] > div[data-testid="stVerticalBlock"]:has(.stMetric) div[data-testid="stCaptionContainer"] p {
-    color: #FFFFFF !important;
+div[data-testid="stColumn"] > div[data-testid="stVerticalBlockBorderWrapper"] > div[data-testid="stVerticalBlock"]:has(.stMetric) div[data-testid="stCaptionContainer"] p {{
+    color: {TEXT_COLOR} !important;
     opacity: 0.75; /* Slightly less prominent caption */
     font-size: 0.875rem; /* Smaller font for caption */
-}
+}}
 """
 
 # Font configuration (example, can be expanded)
@@ -95,7 +106,7 @@ CUSTOM_TAB_CSS = f"""
     /* Text within all tab buttons */
     button[data-baseweb="tab"] div[data-testid="stMarkdownContainer"] p {{
         font-size: {{TAB_FONT_SIZE}} !important;
-        color: #A0AEC0 !important; /* Light gray for inactive tab text */
+        color: {INACTIVE_TEXT_COLOR} !important; /* Light gray for inactive tab text */
         margin: 0 !important;
         line-height: 1.2 !important; /* Adjust for large font sizes */
         font-weight: 500 !important;
@@ -103,28 +114,28 @@ CUSTOM_TAB_CSS = f"""
 
     /* Active tab button specific styling */
     button[data-baseweb="tab"][aria-selected="true"] {{
-        background-color: #36404F !important; /* Solid, contrasting background for active tab */
+        background-color: {ACTIVE_TAB_BG_COLOR} !important; /* Solid, contrasting background for active tab */
     }}
 
     /* Text within active tab button */
     button[data-baseweb="tab"][aria-selected="true"] div[data-testid="stMarkdownContainer"] p {{
-        color: #FFFFFF !important; /* White text for active tab */
+        color: {TEXT_COLOR} !important; /* White text for active tab */
         font-weight: 600 !important; /* Bolder text for active tab */
     }}
 
     /* Optional: Hover effect for non-active tabs */
     button[data-baseweb="tab"]:not([aria-selected="true"]):hover {{
-        background-color: #2A3038 !important; /* Slightly darker background on hover */
+        background-color: {TAB_HOVER_BG_COLOR} !important; /* Slightly darker background on hover */
     }}
     button[data-baseweb="tab"]:not([aria-selected="true"]):hover div[data-testid="stMarkdownContainer"] p {{
-        color: #E2E8F0 !important; /* Slightly lighter text on hover */
+        color: {INACTIVE_HOVER_TEXT_COLOR} !important; /* Slightly lighter text on hover */
     }}
 
     /* Hide the default underline indicator */
     div[data-baseweb="tab-highlight"] {{
         display: none !important;
         height: 0px !important;
-        color: transparent !important;
+        color: {BACKGROUND_COLOR} !important; /* User had this as #1d1d33, now uses constant */
     }}
 
     /* Tab list container for spacing */
