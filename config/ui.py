@@ -94,6 +94,8 @@ CUSTOM_TAB_CSS = f"""
 <style>
     /* General tab button styling */
     button[data-baseweb="tab"] {{
+        justify-content: center !important;
+        align-items: center !important;
         padding-left: 1.5rem !important;
         padding-right: 1.5rem !important;
         padding-top: 0.75rem !important;
