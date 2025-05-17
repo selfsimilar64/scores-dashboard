@@ -11,7 +11,11 @@ from config import (
     EVENTS_ORDER,
     LEVEL_OPTIONS_PREFIX,
     CALC_METHODS,
-    DEFAULT_CALC_METHOD_TEAM
+    DEFAULT_CALC_METHOD_TEAM,
+    XAXIS_TICKFONT_SIZE,
+    YAXIS_TICKFONT_SIZE,
+    MARKER_TEXTFONT_SIZE,
+    STAR_ANNOTATION_FONT_SIZE
 )
 
 def render_by_level_view(df: pd.DataFrame):
@@ -127,13 +131,21 @@ def render_by_level_view(df: pd.DataFrame):
                                     color_discrete_sequence=[EVENT_COLORS.get(event, "black")],
                                     text="Score")
                     
-                    fig.update_layout(**COMMON_LAYOUT_ARGS)
-                    fig.update_traces(**COMMON_LINE_TRACE_ARGS, texttemplate='%{text:.2f}')
+                    fig.update_layout(
+                        **COMMON_LAYOUT_ARGS,
+                        xaxis=dict(tickfont=dict(size=XAXIS_TICKFONT_SIZE)),
+                        yaxis=dict(tickfont=dict(size=YAXIS_TICKFONT_SIZE))
+                    )
+                    fig.update_traces(
+                        **COMMON_LINE_TRACE_ARGS, 
+                        texttemplate='%{text:.2f}',
+                        textfont=dict(size=MARKER_TEXTFONT_SIZE)
+                    )
 
                     if not avg_event_scores.empty:
                         max_score_row = avg_event_scores.loc[avg_event_scores['Score'].idxmax()]
                         fig.add_annotation(x=max_score_row['MeetName'], y=max_score_row['Score'],
-                                           text="⭐", showarrow=False, font=dict(size=20))
+                                           text="⭐", showarrow=False, font=dict(size=STAR_ANNOTATION_FONT_SIZE))
 
                     if current_y_axis_range:
                         fig.update_yaxes(range=current_y_axis_range)

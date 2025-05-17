@@ -13,7 +13,11 @@ from config import (
     CALC_METHODS,
     DEFAULT_CALC_METHOD_ATHLETE,
     DEFAULT_SHOW_CURRENT_YEAR_ONLY,
-    DEFAULT_FIT_Y_AXIS_ATHLETE
+    DEFAULT_FIT_Y_AXIS_ATHLETE,
+    XAXIS_TICKFONT_SIZE,
+    YAXIS_TICKFONT_SIZE,
+    MARKER_TEXTFONT_SIZE,
+    STAR_ANNOTATION_FONT_SIZE
 )
 
 def render_by_gymnast_view(df: pd.DataFrame):
@@ -210,13 +214,22 @@ def render_by_gymnast_view(df: pd.DataFrame):
                                 color_discrete_sequence=discrete_color_sequence_athlete,
                                 text="Score")
                 
-                fig_athlete.update_layout(**COMMON_LAYOUT_ARGS, xaxis_title="Meet (Year)")
-                fig_athlete.update_traces(**COMMON_LINE_TRACE_ARGS, texttemplate='%{text:.3f}')
+                fig_athlete.update_layout(
+                    **COMMON_LAYOUT_ARGS, 
+                    xaxis_title="Meet (Year)",
+                    xaxis=dict(tickfont=dict(size=XAXIS_TICKFONT_SIZE)),
+                    yaxis=dict(tickfont=dict(size=YAXIS_TICKFONT_SIZE))
+                )
+                fig_athlete.update_traces(
+                    **COMMON_LINE_TRACE_ARGS, 
+                    texttemplate='%{text:.3f}',
+                    textfont=dict(size=MARKER_TEXTFONT_SIZE)
+                )
 
                 if not event_data_for_plot.empty:
                     max_score_row_for_star_athlete = event_data_for_plot.loc[event_data_for_plot['Score'].idxmax()]
                     fig_athlete.add_annotation(x=max_score_row_for_star_athlete['x_display'], y=max_score_row_for_star_athlete['Score'],
-                                       text="⭐", showarrow=False, font=dict(size=20))
+                                       text="⭐", showarrow=False, font=dict(size=STAR_ANNOTATION_FONT_SIZE))
 
                 if current_y_axis_range_athlete:
                     fig_athlete.update_yaxes(range=current_y_axis_range_athlete)
@@ -289,13 +302,19 @@ def render_by_gymnast_view(df: pd.DataFrame):
                             text="Score",
                             category_orders={"CompYear": sorted_comp_years_for_chart_athlete}
                         )
-                        fig_compare_athlete.update_traces(**COMMON_BAR_TRACE_ARGS, texttemplate='%{text:.3f}')
+                        fig_compare_athlete.update_traces(
+                            **COMMON_BAR_TRACE_ARGS, 
+                            texttemplate='%{text:.3f}',
+                            textfont=dict(size=MARKER_TEXTFONT_SIZE)
+                        )
                         fig_compare_athlete.update_layout(
                             **COMMON_LAYOUT_ARGS,
                             yaxis_title="Score (AA scores are divided by 4)",
                             yaxis_range=COMPARISON_BAR_Y_RANGE,
                             legend_title_text="Year",
-                            height=500
+                            height=500,
+                            xaxis=dict(tickfont=dict(size=XAXIS_TICKFONT_SIZE)),
+                            yaxis=dict(tickfont=dict(size=YAXIS_TICKFONT_SIZE))
                         )
                         st.plotly_chart(fig_compare_athlete, use_container_width=True)
                     else:

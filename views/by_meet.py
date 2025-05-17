@@ -9,7 +9,10 @@ from config import (
     COMMON_BAR_TRACE_ARGS,
     MEET_VIEW_LEVEL_ORDER,
     MEET_VIEW_EVENTS_TO_GRAPH,
-    MEET_VIEW_TEAM_SCORE_Y_RANGE
+    MEET_VIEW_TEAM_SCORE_Y_RANGE,
+    XAXIS_TICKFONT_SIZE,
+    YAXIS_TICKFONT_SIZE,
+    MARKER_TEXTFONT_SIZE
 )
 
 def render_by_meet_view(df: pd.DataFrame):
@@ -110,9 +113,14 @@ def render_by_meet_view(df: pd.DataFrame):
                                 color="Level",
                                 color_discrete_map=LEVEL_COLORS)
         
-        fig_meet_event.update_traces(**COMMON_BAR_TRACE_ARGS, texttemplate='%{text:.3f}')
+        fig_meet_event.update_traces(
+            **COMMON_BAR_TRACE_ARGS, 
+            texttemplate='%{text:.3f}',
+            textfont=dict(size=MARKER_TEXTFONT_SIZE)
+        )
         current_layout_args = COMMON_LAYOUT_ARGS.copy()
-        current_layout_args['xaxis'] = {'type': 'category', 'categoryorder':'array', 'categoryarray': levels_with_data_event}
+        current_layout_args['xaxis'] = {'type': 'category', 'categoryorder':'array', 'categoryarray': levels_with_data_event, 'tickfont': dict(size=XAXIS_TICKFONT_SIZE)}
+        current_layout_args['yaxis'] = {'tickfont': dict(size=YAXIS_TICKFONT_SIZE)}
         current_layout_args['yaxis_title'] = f"Average Score ({event_name})"
         current_layout_args['showlegend'] = True
         fig_meet_event.update_layout(**current_layout_args)
@@ -154,9 +162,14 @@ def render_by_meet_view(df: pd.DataFrame):
                                         color="Level",
                                         color_discrete_map=LEVEL_COLORS)
                 
-                fig_team_score.update_traces(**COMMON_BAR_TRACE_ARGS, texttemplate='%{text:.3f}')
+                fig_team_score.update_traces(
+                    **COMMON_BAR_TRACE_ARGS, 
+                    texttemplate='%{text:.3f}',
+                    textfont=dict(size=MARKER_TEXTFONT_SIZE)
+                )
                 team_score_layout_args = COMMON_LAYOUT_ARGS.copy()
-                team_score_layout_args['xaxis'] = {'type': 'category', 'categoryorder':'array', 'categoryarray': levels_with_team_data}
+                team_score_layout_args['xaxis'] = {'type': 'category', 'categoryorder':'array', 'categoryarray': levels_with_team_data, 'tickfont': dict(size=XAXIS_TICKFONT_SIZE)}
+                team_score_layout_args['yaxis'] = {'tickfont': dict(size=YAXIS_TICKFONT_SIZE)}
                 team_score_layout_args['yaxis_title'] = "Average Team Score"
                 team_score_layout_args['yaxis_range'] = MEET_VIEW_TEAM_SCORE_Y_RANGE
                 team_score_layout_args['showlegend'] = True
