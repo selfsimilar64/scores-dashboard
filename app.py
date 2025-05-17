@@ -120,7 +120,6 @@ if view == "By Level":
                     avg_event_scores = avg_event_scores.sort_values(by="MeetDate")
 
                 if not avg_event_scores.empty:
-                    st.markdown("<div class='metric-card-container'>", unsafe_allow_html=True) # Start card
                     # --- START: Team Stat Cards ---
                     team_max_score_details = avg_event_scores.loc[avg_event_scores['Score'].idxmax()]
                     team_max_score_val = custom_round(team_max_score_details['Score'])
@@ -168,11 +167,21 @@ if view == "By Level":
                                 team_trend_val = "N/A"
                     
                     team_stat_cols = st.columns(3)
-                    team_stat_cols[0].metric(label="Max Team Score", value=f"{team_max_score_val:.2f}")
-                    team_stat_cols[0].caption(f"Meet: {team_max_score_meet}")
-                    team_stat_cols[1].metric(label=team_chosen_stat_label, value=f"{team_chosen_stat_val:.2f}")
-                    team_stat_cols[2].metric(label=team_trend_label, value=str(team_trend_val), delta_color="off")
-                    st.markdown("</div>", unsafe_allow_html=True) # End card
+                    with team_stat_cols[0]:
+                        st.markdown("<div class='metric-card-container'>", unsafe_allow_html=True)
+                        st.metric(label="Max Team Score", value=f"{team_max_score_val:.2f}")
+                        st.caption(f"Meet: {team_max_score_meet}")
+                        st.markdown("</div>", unsafe_allow_html=True)
+                    with team_stat_cols[1]:
+                        st.markdown("<div class='metric-card-container'>", unsafe_allow_html=True)
+                        st.metric(label=team_chosen_stat_label, value=f"{team_chosen_stat_val:.2f}")
+                        st.markdown("<br>", unsafe_allow_html=True) # Add break for consistent height if no caption
+                        st.markdown("</div>", unsafe_allow_html=True)
+                    with team_stat_cols[2]:
+                        st.markdown("<div class='metric-card-container'>", unsafe_allow_html=True)
+                        st.metric(label=team_trend_label, value=str(team_trend_val), delta_color="off")
+                        st.markdown("<br>", unsafe_allow_html=True) # Add break for consistent height if no caption
+                        st.markdown("</div>", unsafe_allow_html=True)
                     # --- END: Team Stat Cards ---
                     
                     current_y_axis_range = None
@@ -276,180 +285,197 @@ elif view == "By Gymnast":
 
     events = ["Vault", "Bars", "Beam", "Floor", "All Around"]
     
-    for event in events:
-        event_data_for_plot = data_to_plot[data_to_plot.Event == event].copy() 
-        
-        st.subheader(event) 
+    # Create tabs for each event
+    event_tabs_gymnast = st.tabs(events)
 
-        if not event_data_for_plot.empty:
-            # --- START: Stat Cards Calculations (Athlete) ---
-            max_score_details_athlete = event_data_for_plot.loc[event_data_for_plot['Score'].idxmax()]
-            max_score_val_athlete = custom_round(max_score_details_athlete['Score'])
-            max_score_meet_athlete = max_score_details_athlete['MeetName']
-            max_score_year_athlete = str(max_score_details_athlete['CompYear']) 
+    for i, event in enumerate(events):
+        with event_tabs_gymnast[i]: # Use the specific tab for this event
+            # st.subheader(event) # Subheader replaced by tab label
+            event_data_for_plot = data_to_plot[data_to_plot.Event == event].copy() 
             
-            chosen_stat_val_athlete = None
-            chosen_stat_label_athlete = ""
-            if calc_method == "Median":
-                chosen_stat_val_athlete = custom_round(event_data_for_plot['Score'].median())
-                chosen_stat_label_athlete = "Median Score"
-            else: # Mean
-                chosen_stat_val_athlete = custom_round(event_data_for_plot['Score'].mean())
-                chosen_stat_label_athlete = "Mean Score"
-            
-            improvement_val_numeric_athlete = None 
-            improvement_display_text_athlete = "" 
-            improvement_label_athlete = ""
-
-            is_multi_year_scenario_for_comparison_athlete = (
-                not show_current_year_only and 
-                'CompYear' in event_data_for_plot.columns and 
-                event_data_for_plot['CompYear'].nunique() > 1
-            )
-            
-            effective_comp_years_for_event_athlete = event_data_for_plot['CompYear'].unique()
-            is_effectively_single_year_view_for_event_athlete = show_current_year_only or (len(effective_comp_years_for_event_athlete) == 1)
-
-            if is_multi_year_scenario_for_comparison_athlete:
-                improvement_label_athlete = "Improvement" 
-                unique_comp_years_str_athlete = sorted(event_data_for_plot['CompYear'].unique(), key=lambda y_str: int(y_str), reverse=True)
-
-                if len(unique_comp_years_str_athlete) >= 2: 
-                    latest_year_str_athlete = unique_comp_years_str_athlete[0]
-                    previous_year_str_athlete = unique_comp_years_str_athlete[1]
-                    
-                    stat_latest_athlete = None
-                    stat_previous_athlete = None
-                    if calc_method == "Median":
-                        stat_latest_athlete = event_data_for_plot[event_data_for_plot['CompYear'] == latest_year_str_athlete]['Score'].median()
-                        stat_previous_athlete = event_data_for_plot[event_data_for_plot['CompYear'] == previous_year_str_athlete]['Score'].median()
-                    else: # Mean
-                        stat_latest_athlete = event_data_for_plot[event_data_for_plot['CompYear'] == latest_year_str_athlete]['Score'].mean()
-                        stat_previous_athlete = event_data_for_plot[event_data_for_plot['CompYear'] == previous_year_str_athlete]['Score'].mean()
-                    
-                    if pd.notna(stat_latest_athlete) and pd.notna(stat_previous_athlete):
-                        improvement_val_numeric_athlete = custom_round(stat_latest_athlete - stat_previous_athlete)
-                        improvement_label_athlete = f"Improvement (vs {previous_year_str_athlete})"
-                    else:
-                        improvement_val_numeric_athlete = "N/A" # Mark as N/A if calculation fails
-                        improvement_label_athlete = f"Improvement (vs {previous_year_str_athlete}, N/A)"
-            
-            elif is_effectively_single_year_view_for_event_athlete and not event_data_for_plot.empty:
-                improvement_label_athlete = "Intra-Year Trend"
-                if 'MeetDate' not in event_data_for_plot.columns:
-                    improvement_val_numeric_athlete = "N/A (No MeetDate)"
-                else:
-                    year_event_scores_for_trend_athlete = event_data_for_plot.sort_values(by="MeetDate")
-                    num_meets_athlete = len(year_event_scores_for_trend_athlete)
-
-                    if num_meets_athlete < 2:
-                        improvement_val_numeric_athlete = "N/A" 
-                    else:
-                        scores_series_athlete = year_event_scores_for_trend_athlete['Score']
-                        first_period_scores_data_athlete = pd.Series(dtype=float)
-                        second_period_scores_data_athlete = pd.Series(dtype=float)
-
-                        if num_meets_athlete % 2 == 0: 
-                            first_period_scores_data_athlete = scores_series_athlete.iloc[:num_meets_athlete//2]
-                            second_period_scores_data_athlete = scores_series_athlete.iloc[num_meets_athlete//2:]
-                        else: 
-                            middle_idx_athlete = num_meets_athlete // 2 
-                            first_period_scores_data_athlete = scores_series_athlete.iloc[:middle_idx_athlete + 1]
-                            second_period_scores_data_athlete = scores_series_athlete.iloc[middle_idx_athlete:]
-                        
-                        if first_period_scores_data_athlete.empty or first_period_scores_data_athlete.isnull().all() or \
-                           second_period_scores_data_athlete.empty or second_period_scores_data_athlete.isnull().all():
-                            improvement_val_numeric_athlete = "N/A"
-                        else:
-                            stat_first_athlete = None
-                            stat_second_athlete = None
-                            if calc_method == "Median":
-                                stat_first_athlete = first_period_scores_data_athlete.median()
-                                stat_second_athlete = second_period_scores_data_athlete.median()
-                            else: # Mean
-                                stat_first_athlete = first_period_scores_data_athlete.mean()
-                                stat_second_athlete = second_period_scores_data_athlete.mean()
-                            
-                            if pd.notna(stat_first_athlete) and pd.notna(stat_second_athlete):
-                                improvement_val_numeric_athlete = custom_round(stat_second_athlete - stat_first_athlete)
-                            else:
-                                improvement_val_numeric_athlete = "N/A" 
-            
-            # --- END: Stat Cards Calculations (Athlete) ---
-
-            # --- START: Stat Cards Display (Athlete) ---
-            athlete_stat_cols = st.columns(3)
-            athlete_stat_cols[0].metric(label="Max Score", value=f"{max_score_val_athlete:.2f}")
-            athlete_stat_cols[0].caption(f"Meet: {max_score_meet_athlete}, Year: {max_score_year_athlete}")
-            athlete_stat_cols[1].metric(label=chosen_stat_label_athlete, value=f"{chosen_stat_val_athlete:.2f}")
-            
-            if improvement_val_numeric_athlete is not None:
-                display_value_for_metric_athlete = ""
-                if isinstance(improvement_val_numeric_athlete, (float, int)): 
-                    display_value_for_metric_athlete = f"{improvement_val_numeric_athlete:+.2f}"
-                else: # It's "N/A" or other string
-                    display_value_for_metric_athlete = str(improvement_val_numeric_athlete)
-                
-                current_delta_label_athlete = improvement_label_athlete if improvement_label_athlete else "Trend/Improvement"
-                athlete_stat_cols[2].metric(label=current_delta_label_athlete, value=display_value_for_metric_athlete, delta_color="off")
-            # --- END: Stat Cards Display (Athlete) ---
-
-            if 'CompYear' in event_data_for_plot.columns:
-                 event_data_for_plot['CompYear_numeric'] = pd.to_numeric(event_data_for_plot['CompYear'])
-                 event_data_for_plot = event_data_for_plot.sort_values(by=["CompYear_numeric", "MeetDate"])
-                 event_data_for_plot.drop(columns=['CompYear_numeric'], inplace=True)
-            else: 
-                 event_data_for_plot = event_data_for_plot.sort_values(by=["MeetDate"])
-
-            event_data_for_plot['CompYear_str'] = event_data_for_plot['CompYear'].astype(str)
-            event_data_for_plot['x_display'] = event_data_for_plot['MeetName'] + ' (' + event_data_for_plot['CompYear_str'] + ')'
-            
-            current_y_axis_range_athlete = None
-            if not fit_y_axis:
-                if event == "All Around":
-                    current_y_axis_range_athlete = [30.0, 40.0]
-                else:
-                    current_y_axis_range_athlete = [5.5, 10.0]
-            
-            plot_color_arg_athlete = "CompYear" if not show_current_year_only and event_data_for_plot.CompYear.nunique() > 1 else None
-            
-            discrete_color_sequence_athlete = [color_map.get(event, "black")] if plot_color_arg_athlete is None else None
-
-            fig_athlete = px.line(event_data_for_plot, x="x_display", y="Score",
-                            color=plot_color_arg_athlete,
-                            markers=True, title="", # Title removed
-                            color_discrete_sequence=discrete_color_sequence_athlete,
-                            text="Score")
-            fig_athlete.update_layout(
-                height=600,
-                title_font_size=24,
-                xaxis_title_font_size=18,
-                xaxis_title="Meet (Year)",
-                yaxis_title_font_size=18,
-                legend_title_font_size=16,
-                legend_font_size=14,
-                title_text="" # Ensure title is blank
-            )
-            # Athlete text template already had .3f, let's make it consistent or decide if it needs rounding.
-            # For now, keeping athlete's plotted text at .3f as per original structure.
-            fig_athlete.update_traces(line=dict(width=5), marker=dict(size=12), textposition="top center", texttemplate='%{text:.3f}')
-
-
             if not event_data_for_plot.empty:
-                max_score_row_for_star_athlete = event_data_for_plot.loc[event_data_for_plot['Score'].idxmax()]
-                fig_athlete.add_annotation(x=max_score_row_for_star_athlete['x_display'], y=max_score_row_for_star_athlete['Score'],
-                                   text="⭐", showarrow=False, font=dict(size=20))
+                # --- START: Stat Cards Calculations (Athlete) ---
+                max_score_details_athlete = event_data_for_plot.loc[event_data_for_plot['Score'].idxmax()]
+                max_score_val_athlete = custom_round(max_score_details_athlete['Score'])
+                max_score_meet_athlete = max_score_details_athlete['MeetName']
+                max_score_year_athlete = str(max_score_details_athlete['CompYear']) 
+                
+                chosen_stat_val_athlete = None
+                chosen_stat_label_athlete = ""
+                if calc_method == "Median":
+                    chosen_stat_val_athlete = custom_round(event_data_for_plot['Score'].median())
+                    chosen_stat_label_athlete = "Median Score"
+                else: # Mean
+                    chosen_stat_val_athlete = custom_round(event_data_for_plot['Score'].mean())
+                    chosen_stat_label_athlete = "Mean Score"
+                
+                improvement_val_numeric_athlete = None 
+                improvement_display_text_athlete = "" 
+                improvement_label_athlete = ""
 
-            if current_y_axis_range_athlete:
-                fig_athlete.update_yaxes(range=current_y_axis_range_athlete)
-            st.plotly_chart(fig_athlete, use_container_width=True)
-        else:
-            no_data_message_athlete = f"No data available for {event} at Level {selected_level}"
-            if show_current_year_only and 'most_recent_comp_year_val' in locals() and pd.notna(most_recent_comp_year_val):
-                 no_data_message_athlete += f" in {int(most_recent_comp_year_val)}."
+                is_multi_year_scenario_for_comparison_athlete = (
+                    not show_current_year_only and 
+                    'CompYear' in event_data_for_plot.columns and 
+                    event_data_for_plot['CompYear'].nunique() > 1
+                )
+                
+                effective_comp_years_for_event_athlete = event_data_for_plot['CompYear'].unique()
+                is_effectively_single_year_view_for_event_athlete = show_current_year_only or (len(effective_comp_years_for_event_athlete) == 1)
+
+                if is_multi_year_scenario_for_comparison_athlete:
+                    improvement_label_athlete = "Improvement" 
+                    unique_comp_years_str_athlete = sorted(event_data_for_plot['CompYear'].unique(), key=lambda y_str: int(y_str), reverse=True)
+
+                    if len(unique_comp_years_str_athlete) >= 2: 
+                        latest_year_str_athlete = unique_comp_years_str_athlete[0]
+                        previous_year_str_athlete = unique_comp_years_str_athlete[1]
+                        
+                        stat_latest_athlete = None
+                        stat_previous_athlete = None
+                        if calc_method == "Median":
+                            stat_latest_athlete = event_data_for_plot[event_data_for_plot['CompYear'] == latest_year_str_athlete]['Score'].median()
+                            stat_previous_athlete = event_data_for_plot[event_data_for_plot['CompYear'] == previous_year_str_athlete]['Score'].median()
+                        else: # Mean
+                            stat_latest_athlete = event_data_for_plot[event_data_for_plot['CompYear'] == latest_year_str_athlete]['Score'].mean()
+                            stat_previous_athlete = event_data_for_plot[event_data_for_plot['CompYear'] == previous_year_str_athlete]['Score'].mean()
+                        
+                        if pd.notna(stat_latest_athlete) and pd.notna(stat_previous_athlete):
+                            improvement_val_numeric_athlete = custom_round(stat_latest_athlete - stat_previous_athlete)
+                            improvement_label_athlete = f"Improvement (vs {previous_year_str_athlete})"
+                        else:
+                            improvement_val_numeric_athlete = "N/A" # Mark as N/A if calculation fails
+                            improvement_label_athlete = f"Improvement (vs {previous_year_str_athlete}, N/A)"
+                
+                elif is_effectively_single_year_view_for_event_athlete and not event_data_for_plot.empty:
+                    improvement_label_athlete = "Intra-Year Trend"
+                    if 'MeetDate' not in event_data_for_plot.columns:
+                        improvement_val_numeric_athlete = "N/A (No MeetDate)"
+                    else:
+                        year_event_scores_for_trend_athlete = event_data_for_plot.sort_values(by="MeetDate")
+                        num_meets_athlete = len(year_event_scores_for_trend_athlete)
+
+                        if num_meets_athlete < 2:
+                            improvement_val_numeric_athlete = "N/A" 
+                        else:
+                            scores_series_athlete = year_event_scores_for_trend_athlete['Score']
+                            first_period_scores_data_athlete = pd.Series(dtype=float)
+                            second_period_scores_data_athlete = pd.Series(dtype=float)
+
+                            if num_meets_athlete % 2 == 0: 
+                                first_period_scores_data_athlete = scores_series_athlete.iloc[:num_meets_athlete//2]
+                                second_period_scores_data_athlete = scores_series_athlete.iloc[num_meets_athlete//2:]
+                            else: 
+                                middle_idx_athlete = num_meets_athlete // 2 
+                                first_period_scores_data_athlete = scores_series_athlete.iloc[:middle_idx_athlete + 1]
+                                second_period_scores_data_athlete = scores_series_athlete.iloc[middle_idx_athlete:]
+                            
+                            if first_period_scores_data_athlete.empty or first_period_scores_data_athlete.isnull().all() or \
+                               second_period_scores_data_athlete.empty or second_period_scores_data_athlete.isnull().all():
+                                improvement_val_numeric_athlete = "N/A"
+                            else:
+                                stat_first_athlete = None
+                                stat_second_athlete = None
+                                if calc_method == "Median":
+                                    stat_first_athlete = first_period_scores_data_athlete.median()
+                                    stat_second_athlete = second_period_scores_data_athlete.median()
+                                else: # Mean
+                                    stat_first_athlete = first_period_scores_data_athlete.mean()
+                                    stat_second_athlete = second_period_scores_data_athlete.mean()
+                                
+                                if pd.notna(stat_first_athlete) and pd.notna(stat_second_athlete):
+                                    improvement_val_numeric_athlete = custom_round(stat_second_athlete - stat_first_athlete)
+                                else:
+                                    improvement_val_numeric_athlete = "N/A" 
+                
+                # --- END: Stat Cards Calculations (Athlete) ---
+
+                # --- START: Stat Cards Display (Athlete) ---
+                athlete_stat_cols = st.columns(3)
+                with athlete_stat_cols[0]:
+                    st.markdown("<div class='metric-card-container'>", unsafe_allow_html=True)
+                    st.metric(label="Max Score", value=f"{max_score_val_athlete:.2f}")
+                    st.caption(f"Meet: {max_score_meet_athlete}, Year: {max_score_year_athlete}")
+                    st.markdown("</div>", unsafe_allow_html=True)
+                
+                with athlete_stat_cols[1]:
+                    st.markdown("<div class='metric-card-container'>", unsafe_allow_html=True)
+                    st.metric(label=chosen_stat_label_athlete, value=f"{chosen_stat_val_athlete:.2f}")
+                    st.markdown("<br>", unsafe_allow_html=True) # Add break for consistent height
+                    st.markdown("</div>", unsafe_allow_html=True)
+                
+                with athlete_stat_cols[2]:
+                    st.markdown("<div class='metric-card-container'>", unsafe_allow_html=True)
+                    if improvement_val_numeric_athlete is not None:
+                        display_value_for_metric_athlete = ""
+                        if isinstance(improvement_val_numeric_athlete, (float, int)): 
+                            display_value_for_metric_athlete = f"{improvement_val_numeric_athlete:+.2f}"
+                        else: # It's "N/A" or other string
+                            display_value_for_metric_athlete = str(improvement_val_numeric_athlete)
+                        
+                        current_delta_label_athlete = improvement_label_athlete if improvement_label_athlete else "Trend/Improvement"
+                        st.metric(label=current_delta_label_athlete, value=display_value_for_metric_athlete, delta_color="off")
+                    else:
+                        st.metric(label="Trend/Improvement", value="N/A", delta_color="off") # Default if None
+                    st.markdown("<br>", unsafe_allow_html=True) # Add break for consistent height
+                    st.markdown("</div>", unsafe_allow_html=True)
+                # --- END: Stat Cards Display (Athlete) ---
+
+                if 'CompYear' in event_data_for_plot.columns:
+                     event_data_for_plot['CompYear_numeric'] = pd.to_numeric(event_data_for_plot['CompYear'])
+                     event_data_for_plot = event_data_for_plot.sort_values(by=["CompYear_numeric", "MeetDate"])
+                     event_data_for_plot.drop(columns=['CompYear_numeric'], inplace=True)
+                else: 
+                     event_data_for_plot = event_data_for_plot.sort_values(by=["MeetDate"])
+
+                event_data_for_plot['CompYear_str'] = event_data_for_plot['CompYear'].astype(str)
+                event_data_for_plot['x_display'] = event_data_for_plot['MeetName'] + ' (' + event_data_for_plot['CompYear_str'] + ')'
+                
+                current_y_axis_range_athlete = None
+                if not fit_y_axis:
+                    if event == "All Around":
+                        current_y_axis_range_athlete = [30.0, 40.0]
+                    else:
+                        current_y_axis_range_athlete = [5.5, 10.0]
+                
+                plot_color_arg_athlete = "CompYear" if not show_current_year_only and event_data_for_plot.CompYear.nunique() > 1 else None
+                
+                discrete_color_sequence_athlete = [color_map.get(event, "black")] if plot_color_arg_athlete is None else None
+
+                fig_athlete = px.line(event_data_for_plot, x="x_display", y="Score",
+                                color=plot_color_arg_athlete,
+                                markers=True, title="", # Title removed
+                                color_discrete_sequence=discrete_color_sequence_athlete,
+                                text="Score")
+                fig_athlete.update_layout(
+                    height=600,
+                    title_font_size=24,
+                    xaxis_title_font_size=18,
+                    xaxis_title="Meet (Year)",
+                    yaxis_title_font_size=18,
+                    legend_title_font_size=16,
+                    legend_font_size=14,
+                    title_text="" # Ensure title is blank
+                )
+                # Athlete text template already had .3f, let's make it consistent or decide if it needs rounding.
+                # For now, keeping athlete's plotted text at .3f as per original structure.
+                fig_athlete.update_traces(line=dict(width=5), marker=dict(size=12), textposition="top center", texttemplate='%{text:.3f}')
+
+
+                if not event_data_for_plot.empty:
+                    max_score_row_for_star_athlete = event_data_for_plot.loc[event_data_for_plot['Score'].idxmax()]
+                    fig_athlete.add_annotation(x=max_score_row_for_star_athlete['x_display'], y=max_score_row_for_star_athlete['Score'],
+                                       text="⭐", showarrow=False, font=dict(size=20))
+
+                if current_y_axis_range_athlete:
+                    fig_athlete.update_yaxes(range=current_y_axis_range_athlete)
+                st.plotly_chart(fig_athlete, use_container_width=True)
             else:
-                 no_data_message_athlete += "."
-            st.write(no_data_message_athlete)
+                no_data_message_athlete = f"No data available for {event} at Level {selected_level}"
+                if show_current_year_only and 'most_recent_comp_year_val' in locals() and pd.notna(most_recent_comp_year_val):
+                     no_data_message_athlete += f" in {int(most_recent_comp_year_val)}."
+                else:
+                     no_data_message_athlete += "."
+                st.write(no_data_message_athlete)
 
     # --- START: Multi-Year Comparison Logic ---
     if not show_current_year_only: 
@@ -638,29 +664,40 @@ elif view == "By Meet":
         # --- START: Stat Cards for Meet View ---
         cols = st.columns(2)
         
-        # Max Team Score (Level Average)
-        if not avg_scores_by_level.empty:
-            max_avg_level_score_details = avg_scores_by_level.loc[avg_scores_by_level['Score'].idxmax()]
-            max_avg_level_score_val = custom_round(max_avg_level_score_details['Score'])
-            max_avg_level_name = max_avg_level_score_details['Level']
-            cols[0].metric(label=f"Max Avg. Level Score ({event_name})", value=f"{max_avg_level_score_val:.3f}",
-                           help=f"Highest average score for a Level: {max_avg_level_name}")
-            # Create a small visual cue for the level's color
-            if max_avg_level_name in level_color_map:
-                 cols[0].markdown(f"<span style='color:{level_color_map[max_avg_level_name]};'>●</span> Level {max_avg_level_name}", unsafe_allow_html=True)
+        with cols[0]:
+            st.markdown("<div class='metric-card-container'>", unsafe_allow_html=True)
+            # Max Team Score (Level Average)
+            if not avg_scores_by_level.empty:
+                max_avg_level_score_details = avg_scores_by_level.loc[avg_scores_by_level['Score'].idxmax()]
+                max_avg_level_score_val = custom_round(max_avg_level_score_details['Score'])
+                max_avg_level_name = max_avg_level_score_details['Level']
+                cols[0].metric(label=f"Max Avg. Level Score ({event_name})", value=f"{max_avg_level_score_val:.3f}",
+                               help=f"Highest average score for a Level: {max_avg_level_name}")
+                # Create a small visual cue for the level's color
+                if max_avg_level_name in level_color_map:
+                     cols[0].markdown(f"<span style='color:{level_color_map[max_avg_level_name]};'>●</span> Level {max_avg_level_name}", unsafe_allow_html=True)
+                else:
+                     cols[0].caption(f"Level: {max_avg_level_name}")
             else:
-                 cols[0].caption(f"Level: {max_avg_level_name}")
+                st.metric(label=f"Max Avg. Level Score ({event_name})", value="N/A")
+                st.markdown("<br>", unsafe_allow_html=True) # Add break for consistent height
+            st.markdown("</div>", unsafe_allow_html=True)
 
-
-        # Max Individual Score
-        if not event_meet_data.empty:
-            max_individual_score_details = event_meet_data.loc[event_meet_data['Score'].idxmax()]
-            max_individual_score_val = custom_round(max_individual_score_details['Score'])
-            max_individual_athlete = max_individual_score_details['AthleteName']
-            max_individual_level = max_individual_score_details['Level']
-            cols[1].metric(label=f"Max Individual Score ({event_name})", value=f"{max_individual_score_val:.3f}",
-                           help=f"Athlete: {max_individual_athlete} (Level {max_individual_level})")
-            cols[1].caption(f"Athlete: {max_individual_athlete} (Level {max_individual_level})")
+        with cols[1]:
+            st.markdown("<div class='metric-card-container'>", unsafe_allow_html=True)
+            # Max Individual Score
+            if not event_meet_data.empty:
+                max_individual_score_details = event_meet_data.loc[event_meet_data['Score'].idxmax()]
+                max_individual_score_val = custom_round(max_individual_score_details['Score'])
+                max_individual_athlete = max_individual_score_details['AthleteName']
+                max_individual_level = max_individual_score_details['Level']
+                cols[1].metric(label=f"Max Individual Score ({event_name})", value=f"{max_individual_score_val:.3f}",
+                               help=f"Athlete: {max_individual_athlete} (Level {max_individual_level})")
+                cols[1].caption(f"Athlete: {max_individual_athlete} (Level {max_individual_level})")
+            else:
+                st.metric(label=f"Max Individual Score ({event_name})", value="N/A")
+                st.markdown("<br>", unsafe_allow_html=True) # Add break for consistent height
+            st.markdown("</div>", unsafe_allow_html=True)
         # --- END: Stat Cards for Meet View ---
 
         # Assign colors to the bars
