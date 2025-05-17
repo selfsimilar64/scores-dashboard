@@ -76,7 +76,7 @@ div[data-testid="stColumn"] > div[data-testid="stVerticalBlockBorderWrapper"] > 
 FONT_FAMILY = "Roboto, sans-serif" # A common sans-serif font 
 
 # Tab styling
-TAB_FONT_SIZE = "1.4rem" # Default: 1rem. Increased for better readability
+TAB_FONT_SIZE = "2.0rem" # Default: 1rem. Increased for better readability
 
 CUSTOM_TAB_CSS = f"""
 <style>
@@ -96,7 +96,7 @@ CUSTOM_TAB_CSS = f"""
 
     /* Target the active tab indicator line */
     div[data-baseweb="tab-highlight"] {{
-        height: 3px !important; /* Make the indicator line thicker */
+        height: 5px !important; /* Make the indicator line thicker */
         background-color: #1E88E5 !important; /* Optional: Change indicator color if needed, using a generic blue for now */
     }}
 </style>
