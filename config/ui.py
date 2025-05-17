@@ -134,7 +134,7 @@ CUSTOM_TAB_CSS = f"""
 
     /* Hide the default underline indicator */
     div[data-baseweb="tab-highlight"] {{
-        height: 5px !important;
+        height: 0px !important;
         color: {BACKGROUND_COLOR} !important;
     }}
 
