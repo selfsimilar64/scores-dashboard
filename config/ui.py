@@ -149,7 +149,7 @@ CUSTOM_TAB_CSS = f"""
         /* Alternatively, to make it blend if hiding is not desired:
         background-color: {BACKGROUND_COLOR} !important;
         border-color: {BACKGROUND_COLOR} !important;
-        height: 1px !important; /* Or whatever height it has */
+        height: 2px !important; /* Or whatever height it has */
         */
     }}
 </style>
