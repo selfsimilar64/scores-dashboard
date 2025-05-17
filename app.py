@@ -24,7 +24,7 @@ div[data-testid="stColumn"] > div[data-testid="stVerticalBlockBorderWrapper"] {
     display: flex; /* Ensure the child (stVerticalBlock) can effectively use height: 100% */
 }
 
-div[data-testid="stColumn"] > div[data-testid="stVerticalBlockBorderWrapper"] > div[data-testid="stVerticalBlock"] {
+div[data-testid="stColumn"] > div[data-testid="stVerticalBlockBorderWrapper"] > div[data-testid="stVerticalBlock"]:has(.stMetric) {
     background-color: #2E2E4A !important; /* Uses theme color, !important to override defaults */
     padding: 1.25rem; /* 20px */
     border-radius: 0.5rem; /* 8px */
@@ -37,19 +37,19 @@ div[data-testid="stColumn"] > div[data-testid="stVerticalBlockBorderWrapper"] > 
 }
 
 /* Ensure st.metric within these cards has a transparent background */
-div[data-testid="stColumn"] > div[data-testid="stVerticalBlockBorderWrapper"] > div[data-testid="stVerticalBlock"] .stMetric {
+div[data-testid="stColumn"] > div[data-testid="stVerticalBlockBorderWrapper"] > div[data-testid="stVerticalBlock"]:has(.stMetric) .stMetric {
     background-color: transparent !important;
 }
 
 /* Ensure text color for label, value, and delta within st.metric respects the theme */
-div[data-testid="stColumn"] > div[data-testid="stVerticalBlockBorderWrapper"] > div[data-testid="stVerticalBlock"] .stMetric label,
-div[data-testid="stColumn"] > div[data-testid="stVerticalBlockBorderWrapper"] > div[data-testid="stVerticalBlock"] .stMetric div[data-testid="stMetricValue"],
-div[data-testid="stColumn"] > div[data-testid="stVerticalBlockBorderWrapper"] > div[data-testid="stVerticalBlock"] .stMetric span { /* For delta */
+div[data-testid="stColumn"] > div[data-testid="stVerticalBlockBorderWrapper"] > div[data-testid="stVerticalBlock"]:has(.stMetric) .stMetric label,
+div[data-testid="stColumn"] > div[data-testid="stVerticalBlockBorderWrapper"] > div[data-testid="stVerticalBlock"]:has(.stMetric) .stMetric div[data-testid="stMetricValue"],
+div[data-testid="stColumn"] > div[data-testid="stVerticalBlockBorderWrapper"] > div[data-testid="stVerticalBlock"]:has(.stMetric) .stMetric span { /* For delta */
     color: #FFFFFF !important;
 }
 
 /* Style for st.caption (rendered as markdown) within these cards */
-div[data-testid="stColumn"] > div[data-testid="stVerticalBlockBorderWrapper"] > div[data-testid="stVerticalBlock"] div[data-testid="stCaptionContainer"] p {
+div[data-testid="stColumn"] > div[data-testid="stVerticalBlockBorderWrapper"] > div[data-testid="stVerticalBlock"]:has(.stMetric) div[data-testid="stCaptionContainer"] p {
     color: #FFFFFF !important;
     opacity: 0.75; /* Slightly less prominent caption */
     font-size: 0.875rem; /* Smaller font for caption */
