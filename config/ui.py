@@ -5,12 +5,13 @@ PRIMARY_COLOR = "#9A55FD"
 BACKGROUND_COLOR = "#1d1d33"
 SECONDARY_BACKGROUND_COLOR = "#2E2E4A"
 TEXT_COLOR = "#ffffff"
+TEXT_COLOR_SECONDARY = "#A0AEC0"
 
 # Specific UI Element Colors (derived or specific choices)
-INACTIVE_TEXT_COLOR = "#A0AEC0" # Light gray for inactive tab text
+INACTIVE_TEXT_COLOR = TEXT_COLOR_SECONDARY # Light gray for inactive tab text
 TAB_HOVER_BG_COLOR = "#242440" # User-defined hover background for tabs
-INACTIVE_HOVER_TEXT_COLOR = "#E2E8F0" # Lighter text on hover for inactive tabs
-ACTIVE_TAB_BG_COLOR = "#36404F" # Existing active tab background, can be aliased to SECONDARY_BACKGROUND_COLOR or kept specific
+INACTIVE_HOVER_TEXT_COLOR = TEXT_COLOR_SECONDARY # Lighter text on hover for inactive tabs
+ACTIVE_TAB_BG_COLOR = SECONDARY_BACKGROUND_COLOR
 
 # Color palettes
 EVENT_COLORS = {
@@ -133,9 +134,8 @@ CUSTOM_TAB_CSS = f"""
 
     /* Hide the default underline indicator */
     div[data-baseweb="tab-highlight"] {{
-        display: none !important;
-        height: 0px !important;
-        color: {BACKGROUND_COLOR} !important; /* User had this as #1d1d33, now uses constant */
+        height: 1px !important;
+        color: {BACKGROUND_COLOR} !important;
     }}
 
     /* Tab list container for spacing */
