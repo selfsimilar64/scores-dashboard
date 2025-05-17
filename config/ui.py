@@ -142,5 +142,15 @@ CUSTOM_TAB_CSS = f"""
     div[data-baseweb="tab-list"] {{
         gap: 0.5rem !important; /* Space between tab buttons */
     }}
+
+    /* Hide or style the main tab border element */
+    div[data-baseweb="tab-border"] {{
+        display: none !important; /* Hide it */
+        /* Alternatively, to make it blend if hiding is not desired:
+        background-color: {BACKGROUND_COLOR} !important;
+        border-color: {BACKGROUND_COLOR} !important;
+        height: 1px !important; /* Or whatever height it has */
+        */
+    }}
 </style>
 """ 
