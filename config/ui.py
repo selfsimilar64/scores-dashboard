@@ -24,14 +24,6 @@ LEVEL_COLORS = {
     "9": "rgb(205, 127, 50)",
     "10": "rgb(185, 242, 255)"
 }
-for i, level in enumerate([str(j) for j in range(1, 11)]):
-    # Scale index to fit within the length of the Purp color sequence
-    # The original code had `t = i/10.0` and `numbered_level_colors[int(t*len(numbered_level_colors))]`
-    # which effectively maps 0-9 to indices of the color list.
-    # If Purp has e.g. 10 colors, this maps 0 to Purp[0], 1 to Purp[1], ..., 9 to Purp[9]
-    # For level "1" (i=0) -> Purp[0], for level "10" (i=9) -> Purp[len-1] (assuming len is 10)
-    idx = min(i, len(numbered_level_colors) - 1) # Ensure index is within bounds
-    LEVEL_COLORS[level] = numbered_level_colors[idx]
 
 LEVEL_COLORS.update({
     "XB": "rgb(205, 127, 50)",   # Bronze
