@@ -18,6 +18,19 @@ st.set_page_config(
 # Apply custom CSS for metric cards
 st.markdown(f"""<style>{DARK_CARD_CSS}</style>""", unsafe_allow_html=True)
 
+# Ensure stats cards stay in a horizontal scroll container on mobile
+st.markdown("""<style>
+div[data-testid=\"stColumns\"] {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+}
+div[data-testid=\"stColumns\"]::-webkit-scrollbar {
+    display: none;
+}
+</style>""", unsafe_allow_html=True)
+
 # Load data once
 try:
     df = load_db()
