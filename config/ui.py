@@ -76,7 +76,7 @@ div[data-testid="stColumn"] > div[data-testid="stVerticalBlockBorderWrapper"] > 
 FONT_FAMILY = "Roboto, sans-serif" # A common sans-serif font 
 
 # Tab styling
-TAB_FONT_SIZE = "1.1rem" # Default: 1rem. Increased for better readability
+TAB_FONT_SIZE = "1.5rem" # Default: 1rem. Increased for better readability
 
 CUSTOM_TAB_CSS = f"""
 <style>
