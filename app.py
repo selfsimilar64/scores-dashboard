@@ -3,7 +3,7 @@ import sqlite3, pandas as pd, streamlit as st, plotly.express as px
 st.set_page_config(
     page_title="Gymnastics Scores Dashboard",
     page_icon="🤸",  # Example emoji
-    layout="wide",   # Or "centered"
+    layout="centered",   # Or "centered"
     initial_sidebar_state="expanded",
     menu_items={
         'Get Help': 'mailto:youremail@example.com', # Replace with your help info
@@ -16,28 +16,35 @@ st.set_page_config(
 # You can put this directly in st.set_page_config or modify via config.toml
 # For now, let's keep it simple. More advanced theming can use a .streamlit/config.toml file.
 
-st.title("TESTING DEPLOYMENT - NEW VERSION v6.3")
-
 st.markdown("""
 <style>
-.metric-card-container {
-    background-color: var(--secondary-background-color);
-    padding: 1.5rem; /* Increased padding */
-    border-radius: 0.75rem; /* 12px */
-    box-shadow: 0 4px 8px rgba(0,0,0,0.15); /* Adjusted shadow */
-    margin-bottom: 1.5rem; /* Increased margin */
+/* Styles for metric cards when they are the content of an st.column */
+div[data-testid="stColumn"] > div[data-testid="stVerticalBlockBorderWrapper"] > div[data-testid="stVerticalBlock"] {
+    background-color: var(--secondary-background-color); /* Uses theme color */
+    padding: 1.25rem; /* 20px */
+    border-radius: 0.5rem; /* 8px */
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1); /* Subtle shadow */
+    /* border: 1px solid rgba(255, 255, 255, 0.08); /* Optional: subtle border for dark themes */
+    height: 100%; /* Attempt to make cards in a row equal height */
 }
-.metric-card-container .stMetric {
+
+/* Ensure st.metric within these cards has a transparent background */
+div[data-testid="stColumn"] > div[data-testid="stVerticalBlockBorderWrapper"] > div[data-testid="stVerticalBlock"] .stMetric {
     background-color: transparent !important;
 }
-.metric-card-container .stMetric label,
-.metric-card-container .stMetric p, /* Target paragraph for value */
-.metric-card-container .stMetric span { /* Target span if used for value/delta */
+
+/* Ensure text color for label, value, and delta within st.metric respects the theme */
+div[data-testid="stColumn"] > div[data-testid="stVerticalBlockBorderWrapper"] > div[data-testid="stVerticalBlock"] .stMetric label,
+div[data-testid="stColumn"] > div[data-testid="stVerticalBlockBorderWrapper"] > div[data-testid="stVerticalBlock"] .stMetric div[data-testid="stMetricValue"],
+div[data-testid="stColumn"] > div[data-testid="stVerticalBlockBorderWrapper"] > div[data-testid="stVerticalBlock"] .stMetric span { /* For delta */
     color: var(--text-color) !important;
 }
-.metric-card-container .stMetric .stMarkdown p { /* If caption is markdown */
+
+/* Style for st.caption (rendered as markdown) within these cards */
+div[data-testid="stColumn"] > div[data-testid="stVerticalBlockBorderWrapper"] > div[data-testid="stVerticalBlock"] div[data-testid="stCaptionContainer"] p {
     color: var(--text-color) !important;
-    opacity: 0.8; /* Make caption slightly less prominent */
+    opacity: 0.75; /* Slightly less prominent caption */
+    font-size: 0.875rem; /* Smaller font for caption */
 }
 </style>
 """, unsafe_allow_html=True)
@@ -168,20 +175,14 @@ if view == "By Level":
                     
                     team_stat_cols = st.columns(3)
                     with team_stat_cols[0]:
-                        st.markdown("<div class='metric-card-container'>", unsafe_allow_html=True)
                         st.metric(label="Max Team Score", value=f"{team_max_score_val:.2f}")
                         st.caption(f"Meet: {team_max_score_meet}")
-                        st.markdown("</div>", unsafe_allow_html=True)
                     with team_stat_cols[1]:
-                        st.markdown("<div class='metric-card-container'>", unsafe_allow_html=True)
                         st.metric(label=team_chosen_stat_label, value=f"{team_chosen_stat_val:.2f}")
-                        st.markdown("<br>", unsafe_allow_html=True) # Add break for consistent height if no caption
-                        st.markdown("</div>", unsafe_allow_html=True)
+                        st.caption("\u00A0") # Non-breaking space for consistent height
                     with team_stat_cols[2]:
-                        st.markdown("<div class='metric-card-container'>", unsafe_allow_html=True)
                         st.metric(label=team_trend_label, value=str(team_trend_val), delta_color="off")
-                        st.markdown("<br>", unsafe_allow_html=True) # Add break for consistent height if no caption
-                        st.markdown("</div>", unsafe_allow_html=True)
+                        st.caption("\u00A0") # Non-breaking space for consistent height
                     # --- END: Team Stat Cards ---
                     
                     current_y_axis_range = None
@@ -224,6 +225,7 @@ if view == "By Level":
                 st.write(f"No data available for {event} for Level {selected_level_team} in {selected_year}.")
 
 elif view == "By Gymnast":
+    
     athlete = st.sidebar.selectbox("Choose athlete", sorted(df.AthleteName.unique()))
     sub     = df[df.AthleteName == athlete]
 
@@ -392,19 +394,14 @@ elif view == "By Gymnast":
                 # --- START: Stat Cards Display (Athlete) ---
                 athlete_stat_cols = st.columns(3)
                 with athlete_stat_cols[0]:
-                    st.markdown("<div class='metric-card-container'>", unsafe_allow_html=True)
                     st.metric(label="Max Score", value=f"{max_score_val_athlete:.2f}")
                     st.caption(f"Meet: {max_score_meet_athlete}, Year: {max_score_year_athlete}")
-                    st.markdown("</div>", unsafe_allow_html=True)
                 
                 with athlete_stat_cols[1]:
-                    st.markdown("<div class='metric-card-container'>", unsafe_allow_html=True)
                     st.metric(label=chosen_stat_label_athlete, value=f"{chosen_stat_val_athlete:.2f}")
-                    st.markdown("<br>", unsafe_allow_html=True) # Add break for consistent height
-                    st.markdown("</div>", unsafe_allow_html=True)
+                    st.caption("\u00A0") # Non-breaking space for consistent height
                 
                 with athlete_stat_cols[2]:
-                    st.markdown("<div class='metric-card-container'>", unsafe_allow_html=True)
                     if improvement_val_numeric_athlete is not None:
                         display_value_for_metric_athlete = ""
                         if isinstance(improvement_val_numeric_athlete, (float, int)): 
@@ -416,8 +413,7 @@ elif view == "By Gymnast":
                         st.metric(label=current_delta_label_athlete, value=display_value_for_metric_athlete, delta_color="off")
                     else:
                         st.metric(label="Trend/Improvement", value="N/A", delta_color="off") # Default if None
-                    st.markdown("<br>", unsafe_allow_html=True) # Add break for consistent height
-                    st.markdown("</div>", unsafe_allow_html=True)
+                    st.caption("\u00A0") # Non-breaking space for consistent height
                 # --- END: Stat Cards Display (Athlete) ---
 
                 if 'CompYear' in event_data_for_plot.columns:
@@ -665,39 +661,32 @@ elif view == "By Meet":
         cols = st.columns(2)
         
         with cols[0]:
-            st.markdown("<div class='metric-card-container'>", unsafe_allow_html=True)
-            # Max Team Score (Level Average)
             if not avg_scores_by_level.empty:
-                max_avg_level_score_details = avg_scores_by_level.loc[avg_scores_by_level['Score'].idxmax()]
-                max_avg_level_score_val = custom_round(max_avg_level_score_details['Score'])
-                max_avg_level_name = max_avg_level_score_details['Level']
-                cols[0].metric(label=f"Max Avg. Level Score ({event_name})", value=f"{max_avg_level_score_val:.3f}",
-                               help=f"Highest average score for a Level: {max_avg_level_name}")
-                # Create a small visual cue for the level's color
+                max_avg_score_row = avg_scores_by_level.loc[avg_scores_by_level['Score'].idxmax()]
+                max_avg_level_score_val = custom_round(max_avg_score_row['Score'])
+                max_avg_level_name = max_avg_score_row['Level']
+                st.metric(label=f"Max Avg. Level Score ({event_name})", value=f"{max_avg_level_score_val:.3f}",
+                           help=f"Highest average score for a Level: {max_avg_level_name}")
                 if max_avg_level_name in level_color_map:
-                     cols[0].markdown(f"<span style='color:{level_color_map[max_avg_level_name]};'>●</span> Level {max_avg_level_name}", unsafe_allow_html=True)
+                     st.markdown(f"<span style='color:{level_color_map[max_avg_level_name]};'>●</span> Level {max_avg_level_name}", unsafe_allow_html=True)
                 else:
-                     cols[0].caption(f"Level: {max_avg_level_name}")
+                     st.caption(f"Level: {max_avg_level_name}")
             else:
                 st.metric(label=f"Max Avg. Level Score ({event_name})", value="N/A")
-                st.markdown("<br>", unsafe_allow_html=True) # Add break for consistent height
-            st.markdown("</div>", unsafe_allow_html=True)
+                st.caption("\u00A0") # Non-breaking space for consistent height
 
         with cols[1]:
-            st.markdown("<div class='metric-card-container'>", unsafe_allow_html=True)
-            # Max Individual Score
             if not event_meet_data.empty:
                 max_individual_score_details = event_meet_data.loc[event_meet_data['Score'].idxmax()]
                 max_individual_score_val = custom_round(max_individual_score_details['Score'])
                 max_individual_athlete = max_individual_score_details['AthleteName']
                 max_individual_level = max_individual_score_details['Level']
-                cols[1].metric(label=f"Max Individual Score ({event_name})", value=f"{max_individual_score_val:.3f}",
-                               help=f"Athlete: {max_individual_athlete} (Level {max_individual_level})")
-                cols[1].caption(f"Athlete: {max_individual_athlete} (Level {max_individual_level})")
+                st.metric(label=f"Max Individual Score ({event_name})", value=f"{max_individual_score_val:.3f}",
+                           help=f"Athlete: {max_individual_athlete} (Level {max_individual_level})")
+                st.caption(f"Athlete: {max_individual_athlete} (Level {max_individual_level})")
             else:
                 st.metric(label=f"Max Individual Score ({event_name})", value="N/A")
-                st.markdown("<br>", unsafe_allow_html=True) # Add break for consistent height
-            st.markdown("</div>", unsafe_allow_html=True)
+                st.caption("\u00A0") # Non-breaking space for consistent height
         # --- END: Stat Cards for Meet View ---
 
         # Assign colors to the bars
