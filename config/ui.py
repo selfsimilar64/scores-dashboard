@@ -123,6 +123,8 @@ CUSTOM_TAB_CSS = f"""
     /* Hide the default underline indicator */
     div[data-baseweb="tab-highlight"] {{
         display: none !important;
+        height: 0px !important;
+        color: transparent !important;
     }}
 
     /* Tab list container for spacing */
