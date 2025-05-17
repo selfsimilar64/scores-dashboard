@@ -15,14 +15,14 @@ LEVEL_ORDER = [str(i) for i in range(1, 11)] + ["XB", "XS", "XG", "XP", "XD"]
 
 numbered_level_colors = sequential.Purp # Using Purp as in the original code for numbered levels
 LEVEL_COLORS = {
-    "3": "rgb(188, 237, 228)",
-    "4": "rgb(141, 230, 255)",
-    "5": "rgb(190, 205, 255)",
-    "6": "rgb(232, 197, 251)",
-    "7": "rgb(255, 177, 216)",
-    "8": "rgb(168, 50, 64)",
-    "9": "rgb(205, 127, 50)",
-    "10": "rgb(185, 242, 255)"
+    "3": "rgb(222, 218, 93)",
+    "4": "rgb(119, 222, 93)",
+    "5": "rgb(93, 222, 220)",
+    "6": "rgb(93, 145, 222)",
+    "7": "rgb(115, 93, 222)",
+    "8": "rgb(190, 93, 222)",
+    "9": "rgb(222, 93, 153)",
+    "10": "rgb(222, 93, 93)"
 }
 
 LEVEL_COLORS.update({
