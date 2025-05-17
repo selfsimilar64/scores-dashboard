@@ -36,7 +36,9 @@ from .ui import (
     LEVEL_ORDER,
     LEVEL_COLORS,
     DARK_CARD_CSS,
-    FONT_FAMILY
+    FONT_FAMILY,
+    TAB_FONT_SIZE,
+    CUSTOM_TAB_CSS
 )
 
 __all__ = [
@@ -70,5 +72,7 @@ __all__ = [
     "LEVEL_ORDER",
     "LEVEL_COLORS",
     "DARK_CARD_CSS",
-    "FONT_FAMILY"
+    "FONT_FAMILY",
+    "TAB_FONT_SIZE",
+    "CUSTOM_TAB_CSS"
 ] 
