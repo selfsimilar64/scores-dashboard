@@ -11,7 +11,7 @@ TEXT_COLOR_SECONDARY = "#A0AEC0"
 INACTIVE_TEXT_COLOR = TEXT_COLOR_SECONDARY # Light gray for inactive tab text
 TAB_HOVER_BG_COLOR = "#242440" # User-defined hover background for tabs
 INACTIVE_HOVER_TEXT_COLOR = TEXT_COLOR_SECONDARY # Lighter text on hover for inactive tabs
-ACTIVE_TAB_BG_COLOR = SECONDARY_BACKGROUND_COLOR
+ACTIVE_TAB_BG_COLOR = PRIMARY_COLOR
 
 # Color palettes
 EVENT_COLORS = {
@@ -146,11 +146,11 @@ CUSTOM_TAB_CSS = f"""
     /* Hide or style the main tab border element */
     div[data-baseweb="tab-border"] {{
         display: none !important; /* Hide it */
-        /* Alternatively, to make it blend if hiding is not desired:
+        Alternatively, to make it blend if hiding is not desired:
         background-color: {BACKGROUND_COLOR} !important;
         border-color: {BACKGROUND_COLOR} !important;
         height: 1px !important; /* Or whatever height it has */
-        */
+        
     }}
 </style>
 """ 
