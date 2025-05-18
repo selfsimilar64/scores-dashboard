@@ -268,12 +268,20 @@ def render_by_gymnast_view(df: pd.DataFrame):
                                 color_discrete_sequence=discrete_color_sequence_athlete,
                                 text="Score")
                 
-                fig_athlete.update_layout(
-                    **COMMON_LAYOUT_ARGS, 
-                    xaxis_title="Meet (Year)",
-                    xaxis=dict(tickfont=dict(size=XAXIS_TICKFONT_SIZE)),
-                    yaxis=dict(tickfont=dict(size=YAXIS_TICKFONT_SIZE))
-                )
+                # Consolidate layout arguments
+                plot_layout_options = COMMON_LAYOUT_ARGS.copy()
+                
+                xaxis_cfg = plot_layout_options.get('xaxis', {}).copy()
+                xaxis_cfg['title'] = {'text': "Meet (Year)"} # Specific title for this view
+                xaxis_cfg['tickfont'] = {'size': XAXIS_TICKFONT_SIZE} # Specific tickfont
+                plot_layout_options['xaxis'] = xaxis_cfg
+                
+                yaxis_cfg = plot_layout_options.get('yaxis', {}).copy()
+                yaxis_cfg['tickfont'] = {'size': YAXIS_TICKFONT_SIZE} # Specific tickfont
+                plot_layout_options['yaxis'] = yaxis_cfg
+                
+                fig_athlete.update_layout(**plot_layout_options)
+                
                 fig_athlete.update_traces(
                     **COMMON_LINE_TRACE_ARGS, 
                     texttemplate='%{text:.3f}',

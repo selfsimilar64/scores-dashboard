@@ -238,11 +238,20 @@ def render_by_level_view(df: pd.DataFrame):
                                     color_discrete_sequence=[EVENT_COLORS.get(event, "black")],
                                     text="Score")
                     
-                    fig.update_layout(
-                        **COMMON_LAYOUT_ARGS,
-                        xaxis=dict(tickfont=dict(size=XAXIS_TICKFONT_SIZE)),
-                        yaxis=dict(tickfont=dict(size=YAXIS_TICKFONT_SIZE))
-                    )
+                    # Consolidate layout arguments
+                    plot_layout_options = COMMON_LAYOUT_ARGS.copy()
+
+                    xaxis_cfg = plot_layout_options.get('xaxis', {}).copy()
+                    # No specific title for by_level.py line chart x-axis, inherits from COMMON_LAYOUT_ARGS
+                    xaxis_cfg['tickfont'] = {'size': XAXIS_TICKFONT_SIZE}
+                    plot_layout_options['xaxis'] = xaxis_cfg
+
+                    yaxis_cfg = plot_layout_options.get('yaxis', {}).copy()
+                    yaxis_cfg['tickfont'] = {'size': YAXIS_TICKFONT_SIZE}
+                    plot_layout_options['yaxis'] = yaxis_cfg
+
+                    fig.update_layout(**plot_layout_options)
+                    
                     fig.update_traces(
                         **COMMON_LINE_TRACE_ARGS, 
                         texttemplate='%{text:.3f}',
