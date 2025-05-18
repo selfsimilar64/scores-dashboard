@@ -51,7 +51,7 @@ def create_placement_histogram(df: pd.DataFrame, selected_level: str, selected_y
     fig = px.bar(placement_df, x='Place', y='Count', text='Count',
                  title=f"Placement Distribution for {title_level_display} - {selected_year}",
                  labels={'Place': 'Place', 'Count': 'Number of Times Achieved'})
-    fig.update_layout(xaxis_tickvals=list(range(1, 11)), yaxis_dtick=1) # Ensure x-axis shows 1-10 and y-axis has integer ticks
+    fig.update_layout(xaxis_tickvals=list(range(1, 11)), yaxis=dict(showticklabels=False, title=dict(text=None)), yaxis_dtick=1) # Ensure x-axis shows 1-10 and y-axis has integer ticks, hide y-axis labels/title
     fig.update_traces(texttemplate='%{text}', textposition='outside') # Display count labels on bars
     st.plotly_chart(fig, use_container_width=True)
 

@@ -44,7 +44,7 @@ def create_meet_placement_histogram(df: pd.DataFrame, selected_meet: str, select
     fig = px.bar(placement_df, x='Place', y='Count',
                  title=f"Placement Distribution for {selected_meet} - {selected_year}",
                  labels={'Place': 'Place', 'Count': 'Number of Times Achieved'})
-    fig.update_layout(xaxis_tickvals=list(range(1, 11)), yaxis_dtick=1)
+    fig.update_layout(xaxis_tickvals=list(range(1, 11)), yaxis=dict(showticklabels=False, title=dict(text=None)), yaxis_dtick=1)
     st.plotly_chart(fig, use_container_width=True)
 
 
@@ -100,7 +100,22 @@ def render_by_meet_view(df: pd.DataFrame):
         return
 
     year_specific_df = df[df.CompYear == selected_comp_year]
-    meet_names = sorted(year_specific_df.MeetName.unique())
+
+    # Sort meets by date, with "States" last
+    if not year_specific_df.empty and 'MeetDate' in year_specific_df.columns:
+        year_specific_df['MeetDate'] = pd.to_datetime(year_specific_df['MeetDate'], errors='coerce')
+        meets_df = year_specific_df[['MeetName', 'MeetDate']].drop_duplicates().sort_values(by='MeetDate')
+        
+        # Separate "States" meet if it exists
+        states_meet = meets_df[meets_df['MeetName'].str.contains("State", case=False, na=False)]
+        other_meets = meets_df[~meets_df['MeetName'].str.contains("State", case=False, na=False)]
+        
+        # Concatenate, putting "States" at the end
+        sorted_meets_df = pd.concat([other_meets, states_meet])
+        meet_names = sorted_meets_df.MeetName.unique().tolist()
+    else:
+        meet_names = sorted(year_specific_df.MeetName.unique())
+
     if not meet_names:
         st.warning(f"No meet data available for {selected_comp_year}.")
         return

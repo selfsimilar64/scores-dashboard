@@ -7,7 +7,7 @@ class YAxisRange:
 
 # Default Y-axis ranges, derived from common usage in app.py
 DEFAULT_Y_RANGE = YAxisRange(
-    event=(7.0, 10.0),
+    event=(8.0, 10.0),
     all_around=(30.0, 40.0)
 )
 
@@ -24,7 +24,8 @@ COMMON_LAYOUT_ARGS = dict(
     yaxis_title_font_size=22,
     legend_title_font_size=22,
     legend_font_size=20,
-    title_text=""  # Ensure title is blank by default, can be overridden
+    title_text="",  # Ensure title is blank by default, can be overridden
+    xaxis=dict(showticklabels=False, title=dict(text=None)), # Hide x-axis ticks and title
 )
 
 # New font size configurations
