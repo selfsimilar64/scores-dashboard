@@ -21,6 +21,42 @@ from config import (
     CUSTOM_TAB_CSS
 )
 
+def create_gymnast_top_scores_table(df: pd.DataFrame, selected_athlete: str, selected_level: str, show_current_year_only: bool, most_recent_comp_year: int | None):
+    """Creates and displays a table of top 5 scores for a given gymnast, level, and year selection."""
+    data_for_table = df[(df.AthleteName == selected_athlete) & (df.Level == selected_level)].copy()
+
+    title_year_segment = ""
+    if show_current_year_only and most_recent_comp_year is not None:
+        data_for_table = data_for_table[data_for_table.CompYear == most_recent_comp_year]
+        title_year_segment = f" - {most_recent_comp_year}"
+    elif show_current_year_only and most_recent_comp_year is None:
+        # This case implies no data for the most recent year if one was determined, or no CompYear data at all.
+        # Fallback to all years for the athlete/level or show specific message.
+        st.caption(f"Top scores table: Most recent year selected, but no CompYear found for {selected_athlete} at Level {selected_level}.")
+        # data_for_table remains as is (all years for athlete/level)
+
+    # Exclude "All Around" scores and sort by score
+    data_for_table = data_for_table[data_for_table.Event != "All Around"]
+    top_scores = data_for_table.sort_values(by="Score", ascending=False).head(5)
+
+    if top_scores.empty:
+        st.caption(f"No top scores data available for {selected_athlete} at Level {selected_level}{title_year_segment} (excluding All Around).")
+        return
+
+    # Select and rename columns, omitting AthleteName
+    table_data = top_scores[["MeetName", "CompYear", "Placement", "Score"]].copy()
+    table_data['CompYear'] = table_data['CompYear'].astype(str)
+    table_data['Placement'] = table_data['Placement'].astype(str)
+    try:
+        table_data['Placement'] = pd.to_numeric(table_data['Placement'], errors='coerce').fillna(0).astype(int)
+    except ValueError:
+        pass # Keep as string
+    table_data['Score'] = table_data['Score'].apply(lambda x: f"{x:.3f}")
+
+    st.subheader(f"Top 5 Scores for {selected_athlete} (Level {selected_level}{title_year_segment}, Excluding All Around)")
+    st.table(table_data)
+
+
 def render_by_gymnast_view(df: pd.DataFrame):
     st.sidebar.header("Gymnast View Options") # Added header for clarity
     st.markdown(CUSTOM_TAB_CSS, unsafe_allow_html=True) # Apply custom tab styles for tabs
@@ -91,14 +127,30 @@ def render_by_gymnast_view(df: pd.DataFrame):
         st.warning(f"No valid date data available for {athlete} at Level {selected_level}.")
         return
 
-    most_recent_comp_year_val = None # Define for later use
-    if show_current_year_only and not data_to_plot.empty:
-        data_to_plot['CompYear'] = pd.to_numeric(data_to_plot['CompYear'], errors='coerce')
-        if not data_to_plot.CompYear.empty:
-            most_recent_comp_year_val = data_to_plot.CompYear.max()
-            data_to_plot = data_to_plot[data_to_plot.CompYear == most_recent_comp_year_val]
-            if 'CompYear' in data_to_plot.columns: # Ensure it still exists
-                 data_to_plot['CompYear'] = data_to_plot['CompYear'].astype(str)
+    most_recent_comp_year_val = None
+    temp_data_for_year_check = sub_level_data.copy()
+    if 'CompYear' in temp_data_for_year_check.columns:
+        temp_data_for_year_check['CompYear_numeric'] = pd.to_numeric(temp_data_for_year_check['CompYear'], errors='coerce')
+        if not temp_data_for_year_check.CompYear_numeric.empty and temp_data_for_year_check.CompYear_numeric.notna().any():
+            most_recent_comp_year_val = int(temp_data_for_year_check.CompYear_numeric.max())
+
+    if show_current_year_only and most_recent_comp_year_val is not None:
+        data_to_plot = data_to_plot[data_to_plot.CompYear == most_recent_comp_year_val]
+        if 'CompYear' in data_to_plot.columns: # Ensure it still exists
+             data_to_plot['CompYear'] = data_to_plot['CompYear'].astype(str)
+    elif show_current_year_only and most_recent_comp_year_val is None:
+        # If 'show current year only' is ticked but we couldn't determine a most_recent_comp_year_val
+        # (e.g. CompYear column is all NaN or empty after filtering for level),
+        # data_to_plot will contain all years for that level.
+        # We can add a note or proceed; for now, proceed, table will show data from all years for level.
+        pass 
+
+    # --- Display Top Scores Table ---
+    st.markdown("---") # Visual separator
+    # Pass the original df, selected athlete/level, and year filtering info to the table function
+    # The table function will internally filter by year if show_current_year_only is True and a year is found.
+    create_gymnast_top_scores_table(sub_level_data, athlete, selected_level, show_current_year_only, most_recent_comp_year_val)
+    st.markdown("---") # Visual separator before event tabs
 
     event_tabs_gymnast = st.tabs(EVENTS_ORDER)
 

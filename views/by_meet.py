@@ -16,6 +16,68 @@ from config import (
     CUSTOM_TAB_CSS
 )
 
+def create_meet_placement_histogram(df: pd.DataFrame, selected_meet: str, selected_year: int):
+    """Creates and displays a histogram of placements for a given meet and year."""
+    data_for_histogram = df[(df.MeetName == selected_meet) & (df.CompYear == selected_year)].copy()
+
+    if data_for_histogram.empty:
+        st.caption(f"No placement data available for {selected_meet} in {selected_year}.")
+        return
+
+    # Filter for places 1-10 and ensure Place is integer
+    data_for_histogram = data_for_histogram[data_for_histogram['Place'].isin(range(1, 11))]
+    data_for_histogram['Place'] = data_for_histogram['Place'].astype(int)
+
+    if data_for_histogram.empty:
+        st.caption(f"No placements from 1 to 10 for {selected_meet} in {selected_year}.")
+        return
+
+    placement_counts = data_for_histogram['Place'].value_counts().sort_index()
+    placement_df = pd.DataFrame({'Place': placement_counts.index, 'Count': placement_counts.values})
+
+    # Ensure all places from 1 to 10 are present for the x-axis
+    all_places = pd.DataFrame({'Place': range(1, 11)})
+    placement_df = pd.merge(all_places, placement_df, on='Place', how='left').fillna(0)
+    placement_df['Count'] = placement_df['Count'].astype(int)
+
+
+    fig = px.bar(placement_df, x='Place', y='Count',
+                 title=f"Placement Distribution for {selected_meet} - {selected_year}",
+                 labels={'Place': 'Placement', 'Count': 'Number of Times Achieved'})
+    fig.update_layout(xaxis_tickvals=list(range(1, 11)), yaxis_dtick=1)
+    st.plotly_chart(fig, use_container_width=True)
+
+
+def create_meet_top_scores_table(df: pd.DataFrame, selected_meet: str, selected_year: int):
+    """Creates and displays a table of top 5 scores for a given meet and year."""
+    data_for_table = df[(df.MeetName == selected_meet) & (df.CompYear == selected_year)].copy()
+
+    # Exclude "All Around" scores and sort by score
+    data_for_table = data_for_table[data_for_table.Event != "All Around"]
+    top_scores = data_for_table.sort_values(by="Score", ascending=False).head(5)
+
+    if top_scores.empty:
+        st.caption(f"No top scores data available for {selected_meet} in {selected_year} (excluding All Around).")
+        return
+
+    # Select and rename columns, omitting MeetName
+    table_data = top_scores[["AthleteName", "CompYear", "Placement", "Score"]].copy()
+    # CompYear is already selected, so it's redundant in the table for this view if only one year is processed.
+    # However, the main df might contain multiple years, and this function receives `selected_year`.
+    # For consistency with the request "CompYear column can be omitted for the Level view",
+    # and "MeetName can be omitted for the Meet view", let's keep CompYear here.
+    table_data['Placement'] = table_data['Placement'].astype(str)
+    try:
+        table_data['Placement'] = pd.to_numeric(table_data['Placement'], errors='coerce').fillna(0).astype(int)
+    except ValueError:
+        pass # Keep as string
+    table_data['Score'] = table_data['Score'].apply(lambda x: f"{x:.3f}")
+
+
+    st.subheader(f"Top 5 Scores for {selected_meet} - {selected_year} (Excluding All Around)")
+    st.table(table_data)
+
+
 def render_by_meet_view(df: pd.DataFrame):
     st.sidebar.header("Meet View Options") # Added header for clarity
     st.markdown(CUSTOM_TAB_CSS, unsafe_allow_html=True) # Apply custom tab styles
@@ -54,6 +116,16 @@ def render_by_meet_view(df: pd.DataFrame):
     if meet_data.empty:
         st.warning(f"No data available for the selected meet: {selected_meet} in {selected_comp_year}.")
         return
+
+    # --- Display Placement Histogram ---
+    st.markdown("---")
+    create_meet_placement_histogram(df, selected_meet, selected_comp_year) # Pass the main df
+
+    # --- Display Top Scores Table ---
+    st.markdown("---")
+    create_meet_top_scores_table(df, selected_meet, selected_comp_year) # Pass the main df
+
+    st.markdown("---") # Separator before event tabs
 
     if 'Level' in meet_data.columns:
         canonical_level_map = {lo.lower(): lo for lo in MEET_VIEW_LEVEL_ORDER}

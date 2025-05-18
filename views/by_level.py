@@ -19,6 +19,73 @@ from config import (
     CUSTOM_TAB_CSS
 )
 
+def create_placement_histogram(df: pd.DataFrame, selected_level: str, selected_year: int):
+    """Creates and displays a histogram of placements for a given level and year."""
+    title_level_display = "All Levels" if selected_level == LEVEL_OPTIONS_PREFIX else f"Level {selected_level}"
+    if selected_level == LEVEL_OPTIONS_PREFIX: # "All Teams"
+        data_for_histogram = df[df.CompYear == selected_year].copy()
+    else:
+        data_for_histogram = df[(df.Level == selected_level) & (df.CompYear == selected_year)].copy()
+
+    if data_for_histogram.empty:
+        st.caption(f"No placement data available for {title_level_display} in {selected_year}.")
+        return
+
+    # Filter for places 1-10 and ensure Place is integer
+    data_for_histogram = data_for_histogram[data_for_histogram['Place'].isin(range(1, 11))]
+    data_for_histogram['Place'] = data_for_histogram['Place'].astype(int)
+
+    if data_for_histogram.empty:
+        st.caption(f"No placements from 1 to 10 for {title_level_display} in {selected_year}.")
+        return
+
+    placement_counts = data_for_histogram['Place'].value_counts().sort_index()
+    placement_df = pd.DataFrame({'Place': placement_counts.index, 'Count': placement_counts.values})
+
+    # Ensure all places from 1 to 10 are present for the x-axis
+    all_places = pd.DataFrame({'Place': range(1, 11)})
+    placement_df = pd.merge(all_places, placement_df, on='Place', how='left').fillna(0)
+    placement_df['Count'] = placement_df['Count'].astype(int) # Ensure count is integer for y-axis
+
+
+    fig = px.bar(placement_df, x='Place', y='Count',
+                 title=f"Placement Distribution for {title_level_display} - {selected_year}",
+                 labels={'Place': 'Placement', 'Count': 'Number of Times Achieved'})
+    fig.update_layout(xaxis_tickvals=list(range(1, 11)), yaxis_dtick=1) # Ensure x-axis shows 1-10 and y-axis has integer ticks
+    st.plotly_chart(fig, use_container_width=True)
+
+
+def create_top_scores_table(df: pd.DataFrame, selected_level: str, selected_year: int):
+    """Creates and displays a table of top 5 scores for a given level and year."""
+    title_level_display = "All Levels" if selected_level == LEVEL_OPTIONS_PREFIX else f"Level {selected_level}"
+    if selected_level == LEVEL_OPTIONS_PREFIX: # "All Teams"
+        data_for_table = df[df.CompYear == selected_year].copy()
+    else:
+        data_for_table = df[(df.Level == selected_level) & (df.CompYear == selected_year)].copy()
+
+    # Exclude "All Around" scores and sort by score
+    data_for_table = data_for_table[data_for_table.Event != "All Around"]
+    top_scores = data_for_table.sort_values(by="Score", ascending=False).head(5)
+
+    if top_scores.empty:
+        st.caption(f"No top scores data available for {title_level_display} in {selected_year} (excluding All Around).")
+        return
+
+    # Select and rename columns, excluding CompYear for Level view
+    table_data = top_scores[["AthleteName", "MeetName", "Placement", "Score"]].copy()
+    table_data['Placement'] = table_data['Placement'].astype(str) # Keep as string after fetching
+    # Attempt to convert to int, but allow non-integer (like 'N/A' or ties 'T1')
+    try:
+        table_data['Placement'] = pd.to_numeric(table_data['Placement'], errors='coerce').fillna(0).astype(int)
+    except ValueError:
+        pass # Keep as string if conversion fails
+    table_data['Score'] = table_data['Score'].apply(lambda x: f"{x:.3f}")
+
+
+    st.subheader(f"Top 5 Scores for {title_level_display} - {selected_year} (Excluding All Around)")
+    st.table(table_data)
+
+
 def render_by_level_view(df: pd.DataFrame):
     st.sidebar.header("Level View Options") # Added header for clarity
     st.markdown(CUSTOM_TAB_CSS, unsafe_allow_html=True) # Apply custom tab styles for tabs
@@ -55,11 +122,31 @@ def render_by_level_view(df: pd.DataFrame):
     with col2:
         selected_year = st.selectbox("Choose CompYear", available_years, key="main_team_year_selector")
     
-    year_team_data_for_level = team_data_for_level[team_data_for_level.CompYear == selected_year]
-
-    if year_team_data_for_level.empty:
+    if df[(df.CompYear == selected_year) & 
+            (df.Level if selected_level_team == LEVEL_OPTIONS_PREFIX else df.Level == selected_level_team)].empty:
         st.warning(f"No data available for {level_display_name} in {selected_year}.")
-        return
+        # We might still want to show the selectors, so don't return immediately unless df is globally empty for year.
+        # The individual components will handle their own empty states.
+
+    # --- Display Placement Histogram ---
+    st.markdown("---") # Visual separator
+    create_placement_histogram(df, selected_level_team, selected_year)
+
+    # --- Display Top Scores Table ---
+    st.markdown("---") # Visual separator
+    create_top_scores_table(df, selected_level_team, selected_year)
+
+    st.markdown("---") # Visual separator before event tabs
+
+    # Filter data for event tabs based on selected year and level
+    year_team_data_for_level = team_data_for_level[team_data_for_level.CompYear == selected_year]
+    if year_team_data_for_level.empty:
+        # This check is specifically for the event tabs part
+        st.warning(f"No event data available for {level_display_name} in {selected_year} to display in tabs.")
+        # Optionally, do not proceed to render tabs if this specific filtered data is empty.
+        # However, the histogram and top scores might still have data if selected_level_team is LEVEL_OPTIONS_PREFIX
+        # and team_data_for_level had entries for the year but not for a specific level if one was chosen before this point.
+        # For now, let's allow it to proceed, and the tab rendering logic will handle empty event_data_for_team_year.
 
     event_tabs = st.tabs(EVENTS_ORDER)
 
