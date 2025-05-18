@@ -43,8 +43,8 @@ def create_gymnast_top_scores_table(df: pd.DataFrame, selected_athlete: str, sel
         st.caption(f"No top scores data available for {selected_athlete} at Level {selected_level}{title_year_segment} (excluding All Around).")
         return
 
-    # Select and rename columns, omitting AthleteName
-    table_data = top_scores[["MeetName", "CompYear", "Place", "Score"]].copy()
+    # Select and rename columns, omitting AthleteName, adding Event
+    table_data = top_scores[["MeetName", "CompYear", "Event", "Place", "Score"]].copy()
     table_data['CompYear'] = table_data['CompYear'].astype(str)
     table_data['Place'] = table_data['Place'].astype(str)
     try:
@@ -54,7 +54,7 @@ def create_gymnast_top_scores_table(df: pd.DataFrame, selected_athlete: str, sel
     table_data['Score'] = table_data['Score'].apply(lambda x: f"{x:.3f}")
 
     st.subheader(f"Top 5 Scores for {selected_athlete} (Level {selected_level}{title_year_segment}, Excluding All Around)")
-    st.table(table_data)
+    st.table(table_data.reset_index(drop=True))
 
 
 def render_by_gymnast_view(df: pd.DataFrame):

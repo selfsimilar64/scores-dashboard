@@ -60,8 +60,8 @@ def create_meet_top_scores_table(df: pd.DataFrame, selected_meet: str, selected_
         st.caption(f"No top scores data available for {selected_meet} in {selected_year} (excluding All Around).")
         return
 
-    # Select and rename columns, omitting MeetName
-    table_data = top_scores[["AthleteName", "CompYear", "Placement", "Score"]].copy()
+    # Select and rename columns, omitting MeetName, adding Event
+    table_data = top_scores[["AthleteName", "CompYear", "Event", "Place", "Score"]].copy()
     # CompYear is already selected, so it's redundant in the table for this view if only one year is processed.
     # However, the main df might contain multiple years, and this function receives `selected_year`.
     # For consistency with the request "CompYear column can be omitted for the Level view",
@@ -75,7 +75,7 @@ def create_meet_top_scores_table(df: pd.DataFrame, selected_meet: str, selected_
 
 
     st.subheader(f"Top 5 Scores for {selected_meet} - {selected_year} (Excluding All Around)")
-    st.table(table_data)
+    st.table(table_data.reset_index(drop=True))
 
 
 def render_by_meet_view(df: pd.DataFrame):

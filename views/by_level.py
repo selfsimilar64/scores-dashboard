@@ -48,10 +48,11 @@ def create_placement_histogram(df: pd.DataFrame, selected_level: str, selected_y
     placement_df['Count'] = placement_df['Count'].astype(int) # Ensure count is integer for y-axis
 
 
-    fig = px.bar(placement_df, x='Place', y='Count',
+    fig = px.bar(placement_df, x='Place', y='Count', text='Count',
                  title=f"Placement Distribution for {title_level_display} - {selected_year}",
                  labels={'Place': 'Place', 'Count': 'Number of Times Achieved'})
     fig.update_layout(xaxis_tickvals=list(range(1, 11)), yaxis_dtick=1) # Ensure x-axis shows 1-10 and y-axis has integer ticks
+    fig.update_traces(texttemplate='%{text}', textposition='outside') # Display count labels on bars
     st.plotly_chart(fig, use_container_width=True)
 
 
@@ -71,8 +72,8 @@ def create_top_scores_table(df: pd.DataFrame, selected_level: str, selected_year
         st.caption(f"No top scores data available for {title_level_display} in {selected_year} (excluding All Around).")
         return
 
-    # Select and rename columns, excluding CompYear for Level view
-    table_data = top_scores[["AthleteName", "MeetName", "Placement", "Score"]].copy()
+    # Select and rename columns, excluding CompYear for Level view, adding Event
+    table_data = top_scores[["AthleteName", "MeetName", "Event", "Place", "Score"]].copy()
     table_data['Place'] = table_data['Place'].astype(str) # Keep as string after fetching
     # Attempt to convert to int, but allow non-integer (like 'N/A' or ties 'T1')
     try:
@@ -83,7 +84,7 @@ def create_top_scores_table(df: pd.DataFrame, selected_level: str, selected_year
 
 
     st.subheader(f"Top 5 Scores for {title_level_display} - {selected_year} (Excluding All Around)")
-    st.table(table_data)
+    st.table(table_data.reset_index(drop=True))
 
 
 def render_by_level_view(df: pd.DataFrame):
