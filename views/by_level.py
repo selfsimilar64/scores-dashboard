@@ -50,7 +50,7 @@ def create_placement_histogram(df: pd.DataFrame, selected_level: str, selected_y
 
     fig = px.bar(placement_df, x='Place', y='Count',
                  title=f"Placement Distribution for {title_level_display} - {selected_year}",
-                 labels={'Place': 'Placement', 'Count': 'Number of Times Achieved'})
+                 labels={'Place': 'Place', 'Count': 'Number of Times Achieved'})
     fig.update_layout(xaxis_tickvals=list(range(1, 11)), yaxis_dtick=1) # Ensure x-axis shows 1-10 and y-axis has integer ticks
     st.plotly_chart(fig, use_container_width=True)
 
@@ -73,10 +73,10 @@ def create_top_scores_table(df: pd.DataFrame, selected_level: str, selected_year
 
     # Select and rename columns, excluding CompYear for Level view
     table_data = top_scores[["AthleteName", "MeetName", "Placement", "Score"]].copy()
-    table_data['Placement'] = table_data['Placement'].astype(str) # Keep as string after fetching
+    table_data['Place'] = table_data['Place'].astype(str) # Keep as string after fetching
     # Attempt to convert to int, but allow non-integer (like 'N/A' or ties 'T1')
     try:
-        table_data['Placement'] = pd.to_numeric(table_data['Placement'], errors='coerce').fillna(0).astype(int)
+        table_data['Place'] = pd.to_numeric(table_data['Place'], errors='coerce').fillna(0).astype(int)
     except ValueError:
         pass # Keep as string if conversion fails
     table_data['Score'] = table_data['Score'].apply(lambda x: f"{x:.3f}")

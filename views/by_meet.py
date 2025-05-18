@@ -43,7 +43,7 @@ def create_meet_placement_histogram(df: pd.DataFrame, selected_meet: str, select
 
     fig = px.bar(placement_df, x='Place', y='Count',
                  title=f"Placement Distribution for {selected_meet} - {selected_year}",
-                 labels={'Place': 'Placement', 'Count': 'Number of Times Achieved'})
+                 labels={'Place': 'Place', 'Count': 'Number of Times Achieved'})
     fig.update_layout(xaxis_tickvals=list(range(1, 11)), yaxis_dtick=1)
     st.plotly_chart(fig, use_container_width=True)
 
@@ -66,9 +66,9 @@ def create_meet_top_scores_table(df: pd.DataFrame, selected_meet: str, selected_
     # However, the main df might contain multiple years, and this function receives `selected_year`.
     # For consistency with the request "CompYear column can be omitted for the Level view",
     # and "MeetName can be omitted for the Meet view", let's keep CompYear here.
-    table_data['Placement'] = table_data['Placement'].astype(str)
+    table_data['Place'] = table_data['Place'].astype(str)
     try:
-        table_data['Placement'] = pd.to_numeric(table_data['Placement'], errors='coerce').fillna(0).astype(int)
+        table_data['Place'] = pd.to_numeric(table_data['Place'], errors='coerce').fillna(0).astype(int)
     except ValueError:
         pass # Keep as string
     table_data['Score'] = table_data['Score'].apply(lambda x: f"{x:.3f}")

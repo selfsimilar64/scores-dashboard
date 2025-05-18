@@ -46,9 +46,9 @@ def create_gymnast_top_scores_table(df: pd.DataFrame, selected_athlete: str, sel
     # Select and rename columns, omitting AthleteName
     table_data = top_scores[["MeetName", "CompYear", "Placement", "Score"]].copy()
     table_data['CompYear'] = table_data['CompYear'].astype(str)
-    table_data['Placement'] = table_data['Placement'].astype(str)
+    table_data['Place'] = table_data['Place'].astype(str)
     try:
-        table_data['Placement'] = pd.to_numeric(table_data['Placement'], errors='coerce').fillna(0).astype(int)
+        table_data['Place'] = pd.to_numeric(table_data['Place'], errors='coerce').fillna(0).astype(int)
     except ValueError:
         pass # Keep as string
     table_data['Score'] = table_data['Score'].apply(lambda x: f"{x:.3f}")
