@@ -181,13 +181,13 @@ def render_by_gymnast_view(df: pd.DataFrame):
                 
                 athlete_stat_cols = st.columns(3)
                 with athlete_stat_cols[0]:
-                    st.metric(label="Max Score", value=f"{max_score_val_athlete:.2f}")
+                    st.metric(label="Max Score", value=f"{max_score_val_athlete:.3f}")
                     # Caption removed as per original app.py changes
                 with athlete_stat_cols[1]:
-                    st.metric(label=chosen_stat_label_athlete, value=f"{chosen_stat_val_athlete:.2f}")
+                    st.metric(label=chosen_stat_label_athlete, value=f"{chosen_stat_val_athlete:.3f}")
                     st.caption("\u00A0")
                 with athlete_stat_cols[2]:
-                    display_value_for_metric_athlete = f"{improvement_val_numeric_athlete:+.2f}" if isinstance(improvement_val_numeric_athlete, (float, int)) else str(improvement_val_numeric_athlete)
+                    display_value_for_metric_athlete = f"{improvement_val_numeric_athlete:+.3f}" if isinstance(improvement_val_numeric_athlete, (float, int)) else str(improvement_val_numeric_athlete)
                     current_delta_label_athlete = improvement_label_athlete if improvement_label_athlete else "Trend/Improvement"
                     st.metric(label=current_delta_label_athlete, value=display_value_for_metric_athlete, delta_color="off")
                     st.caption("\u00A0")

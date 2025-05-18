@@ -11,7 +11,7 @@ DEFAULT_CALC_METHOD_ATHLETE = "Median"
 
 # --- Rounding ---
 # The custom_round function in app.py rounds to the nearest 0.05 (1/20).
-ROUNDING_STEP = 0.001
+ROUNDING_STEP = 0.005
 
 # --- Events ---
 # Standard list of events, used for ordering tabs and other displays

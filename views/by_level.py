@@ -128,16 +128,16 @@ def render_by_level_view(df: pd.DataFrame):
 
                             if pd.notna(stat_first_period) and pd.notna(stat_second_period):
                                 calculated_team_trend = stat_second_period - stat_first_period
-                                team_trend_val = f"{custom_round(calculated_team_trend):+.2f}"
+                                team_trend_val = f"{custom_round(calculated_team_trend):+.3f}"
                             else:
                                 team_trend_val = "N/A"
                     
                     team_stat_cols = st.columns(3)
                     with team_stat_cols[0]:
-                        st.metric(label="Max Team Score", value=f"{team_max_score_val:.2f}")
+                        st.metric(label="Max Team Score", value=f"{team_max_score_val:.3f}")
                         st.caption(f"Meet: {team_max_score_meet}")
                     with team_stat_cols[1]:
-                        st.metric(label=team_chosen_stat_label, value=f"{team_chosen_stat_val:.2f}")
+                        st.metric(label=team_chosen_stat_label, value=f"{team_chosen_stat_val:.3f}")
                         st.caption("\u00A0")
                     with team_stat_cols[2]:
                         st.metric(label=team_trend_label, value=str(team_trend_val), delta_color="off")
@@ -157,7 +157,7 @@ def render_by_level_view(df: pd.DataFrame):
                     )
                     fig.update_traces(
                         **COMMON_LINE_TRACE_ARGS, 
-                        texttemplate='%{text:.2f}',
+                        texttemplate='%{text:.3f}',
                         textfont=dict(size=MARKER_TEXTFONT_SIZE)
                     )
 
