@@ -83,9 +83,13 @@ def append_data_from_csv(csv_file_path: str, db_uri: str, table_name: str, chunk
 
 if __name__ == "__main__":
     # Call create_db_from_csv directly with specified parameters
-    create_db_from_csv(csv_file_path='meet_stats.csv', 
-                       db_uri='sqlite:///meetstats.db', 
-                       table_name='meet_stats')
+    # create_db_from_csv(csv_file_path='meet_stats.csv', 
+    #                    db_uri='sqlite:///meetstats.db', 
+    #                    table_name='meet_stats')
+
+    append_data_from_csv(csv_file_path='gymnastics_statistics.csv', 
+                         db_uri='sqlite:///database.db', 
+                         table_name='stats')
 
     # This main block is for demonstration or testing within the script.
     # The user's specific request will be executed via a direct python command.
