@@ -16,6 +16,83 @@ from config import (
     CUSTOM_TAB_CSS
 )
 
+# Normalization Helper Function (Adapted for by_meet.py)
+# Key change: level_filter can be "__ALL_LEVELS__" to not filter stats by a specific level,
+# allowing row-by-row normalization based on the 'Level' column in scores_df during merge.
+ALL_LEVELS_SENTINEL = "__ALL_LEVELS__"
+
+def _normalize_scores_helper(
+    scores_df: pd.DataFrame,
+    stats_info: pd.DataFrame | None,
+    normalization_method: str,
+    comp_year: int | None, 
+    level_filter: str, # Can be a specific level string or ALL_LEVELS_SENTINEL
+    event_filter: str | None = None
+) -> pd.DataFrame:
+    if normalization_method == "None" or stats_info is None or stats_info.empty:
+        return scores_df.copy()
+    if scores_df.empty: return scores_df.copy()
+
+    df_to_normalize = scores_df.copy()
+    context_stats = stats_info.copy()
+
+    if comp_year is not None:
+        context_stats = context_stats[context_stats['CompYear'] == comp_year]
+    
+    # If level_filter is not the sentinel, filter stats by that specific level.
+    # Otherwise, stats for all levels (for the given comp_year) are considered for merging.
+    if level_filter != ALL_LEVELS_SENTINEL:
+        context_stats = context_stats[context_stats['Level'] == level_filter]
+
+    if event_filter: 
+        context_stats = context_stats[context_stats['Event'] == event_filter]
+    
+    if context_stats.empty:
+        return df_to_normalize # No relevant stats found, return original
+
+    merge_keys = ['MeetName', 'CompYear', 'Level', 'Event']
+    stat_cols_to_bring = merge_keys[:]
+    if normalization_method == "Median": stat_cols_to_bring.extend(['Median', 'MedAbsDev'])
+    elif normalization_method == "Mean": stat_cols_to_bring.extend(['Mean', 'StdDev'])
+    
+    missing_stat_cols = [col for col in stat_cols_to_bring if col not in context_stats.columns]
+    if any(missing_stat_cols):
+        st.warning(f"Stats missing {missing_stat_cols} for {normalization_method}. No normalization.")
+        return df_to_normalize
+
+    final_stats_for_merge = context_stats[list(set(stat_cols_to_bring))].drop_duplicates(subset=merge_keys)
+    
+    missing_score_cols = [key for key in merge_keys if key not in df_to_normalize.columns]
+    if any(missing_score_cols):
+        st.error(f"Scores missing {missing_score_cols} for merge. No normalization.")
+        return df_to_normalize
+
+    merged_df = pd.merge(df_to_normalize, final_stats_for_merge, on=merge_keys, how='left')
+    calculated_any = False
+    score_col_name = 'Score' # The column to normalize and update
+
+    if normalization_method == "Median":
+        if 'Median' in merged_df.columns and 'MedAbsDev' in merged_df.columns:
+            mask = merged_df['Median'].notna() & merged_df['MedAbsDev'].notna() & (merged_df['MedAbsDev'] != 0)
+            merged_df.loc[mask, 'NormalizedScore'] = (merged_df.loc[mask, score_col_name] - merged_df.loc[mask, 'Median']) / (merged_df.loc[mask, 'MedAbsDev'] * 1.4826 + 1e-9)
+            merged_df.loc[~mask, 'NormalizedScore'] = merged_df.loc[~mask, score_col_name]
+            if mask.any(): calculated_any = True
+    elif normalization_method == "Mean":
+        if 'Mean' in merged_df.columns and 'StdDev' in merged_df.columns:
+            mask = merged_df['Mean'].notna() & merged_df['StdDev'].notna() & (merged_df['StdDev'] != 0)
+            merged_df.loc[mask, 'NormalizedScore'] = (merged_df.loc[mask, score_col_name] - merged_df.loc[mask, 'Mean']) / (merged_df.loc[mask, 'StdDev'] + 1e-9)
+            merged_df.loc[~mask, 'NormalizedScore'] = merged_df.loc[~mask, score_col_name]
+            if mask.any(): calculated_any = True
+    
+    if calculated_any:
+        merged_df[score_col_name] = merged_df['NormalizedScore']
+    elif normalization_method != "None":
+        st.caption(f"Norm. ({normalization_method}) selected, but no valid stats. Original scores shown.")
+
+    cols_to_drop = ['Median', 'MedAbsDev', 'Mean', 'StdDev', 'NormalizedScore']
+    merged_df = merged_df.drop(columns=[col for col in cols_to_drop if col in merged_df.columns], errors='ignore')
+    return merged_df
+
 def create_meet_placement_histogram(df: pd.DataFrame, selected_meet: str, selected_year: int):
     """Creates and displays a histogram of placements for a given meet and year."""
     data_for_histogram = df[(df.MeetName == selected_meet) & (df.CompYear == selected_year)].copy()
@@ -48,228 +125,182 @@ def create_meet_placement_histogram(df: pd.DataFrame, selected_meet: str, select
     st.plotly_chart(fig, use_container_width=True)
 
 
-def create_meet_top_scores_table(df: pd.DataFrame, selected_meet: str, selected_year: int):
+def create_meet_top_scores_table(
+    scores_df: pd.DataFrame, 
+    stats_df: pd.DataFrame | None, 
+    normalization_method: str, 
+    selected_meet: str, 
+    selected_year: int
+):
     """Creates and displays a table of top 5 scores for a given meet and year."""
-    data_for_table = df[(df.MeetName == selected_meet) & (df.CompYear == selected_year)].copy()
+    data_for_table_initial = scores_df[(scores_df.MeetName == selected_meet) & (scores_df.CompYear == selected_year)].copy()
+    data_for_table_no_aa = data_for_table_initial[data_for_table_initial.Event != "All Around"]
 
-    # Exclude "All Around" scores and sort by score
-    data_for_table = data_for_table[data_for_table.Event != "All Around"]
-    top_scores = data_for_table.sort_values(by="Score", ascending=False).head(5)
-
-    if top_scores.empty:
-        st.caption(f"No top scores data available for {selected_meet} in {selected_year} (excluding All Around).")
+    if data_for_table_no_aa.empty:
+        st.caption(f"No top scores (excl. AA) for {selected_meet} ({selected_year}).")
         return
 
-    # Select and rename columns, omitting MeetName, adding Event
-    table_data = top_scores[["AthleteName", "CompYear", "Event", "Place", "Score"]].copy()
-    # CompYear is already selected, so it's redundant in the table for this view if only one year is processed.
-    # However, the main df might contain multiple years, and this function receives `selected_year`.
-    # For consistency with the request "CompYear column can be omitted for the Level view",
-    # and "MeetName can be omitted for the Meet view", let's keep CompYear here.
+    normalized_data_for_table = _normalize_scores_helper(
+        data_for_table_no_aa,
+        stats_df,
+        normalization_method,
+        selected_year, 
+        level_filter=ALL_LEVELS_SENTINEL, # Normalize each score based on its own Level
+        event_filter=None # Normalize each score based on its own Event
+    )
+    
+    top_scores = normalized_data_for_table.sort_values(by="Score", ascending=False).head(5)
+
+    if top_scores.empty:
+        st.caption(f"No top scores after processing for {selected_meet} ({selected_year}).")
+        return
+
+    table_data = top_scores[["AthleteName", "Level", "Event", "Place", "Score"]].copy() # Added Level
     table_data['Place'] = table_data['Place'].astype(str)
-    try:
-        table_data['Place'] = pd.to_numeric(table_data['Place'], errors='coerce').fillna(0).astype(int)
-    except ValueError:
-        pass # Keep as string
-    table_data['Score'] = table_data['Score'].apply(lambda x: f"{x:.3f}")
+    try: table_data['Place'] = pd.to_numeric(table_data['Place'], errors='coerce').fillna(0).astype(int)
+    except ValueError: pass
+    
+    score_format = "{:.3f}" if normalization_method == "None" else "{:.4f}"
+    table_data['Score'] = table_data['Score'].apply(lambda x: score_format.format(x) if pd.notna(x) else "N/A")
 
-
-    st.subheader(f"Top 5 Scores for {selected_meet} - {selected_year} (Excluding All Around)")
+    norm_suffix = " (Normalized)" if normalization_method != 'None' else ""
+    st.subheader(f"Top 5 Scores for {selected_meet} - {selected_year}{norm_suffix} (Excl. AA)")
     st.table(table_data.reset_index(drop=True))
 
 
-def render_by_meet_view(df: pd.DataFrame):
-    st.sidebar.header("Meet View Options") # Added header for clarity
-    st.markdown(CUSTOM_TAB_CSS, unsafe_allow_html=True) # Apply custom tab styles
-
-    # Add Fit Y-axis toggle
-    fit_y_axis = st.sidebar.checkbox("Fit Y-axis to data", True, key="meet_fit_y_axis")
+def render_by_meet_view(df: pd.DataFrame, stats_df: pd.DataFrame | None, normalization_method: str):
+    st.sidebar.header("Meet View Options")
+    st.markdown(CUSTOM_TAB_CSS, unsafe_allow_html=True)
+    fit_y_axis = st.sidebar.checkbox("Fit Y-axis to data", True, key="meet_fit_y_axis_meet") # Unique key
 
     col1_meet, col2_meet = st.columns(2)
-
-    available_years_for_meets = sorted(df.CompYear.unique(), reverse=True)
-    if not available_years_for_meets:
-        st.warning("No competition year data available.")
-        return
+    available_years = sorted(df.CompYear.unique(), reverse=True)
+    if not available_years: st.warning("No CompYear data."); return
     
-    with col1_meet:
-        selected_comp_year = st.selectbox("Choose CompYear", available_years_for_meets, key="main_meet_comp_year_selector")
+    with col1_meet: selected_comp_year = st.selectbox("CompYear", available_years, key="meet_year_selector")
+    if not selected_comp_year: return
 
-    if not selected_comp_year:
-        st.info("Please select a competition year.") # Should not happen if available_years_for_meets is not empty
-        return
+    year_df = df[df.CompYear == selected_comp_year]
+    if 'MeetDate' in year_df.columns:
+        year_df['MeetDate'] = pd.to_datetime(year_df['MeetDate'], errors='coerce')
+        meets_list_df = year_df[['MeetName', 'MeetDate']].drop_duplicates().sort_values(by='MeetDate')
+        states_m = meets_list_df[meets_list_df['MeetName'].str.contains("State", case=False, na=False)]
+        other_m = meets_list_df[~meets_list_df['MeetName'].str.contains("State", case=False, na=False)]
+        meet_names = pd.concat([other_m, states_m]).MeetName.unique().tolist()
+    else: meet_names = sorted(year_df.MeetName.unique())
 
-    year_specific_df = df[df.CompYear == selected_comp_year]
+    if not meet_names: st.warning(f"No meets for {selected_comp_year}."); return
+    with col2_meet: selected_meet = st.selectbox("Choose Meet", meet_names, key="meet_selector")
+    if not selected_meet: return
 
-    # Sort meets by date, with "States" last
-    if not year_specific_df.empty and 'MeetDate' in year_specific_df.columns:
-        year_specific_df['MeetDate'] = pd.to_datetime(year_specific_df['MeetDate'], errors='coerce')
-        meets_df = year_specific_df[['MeetName', 'MeetDate']].drop_duplicates().sort_values(by='MeetDate')
-        
-        # Separate "States" meet if it exists
-        states_meet = meets_df[meets_df['MeetName'].str.contains("State", case=False, na=False)]
-        other_meets = meets_df[~meets_df['MeetName'].str.contains("State", case=False, na=False)]
-        
-        # Concatenate, putting "States" at the end
-        sorted_meets_df = pd.concat([other_meets, states_meet])
-        meet_names = sorted_meets_df.MeetName.unique().tolist()
-    else:
-        meet_names = sorted(year_specific_df.MeetName.unique())
+    # meet_data_unnormalized is data for the specific meet and year, before any normalization
+    meet_data_unnormalized = year_df[year_df.MeetName == selected_meet].copy()
+    if meet_data_unnormalized.empty: st.warning(f"No data for {selected_meet} ({selected_comp_year})."); return
 
-    if not meet_names:
-        st.warning(f"No meet data available for {selected_comp_year}.")
-        return
-    
-    with col2_meet:
-        selected_meet = st.selectbox("Choose Meet", meet_names, key="main_meet_selector")
-    
-    if not selected_meet:
-        st.info("Please select a meet.") # Should not happen if meet_names is not empty
-        return
-
-    meet_data = year_specific_df[year_specific_df.MeetName == selected_meet].copy()
-    if meet_data.empty:
-        st.warning(f"No data available for the selected meet: {selected_meet} in {selected_comp_year}.")
-        return
-
-    # --- Display Placement Histogram ---
     st.markdown("---")
-    create_meet_placement_histogram(df, selected_meet, selected_comp_year) # Pass the main df
-
-    # --- Display Top Scores Table ---
+    create_meet_placement_histogram(df, selected_meet, selected_comp_year) # Uses main df for broader context if needed by its internal logic
     st.markdown("---")
-    create_meet_top_scores_table(df, selected_meet, selected_comp_year) # Pass the main df
+    # Pass meet_data_unnormalized to top_scores, it will filter and then normalize
+    create_meet_top_scores_table(meet_data_unnormalized, stats_df, normalization_method, selected_meet, selected_comp_year)
+    st.markdown("---")
 
-    st.markdown("---") # Separator before event tabs
-
-    if 'Level' in meet_data.columns:
+    # Normalize meet_data for all subsequent plots and calculations in tabs
+    # This is done once for the selected meet and year, across all levels and events it contains.
+    # The helper will normalize each row based on its specific Level and Event using stats for selected_comp_year.
+    meet_data_for_tabs = _normalize_scores_helper(
+        meet_data_unnormalized, 
+        stats_df, 
+        normalization_method, 
+        selected_comp_year, 
+        level_filter=ALL_LEVELS_SENTINEL, 
+        event_filter=None # Normalize all events present
+    )
+    
+    if 'Level' in meet_data_for_tabs.columns: # Standardize Level names after potential normalization
         canonical_level_map = {lo.lower(): lo for lo in MEET_VIEW_LEVEL_ORDER}
-        def normalize_level(level_val_input):
-            if pd.isna(level_val_input):
-                return level_val_input
-            s_level_val = str(level_val_input).strip()
-            return canonical_level_map.get(s_level_val.lower(), s_level_val)
-        meet_data['Level'] = meet_data['Level'].apply(normalize_level)
-        meet_data = meet_data[meet_data['Level'].isin(MEET_VIEW_LEVEL_ORDER)]
+        meet_data_for_tabs['Level'] = meet_data_for_tabs['Level'].apply(lambda x: canonical_level_map.get(str(x).lower(), str(x)) if pd.notna(x) else x)
+        meet_data_for_tabs = meet_data_for_tabs[meet_data_for_tabs['Level'].isin(MEET_VIEW_LEVEL_ORDER)]
 
-    # Create tabs for each event and team scores
+    score_axis_label = "Normalized Score" if normalization_method != "None" else "Score"
+    score_disp_format = "{:.3f}" if normalization_method == "None" else "{:.4f}"
+    plot_title_norm_suffix = f" ({normalization_method} Norm)" if normalization_method != "None" else ""
+
     tab_labels = MEET_VIEW_EVENTS_TO_GRAPH + ["Team Scores"]
     event_tabs = st.tabs(tab_labels)
 
+    # Event tabs (Bar charts)
     for i, event_name in enumerate(MEET_VIEW_EVENTS_TO_GRAPH):
         with event_tabs[i]:
-            # st.markdown(f"### {event_name} Scores") # Title is now in the tab label
-            event_meet_data = meet_data[meet_data.Event == event_name]
+            event_data_current_tab = meet_data_for_tabs[meet_data_for_tabs.Event == event_name]
+            if event_data_current_tab.empty: st.write(f"No {event_name} data at this meet."); continue
 
-            if event_meet_data.empty:
-                st.write(f"No data for {event_name} at this meet.")
-                continue
-
-            avg_scores_by_level = event_meet_data.groupby("Level").Score.mean().reset_index()
+            avg_scores_by_level = event_data_current_tab.groupby("Level").Score.mean().reset_index()
             avg_scores_by_level['Level'] = pd.Categorical(avg_scores_by_level['Level'], categories=MEET_VIEW_LEVEL_ORDER, ordered=True)
-            avg_scores_by_level = avg_scores_by_level.dropna(subset=['Level'])
-            avg_scores_by_level = avg_scores_by_level.sort_values("Level")
-            avg_scores_by_level = avg_scores_by_level[avg_scores_by_level['Score'].notna()]
+            avg_scores_by_level = avg_scores_by_level.dropna(subset=['Level', 'Score']).sort_values("Level")
             
-            if avg_scores_by_level.empty:
-                st.write(f"No aggregated data for {event_name} by level at this meet.")
-                continue
-            
-            levels_with_data_event = avg_scores_by_level['Level'].unique().tolist()
-            if not levels_with_data_event:
-                st.write(f"No data with defined levels for {event_name} at this meet.")
-                continue
+            if avg_scores_by_level.empty: st.write(f"No aggregated {event_name} data by level."); continue
+            levels_with_data = avg_scores_by_level['Level'].unique().tolist()
 
+            # Metrics for event tab
             cols = st.columns(2)
-            with cols[0]:
-                max_avg_score_row = avg_scores_by_level.loc[avg_scores_by_level['Score'].idxmax()]
-                max_avg_level_score_val = custom_round(max_avg_score_row['Score'])
-                max_avg_level_name = max_avg_score_row['Level']
-                st.metric(label=f"Max Avg. Level Score ({event_name})", value=f"{max_avg_level_score_val:.3f}",
-                           help=f"Highest average score for a Level: {max_avg_level_name}")
-                if max_avg_level_name in LEVEL_COLORS:
-                     st.markdown(f"<span style='color:{LEVEL_COLORS[max_avg_level_name]};'>●</span> Level {max_avg_level_name}", unsafe_allow_html=True)
-                else:
-                     st.caption(f"Level: {max_avg_level_name}")
-
-            with cols[1]:
-                max_individual_score_details = event_meet_data.loc[event_meet_data['Score'].idxmax()]
-                max_individual_score_val = custom_round(max_individual_score_details['Score'])
-                max_individual_athlete = max_individual_score_details['AthleteName']
-                max_individual_level = max_individual_score_details['Level']
-                st.metric(label=f"Max Individual Score ({event_name})", value=f"{max_individual_score_val:.3f}",
-                           help=f"Athlete: {max_individual_athlete} (Level {max_individual_level})")
-                st.caption(f"Athlete: {max_individual_athlete} (Level {max_individual_level})")
-
-            fig_meet_event = px.bar(avg_scores_by_level, x="Level", y="Score",
-                                    labels={"Score": "Average Score", "Level": "Level"},
-                                    text="Score",
-                                    color="Level",
-                                    color_discrete_map=LEVEL_COLORS)
+            max_avg_score_row = avg_scores_by_level.loc[avg_scores_by_level['Score'].idxmax()]
+            cols[0].metric(label=f"Max Avg Level Score ({event_name})", value=f"{custom_round(max_avg_score_row['Score']):.3f}", help=f"Level: {max_avg_score_row['Level']}")
             
-            fig_meet_event.update_traces(
-                **COMMON_BAR_TRACE_ARGS, 
-                texttemplate='%{text:.3f}',
-                textfont=dict(size=MARKER_TEXTFONT_SIZE)
-            )
-            current_layout_args = COMMON_LAYOUT_ARGS.copy()
-            current_layout_args['xaxis'] = {'type': 'category', 'categoryorder':'array', 'categoryarray': levels_with_data_event, 'tickfont': dict(size=XAXIS_TICKFONT_SIZE)}
-            current_layout_args['yaxis'] = {'tickfont': dict(size=YAXIS_TICKFONT_SIZE)}
-            current_layout_args['yaxis_title'] = f"Average Score ({event_name})"
-            current_layout_args['showlegend'] = True
-            fig_meet_event.update_layout(**current_layout_args)
-            
-            y_range = DEFAULT_Y_RANGE.all_around if event_name == "All Around" else DEFAULT_Y_RANGE.event
-            # only apply static y-range when toggle is off
-            if not fit_y_axis:
-                fig_meet_event.update_yaxes(range=y_range)
+            max_ind_score_details = event_data_current_tab.loc[event_data_current_tab['Score'].idxmax()]
+            cols[1].metric(label=f"Max Indiv Score ({event_name})", value=f"{custom_round(max_ind_score_details['Score']):.3f}", help=f"Athlete: {max_ind_score_details['AthleteName']} (Lvl {max_ind_score_details['Level']})")
 
-            st.plotly_chart(fig_meet_event, use_container_width=True)
+            # Bar chart for event tab
+            fig = px.bar(avg_scores_by_level, x="Level", y="Score", text="Score", color="Level", color_discrete_map=LEVEL_COLORS)
+            fig.update_traces(**COMMON_BAR_TRACE_ARGS, texttemplate=[score_disp_format.format(s) for s in avg_scores_by_level['Score']], textfont=dict(size=MARKER_TEXTFONT_SIZE))
+            
+            layout_args = COMMON_LAYOUT_ARGS.copy()
+            layout_args['title'] = f"{selected_meet} - {event_name} Average Scores by Level{plot_title_norm_suffix}"
+            layout_args['xaxis'] = {'type': 'category', 'categoryorder':'array', 'categoryarray': levels_with_data, 'tickfont': dict(size=XAXIS_TICKFONT_SIZE)}
+            layout_args['yaxis'] = {'title': score_axis_label, 'tickfont': dict(size=YAXIS_TICKFONT_SIZE)}
+            layout_args['showlegend'] = True # Show legend for Level colors
+            fig.update_layout(**layout_args)
+
+            y_event_range = DEFAULT_Y_RANGE.all_around if event_name == "All Around" else DEFAULT_Y_RANGE.event
+            if not fit_y_axis: fig.update_yaxes(range=y_event_range)
+            else: fig.update_yaxes(autorange=True)
+            st.plotly_chart(fig, use_container_width=True)
 
     # Team Scores Tab
     with event_tabs[len(MEET_VIEW_EVENTS_TO_GRAPH)]:
-        st.markdown("### Team Scores (Average of Top 3 All Around Scores)")
-        aa_meet_data = meet_data[meet_data.Event == "All Around"]
+        # Data for team scores is AA scores from the already meet-level normalized data.
+        aa_event_data_for_team_calc = meet_data_for_tabs[meet_data_for_tabs.Event == "All Around"]
+        
+        st.markdown(f"### Team Scores (Avg of Top 3 All Around Scores){plot_title_norm_suffix}")
         team_scores_list = []
-        if not aa_meet_data.empty:
-            aa_meet_data['Level'] = pd.Categorical(aa_meet_data['Level'], categories=MEET_VIEW_LEVEL_ORDER, ordered=True)
-            aa_meet_data = aa_meet_data.dropna(subset=['Level'])
+        if not aa_event_data_for_team_calc.empty:
+            aa_event_data_for_team_calc['Level'] = pd.Categorical(aa_event_data_for_team_calc['Level'], categories=MEET_VIEW_LEVEL_ORDER, ordered=True)
+            aa_event_data_for_team_calc = aa_event_data_for_team_calc.dropna(subset=['Level', 'Score'])
+
             for level_val in MEET_VIEW_LEVEL_ORDER:
-                level_aa_data = aa_meet_data[aa_meet_data.Level == level_val]
+                level_aa_data = aa_event_data_for_team_calc[aa_event_data_for_team_calc.Level == level_val]
                 if len(level_aa_data) >= 3:
-                    top_3_scores = level_aa_data.nlargest(3, 'Score')['Score']
-                    team_score_avg = top_3_scores.mean()
-                    if pd.notna(team_score_avg):
-                        team_scores_list.append({'Level': level_val, 'TeamScore': team_score_avg})
+                    top_3 = level_aa_data.nlargest(3, 'Score')['Score']
+                    if pd.notna(top_3.mean()): team_scores_list.append({'Level': level_val, 'TeamScore': top_3.mean()})
+            
             if team_scores_list:
                 team_scores_df = pd.DataFrame(team_scores_list)
                 team_scores_df['Level'] = pd.Categorical(team_scores_df['Level'], categories=MEET_VIEW_LEVEL_ORDER, ordered=True)
                 team_scores_df = team_scores_df.sort_values("Level")
-                team_scores_df = team_scores_df[team_scores_df['TeamScore'].notna()]
-                levels_with_team_data = team_scores_df['Level'].unique().tolist()
-                if levels_with_team_data:
-                    fig_team_score = px.bar(team_scores_df, x="Level", y="TeamScore",
-                                            labels={"TeamScore": "Average Team Score (Top 3 AA)", "Level": "Team Level"},
-                                            text="TeamScore",
-                                            color="Level",
-                                            color_discrete_map=LEVEL_COLORS)
-                    fig_team_score.update_traces(
-                        **COMMON_BAR_TRACE_ARGS,
-                        texttemplate='%{text:.3f}',
-                        textfont=dict(size=MARKER_TEXTFONT_SIZE)
-                    )
-                    team_score_layout_args = COMMON_LAYOUT_ARGS.copy()
-                    team_score_layout_args['xaxis'] = {'type': 'category', 'categoryorder':'array', 'categoryarray': levels_with_team_data, 'tickfont': dict(size=XAXIS_TICKFONT_SIZE)}
-                    team_score_layout_args['yaxis'] = {'tickfont': dict(size=YAXIS_TICKFONT_SIZE)}
-                    team_score_layout_args['yaxis_title'] = "Average Team Score"
-                    if not fit_y_axis:
-                        team_score_layout_args['yaxis_range'] = MEET_VIEW_TEAM_SCORE_Y_RANGE
-                    team_score_layout_args['showlegend'] = True
-                    fig_team_score.update_layout(**team_score_layout_args)
-                    st.plotly_chart(fig_team_score, use_container_width=True)
-                else:
-                    st.write("Not enough data to display Team Scores for this meet after filtering.")
+                
+                fig_team = px.bar(team_scores_df, x="Level", y="TeamScore", text="TeamScore", color="Level", color_discrete_map=LEVEL_COLORS)
+                fig_team.update_traces(**COMMON_BAR_TRACE_ARGS, texttemplate=[score_disp_format.format(s) for s in team_scores_df['TeamScore']], textfont=dict(size=MARKER_TEXTFONT_SIZE))
+                
+                team_layout_args = COMMON_LAYOUT_ARGS.copy()
+                team_layout_args['title'] = f"{selected_meet} - Team Scores by Level{plot_title_norm_suffix}"
+                team_layout_args['xaxis'] = {'type': 'category', 'categoryorder':'array', 'categoryarray': MEET_VIEW_LEVEL_ORDER, 'tickfont': dict(size=XAXIS_TICKFONT_SIZE)}
+                team_layout_args['yaxis'] = {'title': f"Team {score_axis_label}", 'tickfont': dict(size=YAXIS_TICKFONT_SIZE)}
+                team_layout_args['showlegend'] = True
+                fig_team.update_layout(**team_layout_args)
+                
+                if not fit_y_axis: fig_team.update_yaxes(range=MEET_VIEW_TEAM_SCORE_Y_RANGE)
+                else: fig_team.update_yaxes(autorange=True)
+                st.plotly_chart(fig_team, use_container_width=True)
             else:
-                st.write("Not enough data (fewer than 3 athletes in AA per level or scores are NaN) to calculate Team Scores for this meet.")
+                st.write("Not enough data to calculate team scores (need at least 3 AA scores per level).")
         else:
-            st.write("No All Around data available for this meet to calculate Team Scores.") 
+            st.write("No All Around data available for this meet to calculate team scores.") 

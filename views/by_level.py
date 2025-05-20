@@ -24,7 +24,7 @@ def _normalize_scores_helper(
     scores_df: pd.DataFrame,
     stats_info: pd.DataFrame | None, # Changed name for clarity
     normalization_method: str,
-    comp_year: int,
+    comp_year: int | None, # MODIFIED: Allow None for comp_year
     level_filter: str, 
     event_filter: str | None = None
 ) -> pd.DataFrame:
@@ -38,9 +38,11 @@ def _normalize_scores_helper(
     
     # Filter stats_info based on the provided context
     # stats_info columns: MeetName, CompYear, Level, Event, Median, MedAbsDev, Mean, StdDev
-    context_stats = stats_info[stats_info['CompYear'] == comp_year]
+    context_stats = stats_info # Start with all stats_info
+    if comp_year is not None: # Apply year filter only if a specific year is given
+        context_stats = context_stats[context_stats['CompYear'] == comp_year]
 
-    if level_filter != LEVEL_OPTIONS_PREFIX:
+    if level_filter != LEVEL_OPTIONS_PREFIX: # This constant is specific to by_level view
         context_stats = context_stats[context_stats['Level'] == level_filter]
 
     if event_filter: # If event_filter is provided, filter stats for that specific event
