@@ -37,16 +37,37 @@ def _normalize_scores_helper(
         return scores_df.copy()
 
     df_to_normalize = scores_df.copy()
-    
     context_stats = stats_info.copy() # Start with a copy of all stats_info
+
+    # Ensure 'CompYear' is numeric in both dataframes before filtering or merging
+    if 'CompYear' in df_to_normalize.columns:
+        df_to_normalize['CompYear'] = pd.to_numeric(df_to_normalize['CompYear'], errors='coerce')
+        # Optionally, convert to nullable Int64 if NaNs are acceptable and you want to keep them as integers
+        # df_to_normalize['CompYear'] = df_to_normalize['CompYear'].astype('Int64')
+    
+    if 'CompYear' in context_stats.columns:
+        context_stats['CompYear'] = pd.to_numeric(context_stats['CompYear'], errors='coerce')
+        # context_stats['CompYear'] = context_stats['CompYear'].astype('Int64')
+
+    # Now, CompYear in context_stats is numeric. Filter by comp_year (which is int | None)
     if comp_year is not None:
+        # Drop NaNs from CompYear in context_stats if we are filtering by a specific year to avoid type issues with comparison if any NaNs remained
+        context_stats.dropna(subset=['CompYear'], inplace=True)
         context_stats = context_stats[context_stats['CompYear'] == comp_year]
 
     # For gymnast view, level_filter is always a specific level string, not a prefix like LEVEL_OPTIONS_PREFIX
-    context_stats = context_stats[context_stats['Level'] == level_filter]
+    if 'Level' in context_stats.columns: # Check if 'Level' column exists
+        context_stats = context_stats[context_stats['Level'] == level_filter]
+    else:
+        st.warning("'Level' column not found in stats_info. Cannot filter by level for normalization.")
+        return df_to_normalize # Or handle error as appropriate
 
     if event_filter: 
-        context_stats = context_stats[context_stats['Event'] == event_filter]
+        if 'Event' in context_stats.columns: # Check if 'Event' column exists
+            context_stats = context_stats[context_stats['Event'] == event_filter]
+        else:
+            st.warning("'Event' column not found in stats_info. Cannot filter by event for normalization.")
+            return df_to_normalize # Or handle error as appropriate
     
     if context_stats.empty:
         # st.caption(f"No relevant stats for normalization ({normalization_method}) for Lvl: {level_filter}, Yr: {comp_year}, Evt: {event_filter}.")
