@@ -118,10 +118,11 @@ def create_meet_placement_histogram(df: pd.DataFrame, selected_meet: str, select
     placement_df['Count'] = placement_df['Count'].astype(int)
 
 
-    fig = px.bar(placement_df, x='Place', y='Count',
+    fig = px.bar(placement_df, x='Place', y='Count', text='Count',
                  title=f"Placement Distribution for {selected_meet} - {selected_year}",
                  labels={'Place': 'Place', 'Count': 'Number of Times Achieved'})
     fig.update_layout(xaxis_tickvals=list(range(1, 11)), yaxis=dict(showticklabels=False, title=dict(text=None)), yaxis_dtick=1)
+    fig.update_traces(**COMMON_BAR_TRACE_ARGS, texttemplate='%{text}', textfont=dict(size=MARKER_TEXTFONT_SIZE))
     st.plotly_chart(fig, use_container_width=True)
 
 
@@ -251,7 +252,9 @@ def render_by_meet_view(df: pd.DataFrame, stats_df: pd.DataFrame | None, normali
 
             # Bar chart for event tab
             fig = px.bar(avg_scores_by_level, x="Level", y="Score", text="Score", color="Level", color_discrete_map=LEVEL_COLORS)
-            fig.update_traces(**COMMON_BAR_TRACE_ARGS, texttemplate=[score_disp_format.format(s) for s in avg_scores_by_level['Score']], textfont=dict(size=MARKER_TEXTFONT_SIZE))
+            fig.update_traces(**COMMON_BAR_TRACE_ARGS,
+                              texttemplate='%{y:.3f}' if normalization_method == "None" else '%{y:.4f}',
+                              textfont=dict(size=MARKER_TEXTFONT_SIZE))
             
             layout_args = COMMON_LAYOUT_ARGS.copy()
             layout_args['title'] = f"{selected_meet} - {event_name} Average Scores by Level{plot_title_norm_suffix}"

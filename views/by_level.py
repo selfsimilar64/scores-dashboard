@@ -11,6 +11,7 @@ from config import (
     COMMON_LINE_TRACE_ARGS,
     EVENTS_ORDER,
     LEVEL_OPTIONS_PREFIX,
+    MEET_VIEW_LEVEL_ORDER,
     CALC_METHODS,
     DEFAULT_CALC_METHOD_TEAM,
     XAXIS_TICKFONT_SIZE,
@@ -231,8 +232,10 @@ def render_by_level_view(df: pd.DataFrame, stats_df: pd.DataFrame | None, normal
         st.error("The 'Level' column is missing or empty in the data. Cannot render 'By Level' view.")
         return
     
-    # Add LEVEL_OPTIONS_PREFIX to sorted unique levels. Handle potential NaN in unique levels.
-    unique_levels = sorted([level for level in df.Level.unique() if pd.notna(level)])
+    # Add LEVEL_OPTIONS_PREFIX to unique levels following configured order
+    unique_levels = [lvl for lvl in MEET_VIEW_LEVEL_ORDER if lvl in df.Level.unique()]
+    other_levels = [lvl for lvl in sorted(df.Level.unique()) if pd.notna(lvl) and lvl not in unique_levels]
+    unique_levels += other_levels
     level_options = [LEVEL_OPTIONS_PREFIX] + unique_levels
 
     # Determine stats calculation method based on normalization selection

@@ -320,6 +320,18 @@ def render_by_gymnast_view(df: pd.DataFrame, stats_df: pd.DataFrame | None, norm
                         previous_median = custom_round(normalized_event_data[normalized_event_data['CompYear'] == previous_year]['Score'].median())
                         diff = custom_round(current_median - previous_median)
                         improvement_val_display = f"{diff:+.3f}"
+                    elif len(unique_years) == 1:
+                        # Single-year data: compare first half vs second half including middle point
+                        df_sorted = normalized_event_data.sort_values(by='MeetDate')
+                        n = len(df_sorted)
+                        mid = n // 2
+                        first_half = df_sorted.iloc[:mid+1]
+                        second_half = df_sorted.iloc[mid:]
+                        stat_first = first_half['Score'].median() if stats_method == "Median" else first_half['Score'].mean()
+                        stat_second = second_half['Score'].median() if stats_method == "Median" else second_half['Score'].mean()
+                        diff_half = custom_round(stat_second - stat_first)
+                        improvement_label = f"{stats_method} Half-Year Change"
+                        improvement_val_display = f"{diff_half:+.3f}"
                 
                 stat_cols = st.columns(3)
                 with stat_cols[0]: st.metric(label="Max Score", value=f"{max_score_val:.3f}" if pd.notna(max_score_val) else "N/A")
