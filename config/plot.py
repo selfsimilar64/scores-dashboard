@@ -42,7 +42,7 @@ STAR_ANNOTATION_FONT_SIZE = 25
 
 # Specific trace updates for line charts
 COMMON_LINE_TRACE_ARGS = dict(
-    line=dict(width=10),
+    line=dict(width=8),
     marker=dict(size=18),
     textposition="top center"
     # texttemplate is often specific, e.g., '%{text:.2f}' or '%{text:.3f}'
