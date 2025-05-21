@@ -346,17 +346,18 @@ def render_by_gymnast_view(df: pd.DataFrame, stats_df: pd.DataFrame | None, norm
                     elif len(unique_comp_years_in_plot_data) == 1:
                         fig_title += f" (Year: {unique_comp_years_in_plot_data[0]})"
                 
-                # Data for plotting, ensure it's sorted by MeetDate for chronological x-axis AND for connecting points correctly
-                current_plot_data = normalized_event_data.sort_values(by=['MeetDate', 'CompYear']) # Sort by MeetDate, then CompYear
+                # Data for plotting, ensure it's sorted by CompYear then MeetDate to group meets by year sequentially
+                current_plot_data = normalized_event_data.sort_values(by=['CompYear', 'MeetDate'])
 
-                # Ensure MeetName categories on x-axis are in chronological order based on the sorted data
-                chronological_meet_names = current_plot_data['MeetName'].unique().tolist()
+                # Create composite x-axis label of Year - MeetName and order categories for x-axis
+                current_plot_data['YearMeet'] = current_plot_data['CompYear'].astype(str) + ' - ' + current_plot_data['MeetName']
+                chronological_yearmeets = current_plot_data['YearMeet'].unique().tolist()
 
                 plot_params = {
-                    "x": "MeetName", "y": "Score",
+                    "x": "YearMeet", "y": "Score",
                     "markers": True, "text": "Score",
                     "labels": {'Score': y_axis_title_plot},
-                    "category_orders": {"MeetName": chronological_meet_names} # Base for all plots
+                    "category_orders": {"YearMeet": chronological_yearmeets} # Base for all plots
                 }
 
                 if plot_multiple_years:
@@ -364,7 +365,7 @@ def render_by_gymnast_view(df: pd.DataFrame, stats_df: pd.DataFrame | None, norm
                         "color": "CompYear",
                         "line_group": "CompYear", # Ensures lines don't connect across years
                         "category_orders": { # Override/extend category_orders
-                            "MeetName": chronological_meet_names,
+                            "YearMeet": chronological_yearmeets,
                             "CompYear": unique_comp_years_in_plot_data # Sorted list of year strings
                         }
                     })
