@@ -346,25 +346,30 @@ def render_by_gymnast_view(df: pd.DataFrame, stats_df: pd.DataFrame | None, norm
                     elif len(unique_comp_years_in_plot_data) == 1:
                         fig_title += f" (Year: {unique_comp_years_in_plot_data[0]})"
                 
-                # Data for plotting, ensure it's sorted by MeetDate for chronological x-axis
-                # normalized_event_data is derived from data_for_plots, which is already sorted by MeetDate.
-                current_plot_data = normalized_event_data.sort_values(by=['MeetDate'])
+                # Data for plotting, ensure it's sorted by MeetDate for chronological x-axis AND for connecting points correctly
+                current_plot_data = normalized_event_data.sort_values(by=['MeetDate', 'CompYear']) # Sort by MeetDate, then CompYear
 
+                # Ensure MeetName categories on x-axis are in chronological order based on the sorted data
+                chronological_meet_names = current_plot_data['MeetName'].unique().tolist()
 
                 plot_params = {
                     "x": "MeetName", "y": "Score",
                     "markers": True, "text": "Score",
-                    "labels": {'Score': y_axis_title_plot} 
+                    "labels": {'Score': y_axis_title_plot},
+                    "category_orders": {"MeetName": chronological_meet_names} # Base for all plots
                 }
 
                 if plot_multiple_years:
                     plot_params.update({
                         "color": "CompYear",
-                        "line_group": "CompYear",
-                        "category_orders": {"CompYear": unique_comp_years_in_plot_data} # Years already sorted
+                        "line_group": "CompYear", # Ensures lines don't connect across years
+                        "category_orders": { # Override/extend category_orders
+                            "MeetName": chronological_meet_names,
+                            "CompYear": unique_comp_years_in_plot_data # Sorted list of year strings
+                        }
                     })
                     fig = px.line(current_plot_data, **plot_params)
-                else:
+                else: # Single year plot or show_current_year_only is true
                     plot_params["color_discrete_sequence"] = [EVENT_COLORS.get(event, "black")]
                     fig = px.line(current_plot_data, **plot_params)
                 
