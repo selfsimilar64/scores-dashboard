@@ -4,11 +4,13 @@ from dataclasses import dataclass
 class YAxisRange:
     event: tuple[float, float]
     all_around: tuple[float, float]
+    team_score: tuple[float, float]
 
 # Default Y-axis ranges, derived from common usage in app.py
 DEFAULT_Y_RANGE = YAxisRange(
     event=(5.0, 10.0),
-    all_around=(30.0, 40.0)
+    all_around=(30.0, 40.0),
+    team_score=(30.0, 40.0)
 )
 
 # Y-axis range for normalized scores (by median and by mean)

@@ -235,12 +235,8 @@ def render_by_level_view(df: pd.DataFrame, stats_df: pd.DataFrame | None, normal
     unique_levels = sorted([level for level in df.Level.unique() if pd.notna(level)])
     level_options = [LEVEL_OPTIONS_PREFIX] + unique_levels
 
-    calc_method_team = st.sidebar.radio(
-        "Calculation Method for Team Stats", 
-        CALC_METHODS, 
-        index=CALC_METHODS.index(DEFAULT_CALC_METHOD_TEAM), 
-        key="calc_method_team_level" # Changed key to avoid conflict
-    )
+    # Determine stats calculation method based on normalization selection
+    stats_method = normalization_method if normalization_method != "None" else "Median"
     fit_y_axis = st.sidebar.checkbox("Fit Y-axis to data", True, key="level_fit_y_axis")
     
     col1, col2 = st.columns(2)
@@ -356,10 +352,10 @@ def render_by_level_view(df: pd.DataFrame, stats_df: pd.DataFrame | None, normal
                     team_max_score_meet = team_max_score_details['MeetName']
                     
                     team_chosen_stat_val = None
-                    team_chosen_stat_label = f"{calc_method_team} Team Score" # Dynamic label
-                    if calc_method_team == "Median":
+                    team_chosen_stat_label = f"{stats_method} Team Score"
+                    if stats_method == "Median":
                         team_chosen_stat_val = custom_round(avg_event_scores['Score'].median())
-                    else: # Mean
+                    else:
                         team_chosen_stat_val = custom_round(avg_event_scores['Score'].mean())
 
                     # TREND CALCULATION (based on aggregated, potentially normalized scores)
@@ -373,8 +369,8 @@ def render_by_level_view(df: pd.DataFrame, stats_df: pd.DataFrame | None, normal
                         
                         if not (first_period_scores.empty or first_period_scores.isnull().all() or \
                                second_period_scores.empty or second_period_scores.isnull().all()):
-                            stat_first_period = custom_round(first_period_scores.median() if calc_method_team == "Median" else first_period_scores.mean())
-                            stat_second_period = custom_round(second_period_scores.median() if calc_method_team == "Median" else second_period_scores.mean())
+                            stat_first_period = custom_round(first_period_scores.median() if stats_method == "Median" else first_period_scores.mean())
+                            stat_second_period = custom_round(second_period_scores.median() if stats_method == "Median" else second_period_scores.mean())
                             if pd.notna(stat_first_period) and pd.notna(stat_second_period):
                                 team_trend_val = f"{custom_round(stat_second_period - stat_first_period):+.3f}"
                     
@@ -407,7 +403,11 @@ def render_by_level_view(df: pd.DataFrame, stats_df: pd.DataFrame | None, normal
                                     text="Score") # Text on markers
                     
                     score_display_format = "{:.3f}" if normalization_method == "None" else "{:.1f}"
-                    fig.update_traces(texttemplate=[score_display_format.format(s) if pd.notna(s) else "" for s in avg_event_scores['Score']], textposition='top center')
+                    fig.update_traces(
+                        **COMMON_LINE_TRACE_ARGS,
+                        texttemplate=[score_display_format.format(s) if pd.notna(s) else "" for s in avg_event_scores['Score']],
+                        textfont=dict(size=MARKER_TEXTFONT_SIZE)
+                    )
 
 
                     plot_layout_options = COMMON_LAYOUT_ARGS.copy()

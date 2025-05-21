@@ -5,11 +5,11 @@ from utils.maths import custom_round
 from config import (
     LEVEL_COLORS,
     DEFAULT_Y_RANGE,
+    NORMALIZED_Y_RANGE,
     COMMON_LAYOUT_ARGS,
     COMMON_BAR_TRACE_ARGS,
     MEET_VIEW_LEVEL_ORDER,
     MEET_VIEW_EVENTS_TO_GRAPH,
-    MEET_VIEW_TEAM_SCORE_Y_RANGE,
     XAXIS_TICKFONT_SIZE,
     YAXIS_TICKFONT_SIZE,
     MARKER_TEXTFONT_SIZE,
@@ -297,8 +297,11 @@ def render_by_meet_view(df: pd.DataFrame, stats_df: pd.DataFrame | None, normali
                 team_layout_args['showlegend'] = True
                 fig_team.update_layout(**team_layout_args)
                 
-                if not fit_y_axis: fig_team.update_yaxes(range=MEET_VIEW_TEAM_SCORE_Y_RANGE)
-                else: fig_team.update_yaxes(autorange=True)
+                if not fit_y_axis:
+                    range_config = NORMALIZED_Y_RANGE.team_score if normalization_method != "None" else DEFAULT_Y_RANGE.team_score
+                    fig_team.update_yaxes(range=range_config)
+                else:
+                    fig_team.update_yaxes(autorange=True)
                 st.plotly_chart(fig_team, use_container_width=True)
             else:
                 st.write("Not enough data to calculate team scores (need at least 3 AA scores per level).")

@@ -233,7 +233,6 @@ def render_by_gymnast_view(df: pd.DataFrame, stats_df: pd.DataFrame | None, norm
     # Sidebar options
     show_current_year_only = st.sidebar.checkbox("Show most recent CompYear only", DEFAULT_SHOW_CURRENT_YEAR_ONLY, key="gymnast_show_current_year_gym")
     fit_y_axis = st.sidebar.checkbox("Fit Y-axis to data", DEFAULT_FIT_Y_AXIS_ATHLETE, key="gymnast_fit_y_axis_gym")
-    calc_method = st.sidebar.radio("Calculation Method for Stats", CALC_METHODS, index=CALC_METHODS.index(DEFAULT_CALC_METHOD_ATHLETE), key="calc_method_athlete_gym")
     
     # Filter data based on selected athlete AND level
     athlete_level_data = athlete_all_data[athlete_all_data.Level == selected_level].copy()
@@ -303,8 +302,10 @@ def render_by_gymnast_view(df: pd.DataFrame, stats_df: pd.DataFrame | None, norm
                 max_score_details = normalized_event_data.loc[normalized_event_data['Score'].idxmax()]
                 max_score_val = custom_round(max_score_details['Score'])
                 
-                chosen_stat_val = custom_round(normalized_event_data['Score'].median() if calc_method == "Median" else normalized_event_data['Score'].mean())
-                chosen_stat_label = f"{calc_method} Score"
+                # Determine stats calculation method based on normalization selection
+                stats_method = normalization_method if normalization_method != "None" else "Median"
+                chosen_stat_val = custom_round(normalized_event_data['Score'].median() if stats_method == "Median" else normalized_event_data['Score'].mean())
+                chosen_stat_label = f"{stats_method} Score"
                 
                 # Improvement calculation: difference between median values of current and previous year
                 improvement_val_display = "N/A"
