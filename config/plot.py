@@ -16,7 +16,8 @@ DEFAULT_Y_RANGE = YAxisRange(
 # Y-axis range for normalized scores (by median and by mean)
 NORMALIZED_Y_RANGE = YAxisRange(
     event=(-3.0, 3.0),
-    all_around=(-3.0, 3.0)  # Assuming AA also uses this range, adjust if needed
+    all_around=(-3.0, 3.0),  # Assuming AA also uses this range, adjust if needed
+    team_score=(-3.0, 3.0)
 )
 
 # Y-axis range for the multi-year comparison bar chart in 'By Gymnast' view
