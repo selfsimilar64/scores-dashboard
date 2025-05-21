@@ -414,12 +414,19 @@ def render_by_gymnast_view(df: pd.DataFrame, stats_df: pd.DataFrame | None, norm
                     fig.add_hline(y=0, line=dict(color='white', width=5), layer='below')
                 # Add star annotation on the highest score
                 max_row_plot = current_plot_data.loc[current_plot_data['Score'].idxmax()]
-                fig.add_annotation(
-                    x=max_row_plot['YearMeet'],
-                    y=max_row_plot['Score'],
-                    text="★",
-                    font=dict(size=STAR_ANNOTATION_FONT_SIZE),
-                    showarrow=False
+                fig.add_trace(
+                    px.scatter(
+                        x=[max_row_plot['YearMeet']],
+                        y=[max_row_plot['Score']],
+                        text=[""],
+                        opacity=1.0
+                    ).update_traces(
+                        marker_symbol="star",
+                        marker_size=STAR_ANNOTATION_FONT_SIZE,
+                        marker_color="gold",
+                        showlegend=False,
+                        hoverinfo="skip"
+                    ).data[0]
                 )
                 st.plotly_chart(fig, use_container_width=True)
             else:
