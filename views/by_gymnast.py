@@ -18,7 +18,7 @@ from config import (
     XAXIS_TICKFONT_SIZE,
     YAXIS_TICKFONT_SIZE,
     MARKER_TEXTFONT_SIZE,
-    # STAR_ANNOTATION_FONT_SIZE, # Not used in gymnast view plots in this revision
+    STAR_ANNOTATION_FONT_SIZE,
     CUSTOM_TAB_CSS
 )
 
@@ -306,21 +306,19 @@ def render_by_gymnast_view(df: pd.DataFrame, stats_df: pd.DataFrame | None, norm
                 chosen_stat_val = custom_round(normalized_event_data['Score'].median() if calc_method == "Median" else normalized_event_data['Score'].mean())
                 chosen_stat_label = f"{calc_method} Score"
                 
-                # Trend/Improvement calculation (example, adapt as needed)
+                # Improvement calculation: difference between median values of current and previous year
                 improvement_val_display = "N/A"
-                improvement_label = "Trend/Improvement" 
-                # (Logic for improvement/trend can be complex, using a placeholder or simplified version here)
-                # This part needs to be adapted based on how trend was calculated previously, now using normalized_event_data
-                if len(normalized_event_data['MeetName'].unique()) >=2:
-                    # Simplified trend: difference between last and first meet's score in the series
-                    if not normalized_event_data.empty:
-                        trend_calc_data = normalized_event_data.sort_values(by="MeetDate")
-                        first_score = trend_calc_data['Score'].iloc[0]
-                        last_score = trend_calc_data['Score'].iloc[-1]
-                        if pd.notna(first_score) and pd.notna(last_score) and len(trend_calc_data) >=2:
-                            diff = custom_round(last_score - first_score)
-                            improvement_val_display = f"{diff:+.3f}"
-                            improvement_label = "Overall Trend (Last-First)"
+                improvement_label = "Year-over-Year Median Change"
+                if 'CompYear' in normalized_event_data.columns:
+                    normalized_event_data['CompYear'] = pd.to_numeric(normalized_event_data['CompYear'], errors='coerce')
+                    unique_years = sorted(normalized_event_data['CompYear'].dropna().unique())
+                    if len(unique_years) >= 2:
+                        current_year = unique_years[-1]
+                        previous_year = unique_years[-2]
+                        current_median = custom_round(normalized_event_data[normalized_event_data['CompYear'] == current_year]['Score'].median())
+                        previous_median = custom_round(normalized_event_data[normalized_event_data['CompYear'] == previous_year]['Score'].median())
+                        diff = custom_round(current_median - previous_median)
+                        improvement_val_display = f"{diff:+.3f}"
                 
                 stat_cols = st.columns(3)
                 with stat_cols[0]: st.metric(label="Max Score", value=f"{max_score_val:.3f}" if pd.notna(max_score_val) else "N/A")
@@ -414,7 +412,15 @@ def render_by_gymnast_view(df: pd.DataFrame, stats_df: pd.DataFrame | None, norm
                 # Highlight y=0 baseline when using normalized scores
                 if normalization_method != 'None':
                     fig.add_hline(y=0, line=dict(color='white', width=5), layer='below')
-
+                # Add star annotation on the highest score
+                max_row_plot = current_plot_data.loc[current_plot_data['Score'].idxmax()]
+                fig.add_annotation(
+                    x=max_row_plot['YearMeet'],
+                    y=max_row_plot['Score'],
+                    text="★",
+                    font=dict(size=STAR_ANNOTATION_FONT_SIZE),
+                    showarrow=False
+                )
                 st.plotly_chart(fig, use_container_width=True)
             else:
                 st.caption(f"No {event} scores for {athlete} (Level {selected_level}) for the selected period.")
