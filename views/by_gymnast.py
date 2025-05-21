@@ -5,8 +5,9 @@ from utils.maths import custom_round
 from config import (
     EVENT_COLORS, 
     DEFAULT_Y_RANGE, 
+    NORMALIZED_Y_RANGE,
     COMMON_LAYOUT_ARGS, 
-    # COMMON_LINE_TRACE_ARGS, # Not directly used in my new plot structure, but good to keep if needed elsewhere
+    COMMON_LINE_TRACE_ARGS,
     # COMPARISON_BAR_Y_RANGE, # Assuming this might be for a different plot type not modified here
     # COMMON_BAR_TRACE_ARGS, # Same as above
     EVENTS_ORDER,
@@ -282,7 +283,7 @@ def render_by_gymnast_view(df: pd.DataFrame, stats_df: pd.DataFrame | None, norm
     score_display_format_plot = "{:.3f}" if normalization_method == "None" else "{:.4f}"
     plot_title_norm_suffix = f" ({normalization_method} Norm)" if normalization_method != "None" else ""
 
-    event_tabs_gymnast = st.tabs([f"{event} Scores" for event in EVENTS_ORDER])
+    event_tabs_gymnast = st.tabs([f"{event}" for event in EVENTS_ORDER])
     for i, event in enumerate(EVENTS_ORDER):
         with event_tabs_gymnast[i]:
             event_data_specific = data_for_plots[data_for_plots.Event == event].copy()
@@ -327,33 +328,82 @@ def render_by_gymnast_view(df: pd.DataFrame, stats_df: pd.DataFrame | None, norm
                 with stat_cols[2]: st.metric(label=improvement_label, value=improvement_val_display, delta_color="off")
 
                 # --- PLOTTING --- (Based on normalized_event_data)
-                fig_title = f"{athlete} - {selected_level} - {event}{plot_title_norm_suffix}"
-                if year_filter_for_norm_helper is not None:
-                     fig_title += f" ({year_filter_for_norm_helper})"
-                else: # If multiple years, indicate it
-                    unique_plot_years = sorted(normalized_event_data.CompYear.astype(str).unique())
-                    if len(unique_plot_years) > 1:
-                        fig_title += f" ({', '.join(unique_plot_years)})"
-                    elif len(unique_plot_years) == 1:
-                        fig_title += f" ({unique_plot_years[0]})"
+                # Determine if multiple years are actually present in the current event's data for plotting
+                unique_comp_years_in_plot_data = []
+                if 'CompYear' in normalized_event_data.columns:
+                    # Ensure CompYear is treated as string for unique values and sorting, handling potential mixed types
+                    normalized_event_data['CompYear'] = normalized_event_data['CompYear'].astype(str)
+                    unique_comp_years_in_plot_data = sorted(normalized_event_data['CompYear'].unique(), key=lambda x: int(float(x)))
 
-                fig = px.line(normalized_event_data, x="MeetName", y="Score", 
-                                markers=True, text="Score",
-                                color_discrete_sequence=[EVENT_COLORS.get(event, "black")])
+                plot_multiple_years = len(unique_comp_years_in_plot_data) > 1 and not show_current_year_only
+
+                fig_title = f"{athlete} - {selected_level} - {event}{plot_title_norm_suffix}"
+                if year_filter_for_norm_helper is not None: # This means show_current_year_only was true
+                     fig_title += f" ({year_filter_for_norm_helper})"
+                elif unique_comp_years_in_plot_data: # Only add year(s) if CompYear info exists
+                    if len(unique_comp_years_in_plot_data) > 1 :
+                        fig_title += f" (Years: {', '.join(unique_comp_years_in_plot_data)})"
+                    elif len(unique_comp_years_in_plot_data) == 1:
+                        fig_title += f" (Year: {unique_comp_years_in_plot_data[0]})"
                 
-                fig.update_traces(texttemplate=[score_display_format_plot.format(s) if pd.notna(s) else "" for s in normalized_event_data['Score']], 
-                                  textposition='top center',
-                                  textfont=dict(size=MARKER_TEXTFONT_SIZE))
+                # Data for plotting, ensure it's sorted by MeetDate for chronological x-axis
+                # normalized_event_data is derived from data_for_plots, which is already sorted by MeetDate.
+                current_plot_data = normalized_event_data.sort_values(by=['MeetDate'])
+
+
+                plot_params = {
+                    "x": "MeetName", "y": "Score",
+                    "markers": True, "text": "Score",
+                    "labels": {'Score': y_axis_title_plot} 
+                }
+
+                if plot_multiple_years:
+                    plot_params.update({
+                        "color": "CompYear",
+                        "line_group": "CompYear",
+                        "category_orders": {"CompYear": unique_comp_years_in_plot_data} # Years already sorted
+                    })
+                    fig = px.line(current_plot_data, **plot_params)
+                else:
+                    plot_params["color_discrete_sequence"] = [EVENT_COLORS.get(event, "black")]
+                    fig = px.line(current_plot_data, **plot_params)
+                
+                fig.update_traces(
+                    texttemplate=[score_display_format_plot.format(s) if pd.notna(s) else "" for s in current_plot_data['Score']],
+                    textposition='top center',
+                    textfont=dict(size=MARKER_TEXTFONT_SIZE),
+                    line=dict(width=COMMON_LINE_TRACE_ARGS['line']['width']), 
+                    marker=dict(size=COMMON_LINE_TRACE_ARGS['marker']['size'])
+                )
 
                 plot_layout = COMMON_LAYOUT_ARGS.copy()
                 plot_layout['title'] = fig_title
-                plot_layout['xaxis'] = {**plot_layout.get('xaxis', {}), 'tickfont': {'size': XAXIS_TICKFONT_SIZE}}
-                plot_layout['yaxis'] = {**plot_layout.get('yaxis', {}), 'title': {'text': y_axis_title_plot}, 'tickfont': {'size': YAXIS_TICKFONT_SIZE}}
+                
+                # Preserve original xaxis settings from COMMON_LAYOUT_ARGS, but ensure tickfont size is applied
+                # COMMON_LAYOUT_ARGS already has 'showticklabels': False, 'title': {'text': None} for xaxis
+                plot_layout['xaxis'] = {
+                    **plot_layout.get('xaxis', {}), # Start with existing common settings for xaxis
+                    'tickfont': {'size': XAXIS_TICKFONT_SIZE}
+                }
+                # Update yaxis title and tickfont size
+                plot_layout['yaxis'] = {
+                    **plot_layout.get('yaxis', {}), # Start with existing common settings for yaxis
+                    'title': {'text': y_axis_title_plot}, 
+                    'tickfont': {'size': YAXIS_TICKFONT_SIZE}
+                }
                 
                 if not fit_y_axis:
-                    plot_layout['yaxis']['range'] = DEFAULT_Y_RANGE.all_around if event == "All Around" else DEFAULT_Y_RANGE.event
+                    if normalization_method != "None":
+                        yrange_config = NORMALIZED_Y_RANGE 
+                        plot_layout['yaxis']['range'] = yrange_config.all_around if event == "All Around" else yrange_config.event
+                    else:
+                        yrange_config = DEFAULT_Y_RANGE
+                        plot_layout['yaxis']['range'] = yrange_config.all_around if event == "All Around" else yrange_config.event
                 else:
-                    plot_layout['yaxis'].pop('range', None) # Remove fixed range if fit_y_axis is true
+                    # If yaxis range was set by COMMON_LAYOUT_ARGS, and we want to fit, remove it.
+                    if 'range' in plot_layout['yaxis']:
+                        plot_layout['yaxis'].pop('range')
+
 
                 fig.update_layout(**plot_layout)
                 st.plotly_chart(fig, use_container_width=True)
@@ -428,11 +478,12 @@ def render_by_gymnast_view(df: pd.DataFrame, stats_df: pd.DataFrame | None, norm
                         fig_compare_athlete.update_layout(
                             **COMMON_LAYOUT_ARGS,
                             yaxis_title="Score (AA scores are divided by 4)",
-                            yaxis_range=COMPARISON_BAR_Y_RANGE,
+                            # yaxis_range=COMPARISON_BAR_Y_RANGE, # This was from config, ensuring it's used
                             legend_title_text="Year",
-                            height=500,
-                            xaxis=dict(tickfont=dict(size=XAXIS_TICKFONT_SIZE)),
-                            yaxis=dict(tickfont=dict(size=YAXIS_TICKFONT_SIZE))
+                            height=500, # from COMMON_LAYOUT_ARGS
+                            # xaxis from COMMON_LAYOUT_ARGS has showticklabels=False, title=None. Override for this specific chart.
+                            xaxis=dict(showticklabels=True, title=dict(text="Event"), tickfont=dict(size=XAXIS_TICKFONT_SIZE)),
+                            yaxis=dict(tickfont=dict(size=YAXIS_TICKFONT_SIZE), range=COMPARISON_BAR_Y_RANGE) # Explicitly use COMPARISON_BAR_Y_RANGE
                         )
                         st.plotly_chart(fig_compare_athlete, use_container_width=True)
                     else:

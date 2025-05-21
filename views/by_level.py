@@ -6,6 +6,7 @@ from utils.maths import custom_round
 from config import (
     EVENT_COLORS,
     DEFAULT_Y_RANGE,
+    NORMALIZED_Y_RANGE,
     COMMON_LAYOUT_ARGS,
     COMMON_LINE_TRACE_ARGS,
     EVENTS_ORDER,
@@ -301,7 +302,7 @@ def render_by_level_view(df: pd.DataFrame, stats_df: pd.DataFrame | None, normal
         # No return here, let the tabs render as empty if needed.
     
     y_axis_title = "Normalized Score" if normalization_method != "None" else "Score"
-    event_tabs = st.tabs([f"{event} Scores" for event in EVENTS_ORDER]) # Add "Scores" to tab titles
+    event_tabs = st.tabs([f"{event}" for event in EVENTS_ORDER]) # Changed tab titles
 
     for i, event in enumerate(EVENTS_ORDER):
         with event_tabs[i]:
@@ -391,7 +392,12 @@ def render_by_level_view(df: pd.DataFrame, stats_df: pd.DataFrame | None, normal
                     # PLOTTING (using aggregated, potentially normalized scores)
                     # Determine Y-axis range based on event type and fit_y_axis toggle
                     if not fit_y_axis:
-                        current_y_axis_range = DEFAULT_Y_RANGE.all_around if event == "All Around" else DEFAULT_Y_RANGE.event
+                        if normalization_method != "None":
+                            yrange_config = NORMALIZED_Y_RANGE
+                            current_y_axis_range = yrange_config.all_around if event == "All Around" else yrange_config.event
+                        else:
+                            yrange_config = DEFAULT_Y_RANGE
+                            current_y_axis_range = yrange_config.all_around if event == "All Around" else yrange_config.event
                     else:
                         current_y_axis_range = None # Let Plotly auto-fit
 

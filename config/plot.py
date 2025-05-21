@@ -7,8 +7,14 @@ class YAxisRange:
 
 # Default Y-axis ranges, derived from common usage in app.py
 DEFAULT_Y_RANGE = YAxisRange(
-    event=(8.0, 10.0),
+    event=(5.0, 10.0),
     all_around=(30.0, 40.0)
+)
+
+# Y-axis range for normalized scores (by median and by mean)
+NORMALIZED_Y_RANGE = YAxisRange(
+    event=(-3.0, 3.0),
+    all_around=(-3.0, 3.0)  # Assuming AA also uses this range, adjust if needed
 )
 
 # Y-axis range for the multi-year comparison bar chart in 'By Gymnast' view
