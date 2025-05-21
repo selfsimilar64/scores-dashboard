@@ -214,7 +214,7 @@ def create_top_scores_table(df: pd.DataFrame, stats_df: pd.DataFrame | None, nor
     except ValueError:
         pass 
     # Display score with 3 decimal places, or more if normalized scores are very small
-    score_display_format = "{:.3f}" if normalization_method == "None" else "{:.4f}"
+    score_display_format = "{:.3f}" if normalization_method == "None" else "{:.1f}"
     table_data['Score'] = table_data['Score'].apply(lambda x: score_display_format.format(x) if pd.notna(x) else "N/A")
 
 
@@ -406,6 +406,7 @@ def render_by_level_view(df: pd.DataFrame, stats_df: pd.DataFrame | None, normal
                                     color_discrete_sequence=[EVENT_COLORS.get(event, "black")],
                                     text="Score") # Text on markers
                     
+                    score_display_format = "{:.3f}" if normalization_method == "None" else "{:.1f}"
                     fig.update_traces(texttemplate=[score_display_format.format(s) if pd.notna(s) else "" for s in avg_event_scores['Score']], textposition='top center')
 
 
