@@ -413,7 +413,7 @@ def render_by_gymnast_view(df: pd.DataFrame, stats_df: pd.DataFrame | None, norm
                 fig.update_layout(**plot_layout)
                 # Highlight y=0 baseline when using normalized scores
                 if normalization_method != 'None':
-                    fig.add_hline(y=0, line=dict(color='white', width=5))
+                    fig.add_hline(y=0, line=dict(color='white', width=5), layer='below')
 
                 st.plotly_chart(fig, use_container_width=True)
             else:
