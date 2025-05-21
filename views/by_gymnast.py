@@ -375,7 +375,7 @@ def render_by_gymnast_view(df: pd.DataFrame, stats_df: pd.DataFrame | None, norm
                     fig = px.line(current_plot_data, **plot_params)
                 
                 fig.update_traces(
-                    texttemplate=[score_display_format_plot.format(s) if pd.notna(s) else "" for s in current_plot_data['Score']],
+                    texttemplate='%{y:.3f}' if normalization_method == 'None' else '%{y:.4f}',
                     textposition='top center',
                     textfont=dict(size=MARKER_TEXTFONT_SIZE),
                     line=dict(width=COMMON_LINE_TRACE_ARGS['line']['width']), 
@@ -410,8 +410,11 @@ def render_by_gymnast_view(df: pd.DataFrame, stats_df: pd.DataFrame | None, norm
                     if 'range' in plot_layout['yaxis']:
                         plot_layout['yaxis'].pop('range')
 
-
                 fig.update_layout(**plot_layout)
+                # Highlight y=0 baseline when using normalized scores
+                if normalization_method != 'None':
+                    fig.add_hline(y=0, line=dict(color='gray', width=1, dash='dash'), layer='below')
+
                 st.plotly_chart(fig, use_container_width=True)
             else:
                 st.caption(f"No {event} scores for {athlete} (Level {selected_level}) for the selected period.")
