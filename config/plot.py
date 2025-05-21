@@ -37,7 +37,7 @@ COMMON_LAYOUT_ARGS = dict(
 # New font size configurations
 XAXIS_TICKFONT_SIZE = 18
 YAXIS_TICKFONT_SIZE = 20
-MARKER_TEXTFONT_SIZE = 16
+MARKER_TEXTFONT_SIZE = 18
 STAR_ANNOTATION_FONT_SIZE = 25
 
 # Specific trace updates for line charts
