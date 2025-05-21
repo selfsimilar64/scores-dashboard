@@ -21,6 +21,7 @@ from .behaviour import (
 from .plot import (
     YAxisRange,
     DEFAULT_Y_RANGE,
+    NORMALIZED_Y_RANGE,
     COMPARISON_BAR_Y_RANGE,
     COMMON_LAYOUT_ARGS,
     COMMON_LINE_TRACE_ARGS,
@@ -59,6 +60,7 @@ __all__ = [
     # plot
     "YAxisRange",
     "DEFAULT_Y_RANGE",
+    "NORMALIZED_Y_RANGE",
     "COMPARISON_BAR_Y_RANGE",
     "COMMON_LAYOUT_ARGS",
     "COMMON_LINE_TRACE_ARGS",
