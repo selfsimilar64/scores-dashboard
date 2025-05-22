@@ -281,7 +281,7 @@ def create_top_scores_table(df: pd.DataFrame, stats_df: pd.DataFrame | None, nor
         data_for_table_no_aa, 
         stats_df, 
         normalization_method,
-        selected_year,
+        int(selected_year), # Ensure selected_year is an int
         selected_level, # Pass the overall level filter for the table
         event_filter=None # Normalize based on each row's event by merging
     )
@@ -404,7 +404,7 @@ def render_by_level_view(df: pd.DataFrame, stats_df: pd.DataFrame | None, normal
                 event_data_for_tab,
                 stats_df,
                 normalization_method,
-                selected_year,
+                int(selected_year), # Ensure selected_year is an int
                 selected_level_team, # This is the overall level filter for the view
                 event_filter=event # Crucially, filter stats for this specific event
             )
