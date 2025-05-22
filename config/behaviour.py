@@ -34,4 +34,4 @@ MEET_VIEW_EVENTS_TO_GRAPH = ["Vault", "Bars", "Beam", "Floor", "All Around"]
 MEET_VIEW_TEAM_SCORE_Y_RANGE = (30.0, 40.0)
 
 # Number of top scores to display in top scores tables in all views
-TOP_SCORES_COUNT = 8
+TOP_SCORES_COUNT = 10
