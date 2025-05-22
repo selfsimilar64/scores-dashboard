@@ -188,7 +188,7 @@ def create_gymnast_top_scores_table(
     table_data['Score'] = table_data['Score'].apply(lambda x: score_display_format.format(x) if pd.notna(x) else "N/A")
 
     norm_suffix = ", Norm." if normalization_method != 'None' else ''
-    st.subheader(f"Top {TOP_SCORES_COUNT} Scores for {selected_athlete} (Lvl {selected_level}{title_year_segment}, Excl. AA{norm_suffix})")
+    st.subheader(f"Top {TOP_SCORES_COUNT} Scores")
     st.table(table_data.reset_index(drop=True))
 
 
@@ -351,7 +351,7 @@ def render_by_gymnast_view(df: pd.DataFrame, stats_df: pd.DataFrame | None, norm
 
                 plot_multiple_years = len(unique_comp_years_in_plot_data) > 1 and not show_current_year_only
 
-                fig_title = f"{athlete} - {selected_level} - {event}{plot_title_norm_suffix}"
+                fig_title = None
                 if year_filter_for_norm_helper is not None: # This means show_current_year_only was true
                      fig_title += f" ({year_filter_for_norm_helper})"
                 elif unique_comp_years_in_plot_data: # Only add year(s) if CompYear info exists
