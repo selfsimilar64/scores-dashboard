@@ -54,6 +54,10 @@ def _normalize_scores_helper(
     df_to_normalize = scores_df.copy()
     context_stats = stats_info.copy()
 
+    st.write("context_stats.CompYear dtype:", context_stats.CompYear.dtype)
+    st.write("context_stats['CompYear'] dtype:", context_stats['CompYear'].dtype)
+    st.write("comp_year type:", type(comp_year))
+
     # Ensure 'CompYear' is numeric in both dataframes before filtering or merging
     if 'CompYear' in df_to_normalize.columns:
         df_to_normalize['CompYear'] = pd.to_numeric(df_to_normalize['CompYear'], errors='coerce')
@@ -523,6 +527,3 @@ def render_by_level_view(df: pd.DataFrame, stats_df: pd.DataFrame | None, normal
                     st.caption(f"No aggregated score data to display for {event} for {level_display_name} in {selected_year} after normalization/aggregation.")
             else:
                 st.caption(f"No score data available for {event} for {level_display_name} in {selected_year} to display in this tab.") 
-
-    st.write("selected_year type:", type(selected_year))
-    st.write("stats_df.CompYear dtype:", stats_df.CompYear.dtype) 
