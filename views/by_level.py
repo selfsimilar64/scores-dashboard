@@ -39,34 +39,36 @@ def _normalize_scores_helper(
         st.caption(f"[NormLog] {msg}")
 
     if normalization_method == "None":
-        log_and_caption("Normalization method is 'None'; returning original scores.")
+        # log_and_caption("Normalization method is 'None'; returning original scores.")
         return scores_df.copy()
     if stats_info is None:
-        log_and_caption("Stats info is None; cannot normalize. Returning original scores.")
+        # log_and_caption("Stats info is None; cannot normalize. Returning original scores.")
         return scores_df.copy()
     if stats_info.empty:
-        log_and_caption("Stats info is empty; cannot normalize. Returning original scores.")
+        # log_and_caption("Stats info is empty; cannot normalize. Returning original scores.")
         return scores_df.copy()
     if scores_df.empty:
-        log_and_caption("Scores dataframe is empty; nothing to normalize.")
+        # log_and_caption("Scores dataframe is empty; nothing to normalize.")
         return scores_df.copy()
 
     df_to_normalize = scores_df.copy()
     context_stats = stats_info.copy()
 
-    st.write("context_stats.CompYear dtype:", context_stats.CompYear.dtype)
-    st.write("context_stats['CompYear'] dtype:", context_stats['CompYear'].dtype)
-    st.write("comp_year type:", type(comp_year))
+    # st.write("context_stats.CompYear dtype:", context_stats.CompYear.dtype)
+    # st.write("context_stats['CompYear'] dtype:", context_stats['CompYear'].dtype)
+    # st.write("comp_year type:", type(comp_year))
 
     # Ensure 'CompYear' is numeric in both dataframes before filtering or merging
     if 'CompYear' in df_to_normalize.columns:
         df_to_normalize['CompYear'] = pd.to_numeric(df_to_normalize['CompYear'], errors='coerce')
     else:
-        log_and_caption("'CompYear' column missing in scores_df.")
+        # log_and_caption("'CompYear' column missing in scores_df.")
+        pass
     if 'CompYear' in context_stats.columns:
         context_stats['CompYear'] = pd.to_numeric(context_stats['CompYear'], errors='coerce')
     else:
-        log_and_caption("'CompYear' column missing in stats_info.")
+        # log_and_caption("'CompYear' column missing in stats_info.")
+        pass
 
     # Filter by comp_year when provided
     if comp_year is not None:
@@ -105,17 +107,17 @@ def _normalize_scores_helper(
             return df_to_normalize
 
     if context_stats.empty:
-        log_and_caption("Context stats is empty after filtering; cannot normalize. Returning original scores.")
+        # log_and_caption("Context stats is empty after filtering; cannot normalize. Returning original scores.")
         return df_to_normalize
 
     merge_keys = ['MeetName', 'CompYear', 'Level', 'Event']
     stat_cols_to_bring = merge_keys[:]
     if normalization_method == "Median":
         stat_cols_to_bring.extend(['Median', 'MedAbsDev'])
-        log_and_caption("Using Median normalization; will require 'Median' and 'MedAbsDev' columns.")
+        # log_and_caption("Using Median normalization; will require 'Median' and 'MedAbsDev' columns.")
     elif normalization_method == "Mean":
         stat_cols_to_bring.extend(['Mean', 'StdDev'])
-        log_and_caption("Using Mean normalization; will require 'Mean' and 'StdDev' columns.")
+        # log_and_caption("Using Mean normalization; will require 'Mean' and 'StdDev' columns.")
     else:
         log_and_caption(f"Unknown normalization method '{normalization_method}'; returning original scores.")
         return df_to_normalize
@@ -522,6 +524,32 @@ def render_by_level_view(df: pd.DataFrame, stats_df: pd.DataFrame | None, normal
                     plot_layout_options['title'] = plot_title
 
                     fig.update_layout(**plot_layout_options)
+                    
+                    # Highlight y=0 baseline when using normalized scores
+                    if normalization_method != 'None':
+                        fig.add_hline(y=0, line=dict(color='white', width=5), layer='below')
+                    
+                    # Add star annotation on the highest score
+                    # Ensure avg_event_scores is not empty and 'Score' column exists
+                    if not avg_event_scores.empty and 'Score' in avg_event_scores.columns:
+                        max_row_plot_level = avg_event_scores.loc[avg_event_scores['Score'].idxmax()]
+                        # Ensure 'MeetName' column exists for x-coordinate
+                        if 'MeetName' in max_row_plot_level and pd.notna(max_row_plot_level['MeetName']): # Check if MeetName is not NaN
+                            fig.add_trace(
+                                px.scatter(
+                                    x=[max_row_plot_level['MeetName']],
+                                    y=[max_row_plot_level['Score']],
+                                    text=[""], # No text on the star itself
+                                    opacity=1.0
+                                ).update_traces(
+                                    marker_symbol="star",
+                                    marker_size=STAR_ANNOTATION_FONT_SIZE,
+                                    marker_color="gold",
+                                    showlegend=False,
+                                    hoverinfo="skip" # Don't show hover info for the star
+                                ).data[0]
+                            )
+
                     st.plotly_chart(fig, use_container_width=True)
                 else:
                     st.caption(f"No aggregated score data to display for {event} for {level_display_name} in {selected_year} after normalization/aggregation.")
