@@ -1,4 +1,5 @@
 import streamlit as st
+import logging
 from data.loader import load_db
 from config import DARK_CARD_CSS, VIEWS, DEFAULT_VIEW
 from views import by_level, by_gymnast, by_meet
@@ -71,6 +72,24 @@ normalization_selection = st.sidebar.radio(
     index=NORMALIZATION_OPTIONS.index(DEFAULT_NORMALIZATION),
     key="normalization_selector"
 )
+
+# --- Set up logging to Streamlit sidebar ---
+log_container = st.sidebar.empty()
+class StreamlitHandler(logging.Handler):
+    def __init__(self, container):
+        super().__init__()
+        self.container = container
+    def emit(self, record):
+        msg = self.format(record)
+        self.container.text(msg)
+
+handler = StreamlitHandler(log_container)
+handler.setLevel(logging.DEBUG)
+handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(message)s"))
+# Attach handler to root logger so all logs are captured
+root_logger = logging.getLogger()
+root_logger.setLevel(logging.DEBUG)
+root_logger.addHandler(handler)
 
 # --- View Routing ---
 def render_selected_view(selected_view, scores_data, statistics_data, normalization_method):

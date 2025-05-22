@@ -16,6 +16,9 @@ from config import (
     TOP_SCORES_COUNT,
     CUSTOM_TAB_CSS
 )
+import logging
+
+logger = logging.getLogger()
 
 # Normalization Helper Function (Adapted for by_meet.py)
 # Key change: level_filter can be "__ALL_LEVELS__" to not filter stats by a specific level,
@@ -77,13 +80,13 @@ def _normalize_scores_helper(
 
     missing_stat_cols = [col for col in stat_cols_to_bring if col not in context_stats.columns]
     if any(missing_stat_cols):
-        st.warning(f"Stats data missing cols for {normalization_method} norm: {missing_stat_cols}. No normalization.")
+        logger.warning(f"Stats missing {missing_stat_cols} for {normalization_method}. No normalization.")
         return df_to_normalize
 
     final_stats_for_merge = context_stats[list(set(stat_cols_to_bring))].drop_duplicates(subset=merge_keys)
     missing_score_cols = [key for key in merge_keys if key not in df_to_normalize.columns]
     if any(missing_score_cols):
-        st.error(f"Scores data missing keys for merge: {missing_score_cols}. No normalization.")
+        logger.error(f"Scores missing {missing_score_cols} for merge. No normalization.")
         return df_to_normalize
 
     merged_df = pd.merge(df_to_normalize, final_stats_for_merge, on=merge_keys, how='left')
@@ -96,7 +99,7 @@ def _normalize_scores_helper(
             if mask.any():
                 calculated_any = True
         else:
-            st.warning("Median/MedAbsDev cols not found. No normalization.")
+            logger.warning("Median/MedAbsDev cols not found. No normalization.")
             return df_to_normalize
     elif normalization_method == "Mean":
         if 'Mean' in merged_df.columns and 'StdDev' in merged_df.columns:
@@ -106,13 +109,13 @@ def _normalize_scores_helper(
             if mask.any():
                 calculated_any = True
         else:
-            st.warning("Mean/StdDev cols not found. No normalization.")
+            logger.warning("Mean/StdDev cols not found. No normalization.")
             return df_to_normalize
 
     if calculated_any:
         merged_df['Score'] = merged_df['NormalizedScore']
     elif normalization_method != "None":
-        st.caption(f"Norm. ({normalization_method}) selected, but no valid stats. Original scores shown.")
+        logger.info(f"Norm. ({normalization_method}) selected, but no valid stats. Original scores shown.")
 
     cols_to_drop = ['Median', 'MedAbsDev', 'Mean', 'StdDev', 'NormalizedScore']
     merged_df = merged_df.drop(columns=[col for col in cols_to_drop if col in merged_df.columns], errors='ignore')

@@ -22,6 +22,8 @@ from config import (
     TOP_SCORES_COUNT,
     CUSTOM_TAB_CSS
 )
+import logging
+logger = logging.getLogger()
 
 # Normalization Helper Function (Copied and adjusted from by_level.py)
 def _normalize_scores_helper(
@@ -58,18 +60,18 @@ def _normalize_scores_helper(
         context_stats = context_stats[context_stats['CompYear'] == comp_year]
 
     # For gymnast view, level_filter is always a specific level string, not a prefix like LEVEL_OPTIONS_PREFIX
-    if 'Level' in context_stats.columns: # Check if 'Level' column exists
+    if 'Level' in context_stats.columns:
         context_stats = context_stats[context_stats['Level'] == level_filter]
     else:
-        st.warning("'Level' column not found in stats_info. Cannot filter by level for normalization.")
-        return df_to_normalize # Or handle error as appropriate
+        logger.warning("'Level' column not found in stats_info. Cannot filter by level for normalization.")
+        return df_to_normalize
 
-    if event_filter: 
-        if 'Event' in context_stats.columns: # Check if 'Event' column exists
+    if event_filter:
+        if 'Event' in context_stats.columns:
             context_stats = context_stats[context_stats['Event'] == event_filter]
         else:
-            st.warning("'Event' column not found in stats_info. Cannot filter by event for normalization.")
-            return df_to_normalize # Or handle error as appropriate
+            logger.warning("'Event' column not found in stats_info. Cannot filter by event for normalization.")
+            return df_to_normalize
     
     if context_stats.empty:
         # st.caption(f"No relevant stats for normalization ({normalization_method}) for Lvl: {level_filter}, Yr: {comp_year}, Evt: {event_filter}.")
@@ -84,14 +86,14 @@ def _normalize_scores_helper(
     
     missing_stat_cols = [col for col in stat_cols_to_bring if col not in context_stats.columns]
     if any(missing_stat_cols):
-        st.warning(f"Stats data missing cols for {normalization_method} norm: {missing_stat_cols}. Scores unnormalized.")
+        logger.warning(f"Stats data missing cols for {normalization_method} norm: {missing_stat_cols}. Scores unnormalized.")
         return df_to_normalize
 
     final_stats_for_merge = context_stats[list(set(stat_cols_to_bring))].drop_duplicates(subset=merge_keys)
     
     missing_score_cols = [key for key in merge_keys if key not in df_to_normalize.columns]
     if any(missing_score_cols):
-        st.error(f"Scores data missing keys for merge: {missing_score_cols}. Cannot normalize.")
+        logger.error(f"Scores data missing keys for merge: {missing_score_cols}. Cannot normalize.")
         return df_to_normalize
 
     merged_df = pd.merge(df_to_normalize, final_stats_for_merge, on=merge_keys, how='left')
@@ -104,7 +106,7 @@ def _normalize_scores_helper(
             merged_df.loc[~norm_mask, 'NormalizedScore'] = merged_df.loc[~norm_mask, 'Score']
             if norm_mask.any(): calculated_any_normalization = True
         else:
-            st.warning("Median/MedAbsDev cols not found post-merge. Scores unnormalized.")
+            logger.warning("Median/MedAbsDev cols not found post-merge. Scores unnormalized.")
             return df_to_normalize
             
     elif normalization_method == "Mean":
@@ -114,13 +116,13 @@ def _normalize_scores_helper(
             merged_df.loc[~norm_mask, 'NormalizedScore'] = merged_df.loc[~norm_mask, 'Score']
             if norm_mask.any(): calculated_any_normalization = True
         else:
-            st.warning("Mean/StdDev cols not found post-merge. Scores unnormalized.")
+            logger.warning("Mean/StdDev cols not found post-merge. Scores unnormalized.")
             return df_to_normalize
     
     if calculated_any_normalization:
         merged_df['Score'] = merged_df['NormalizedScore']
     elif normalization_method != "None":
-        st.caption(f"Norm. ({normalization_method}) selected, but no valid stats found. Original scores shown.")
+        logger.info(f"Norm. ({normalization_method}) selected, but no valid stats found. Original scores shown.")
 
     cols_to_drop = ['Median', 'MedAbsDev', 'Mean', 'StdDev', 'NormalizedScore']
     merged_df = merged_df.drop(columns=[col for col in cols_to_drop if col in merged_df.columns], errors='ignore')
