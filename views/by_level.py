@@ -31,151 +31,59 @@ def _normalize_scores_helper(
     level_filter: str, 
     event_filter: str | None = None
 ) -> pd.DataFrame:
-    import logging
-    logger = logging.getLogger("by_level_normalization")
-    # Streamlit users may want to see logs in the UI as well
-    def log_and_caption(msg):
-        logger.info(msg)
-        st.caption(f"[NormLog] {msg}")
-
     if normalization_method == "None":
-        # log_and_caption("Normalization method is 'None'; returning original scores.")
         return scores_df.copy()
     if stats_info is None:
-        # log_and_caption("Stats info is None; cannot normalize. Returning original scores.")
         return scores_df.copy()
     if stats_info.empty:
-        # log_and_caption("Stats info is empty; cannot normalize. Returning original scores.")
         return scores_df.copy()
     if scores_df.empty:
-        # log_and_caption("Scores dataframe is empty; nothing to normalize.")
         return scores_df.copy()
 
     df_to_normalize = scores_df.copy()
     context_stats = stats_info.copy()
 
-    # st.write("context_stats.CompYear dtype:", context_stats.CompYear.dtype)
-    # st.write("context_stats['CompYear'] dtype:", context_stats['CompYear'].dtype)
-    # st.write("comp_year type:", type(comp_year))
-
     # Ensure 'CompYear' is numeric in both dataframes before filtering or merging
     if 'CompYear' in df_to_normalize.columns:
         df_to_normalize['CompYear'] = pd.to_numeric(df_to_normalize['CompYear'], errors='coerce')
-    else:
-        # log_and_caption("'CompYear' column missing in scores_df.")
-        pass
     if 'CompYear' in context_stats.columns:
         context_stats['CompYear'] = pd.to_numeric(context_stats['CompYear'], errors='coerce')
-    else:
-        # log_and_caption("'CompYear' column missing in stats_info.")
-        pass
 
     # Filter by comp_year when provided
     if comp_year is not None:
-        before = len(context_stats)
         context_stats.dropna(subset=['CompYear'], inplace=True)
         context_stats = context_stats[context_stats['CompYear'] == comp_year]
-        after = len(context_stats)
-        log_and_caption(f"Filtering stats_info for CompYear={comp_year}: {before} -> {after} rows.")
 
     # Filter by level unless selecting all levels
     if 'Level' in context_stats.columns:
         if level_filter != LEVEL_OPTIONS_PREFIX:
-            before = len(context_stats)
             context_stats = context_stats[context_stats['Level'] == level_filter]
-            after = len(context_stats)
-            log_and_caption(f"Filtering stats_info for Level='{level_filter}': {before} -> {after} rows!")
-        else:
-            log_and_caption(f"Level filter is LEVEL_OPTIONS_PREFIX ('{LEVEL_OPTIONS_PREFIX}'); not filtering by level.")
-    else:
-        msg = "'Level' column not found in stats_info. Cannot filter by level for normalization."
-        log_and_caption(msg)
-        st.warning(msg)
-        return df_to_normalize
 
     # Filter by event if provided
     if event_filter:
         if 'Event' in context_stats.columns:
-            before = len(context_stats)
             context_stats = context_stats[context_stats['Event'] == event_filter]
-            after = len(context_stats)
-            log_and_caption(f"Filtering stats_info for Event='{event_filter}': {before} -> {after} rows.")
         else:
             msg = "'Event' column not found in stats_info. Cannot filter by event for normalization."
-            log_and_caption(msg)
             st.warning(msg)
             return df_to_normalize
 
     if context_stats.empty:
-        # log_and_caption("Context stats is empty after filtering; cannot normalize. Returning original scores.")
         return df_to_normalize
 
     merge_keys = ['MeetName', 'CompYear', 'Level', 'Event']
     stat_cols_to_bring = merge_keys[:]
     if normalization_method == "Median":
         stat_cols_to_bring.extend(['Median', 'MedAbsDev'])
-        # log_and_caption("Using Median normalization; will require 'Median' and 'MedAbsDev' columns.")
     elif normalization_method == "Mean":
         stat_cols_to_bring.extend(['Mean', 'StdDev'])
-        # log_and_caption("Using Mean normalization; will require 'Mean' and 'StdDev' columns.")
     else:
-        log_and_caption(f"Unknown normalization method '{normalization_method}'; returning original scores.")
-        return df_to_normalize
+        return df_to_normalize # Unknown normalization method
 
     missing_stat_cols = [col for col in stat_cols_to_bring if col not in context_stats.columns]
     if any(missing_stat_cols):
         msg = f"Stats data missing cols for {normalization_method} norm: {missing_stat_cols}. Scores unnormalized."
-        log_and_caption(msg)
         st.warning(msg)
-        return df_to_normalize
-    if normalization_method == "None" or stats_info is None or stats_info.empty:
-        return scores_df.copy()
-    if scores_df.empty:
-        return scores_df.copy()
-
-    df_to_normalize = scores_df.copy()
-    context_stats = stats_info.copy()
-
-    # Ensure 'CompYear' is numeric in both dataframes before filtering or merging
-    if 'CompYear' in df_to_normalize.columns:
-        df_to_normalize['CompYear'] = pd.to_numeric(df_to_normalize['CompYear'], errors='coerce')
-    if 'CompYear' in context_stats.columns:
-        context_stats['CompYear'] = pd.to_numeric(context_stats['CompYear'], errors='coerce')
-
-    # Filter by comp_year when provided
-    if comp_year is not None:
-        context_stats.dropna(subset=['CompYear'], inplace=True)
-        context_stats = context_stats[context_stats['CompYear'] == comp_year]
-
-    # Filter by level unless selecting all levels
-    if 'Level' in context_stats.columns:
-        if level_filter != LEVEL_OPTIONS_PREFIX:
-            context_stats = context_stats[context_stats['Level'] == level_filter]
-    else:
-        st.warning("'Level' column not found in stats_info. Cannot filter by level for normalization.")
-        return df_to_normalize
-
-    # Filter by event if provided
-    if event_filter:
-        if 'Event' in context_stats.columns:
-            context_stats = context_stats[context_stats['Event'] == event_filter]
-        else:
-            st.warning("'Event' column not found in stats_info. Cannot filter by event for normalization.")
-            return df_to_normalize
-
-    if context_stats.empty:
-        return df_to_normalize
-
-    merge_keys = ['MeetName', 'CompYear', 'Level', 'Event']
-    stat_cols_to_bring = merge_keys[:]
-    if normalization_method == "Median":
-        stat_cols_to_bring.extend(['Median', 'MedAbsDev'])
-    elif normalization_method == "Mean":
-        stat_cols_to_bring.extend(['Mean', 'StdDev'])
-
-    missing_stat_cols = [col for col in stat_cols_to_bring if col not in context_stats.columns]
-    if any(missing_stat_cols):
-        st.warning(f"Stats data missing cols for {normalization_method} norm: {missing_stat_cols}. Scores unnormalized.")
         return df_to_normalize
 
     final_stats_for_merge = context_stats[list(set(stat_cols_to_bring))].drop_duplicates(subset=merge_keys)
