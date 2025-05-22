@@ -19,6 +19,7 @@ from config import (
     YAXIS_TICKFONT_SIZE,
     MARKER_TEXTFONT_SIZE,
     STAR_ANNOTATION_FONT_SIZE,
+    TOP_SCORES_COUNT,
     CUSTOM_TAB_CSS
 )
 
@@ -168,7 +169,7 @@ def create_gymnast_top_scores_table(
         event_filter=None # Normalize all events based on their specific stats
     )
     
-    top_scores = normalized_data_for_table.sort_values(by="Score", ascending=False).head(5)
+    top_scores = normalized_data_for_table.sort_values(by="Score", ascending=False).head(TOP_SCORES_COUNT)
 
     if top_scores.empty:
         st.caption(f"No top scores after processing for {selected_athlete}, Level {selected_level}{title_year_segment}.")
@@ -185,7 +186,7 @@ def create_gymnast_top_scores_table(
     table_data['Score'] = table_data['Score'].apply(lambda x: score_display_format.format(x) if pd.notna(x) else "N/A")
 
     norm_suffix = ", Norm." if normalization_method != 'None' else ''
-    st.subheader(f"Top 5 Scores for {selected_athlete} (Lvl {selected_level}{title_year_segment}, Excl. AA{norm_suffix})")
+    st.subheader(f"Top {TOP_SCORES_COUNT} Scores for {selected_athlete} (Lvl {selected_level}{title_year_segment}, Excl. AA{norm_suffix})")
     st.table(table_data.reset_index(drop=True))
 
 

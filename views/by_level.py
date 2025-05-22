@@ -18,120 +18,111 @@ from config import (
     YAXIS_TICKFONT_SIZE,
     MARKER_TEXTFONT_SIZE,
     STAR_ANNOTATION_FONT_SIZE,
+    TOP_SCORES_COUNT,
     CUSTOM_TAB_CSS
 )
 
 # Normalization Helper Function
 def _normalize_scores_helper(
     scores_df: pd.DataFrame,
-    stats_info: pd.DataFrame | None, # Changed name for clarity
+    stats_info: pd.DataFrame | None,
     normalization_method: str,
-    comp_year: int | None, # MODIFIED: Allow None for comp_year
+    comp_year: int | None, 
     level_filter: str, 
     event_filter: str | None = None
 ) -> pd.DataFrame:
     if normalization_method == "None" or stats_info is None or stats_info.empty:
         return scores_df.copy()
-
     if scores_df.empty:
         return scores_df.copy()
 
     df_to_normalize = scores_df.copy()
-    
-    # Filter stats_info based on the provided context
-    # stats_info columns: MeetName, CompYear, Level, Event, Median, MedAbsDev, Mean, StdDev
-    context_stats = stats_info # Start with all stats_info
-    if comp_year is not None: # Apply year filter only if a specific year is given
+    context_stats = stats_info.copy()
+
+    # Ensure 'CompYear' is numeric in both dataframes before filtering or merging
+    if 'CompYear' in df_to_normalize.columns:
+        df_to_normalize['CompYear'] = pd.to_numeric(df_to_normalize['CompYear'], errors='coerce')
+    if 'CompYear' in context_stats.columns:
+        context_stats['CompYear'] = pd.to_numeric(context_stats['CompYear'], errors='coerce')
+
+    # Filter by comp_year when provided
+    if comp_year is not None:
+        context_stats.dropna(subset=['CompYear'], inplace=True)
         context_stats = context_stats[context_stats['CompYear'] == comp_year]
 
-    if level_filter != LEVEL_OPTIONS_PREFIX: # This constant is specific to by_level view
-        context_stats = context_stats[context_stats['Level'] == level_filter]
-
-    if event_filter: # If event_filter is provided, filter stats for that specific event
-        context_stats = context_stats[context_stats['Event'] == event_filter]
-    
-    if context_stats.empty:
-        # st.caption(f"No relevant statistics for normalization ({normalization_method}) with current filters (Year: {comp_year}, Level: {level_filter}, Event: {event_filter if event_filter else 'Any'}). Scores remain unnormalized.")
+    # Filter by level unless selecting all levels
+    if 'Level' in context_stats.columns:
+        if level_filter != LEVEL_OPTIONS_PREFIX:
+            context_stats = context_stats[context_stats['Level'] == level_filter]
+    else:
+        st.warning("'Level' column not found in stats_info. Cannot filter by level for normalization.")
         return df_to_normalize
 
-    # Define merge keys based on whether an event_filter is active
-    # The base keys for stats are MeetName, CompYear, Level, Event
-    merge_keys = ['MeetName', 'CompYear', 'Level', 'Event']
+    # Filter by event if provided
+    if event_filter:
+        if 'Event' in context_stats.columns:
+            context_stats = context_stats[context_stats['Event'] == event_filter]
+        else:
+            st.warning("'Event' column not found in stats_info. Cannot filter by event for normalization.")
+            return df_to_normalize
 
-    stat_cols_to_bring = merge_keys[:] # Start with keys
+    if context_stats.empty:
+        return df_to_normalize
+
+    merge_keys = ['MeetName', 'CompYear', 'Level', 'Event']
+    stat_cols_to_bring = merge_keys[:]
     if normalization_method == "Median":
         stat_cols_to_bring.extend(['Median', 'MedAbsDev'])
     elif normalization_method == "Mean":
         stat_cols_to_bring.extend(['Mean', 'StdDev'])
-    
-    # Ensure context_stats has the necessary columns
+
     missing_stat_cols = [col for col in stat_cols_to_bring if col not in context_stats.columns]
     if any(missing_stat_cols):
-        st.warning(f"Stats data is missing required columns for {normalization_method} normalization: {', '.join(missing_stat_cols)}. Scores remain unnormalized.")
+        st.warning(f"Stats data missing cols for {normalization_method} norm: {missing_stat_cols}. Scores unnormalized.")
         return df_to_normalize
 
-    # Select only the necessary columns and drop duplicates to ensure a clean merge
-    # Stats should be unique per (MeetName, CompYear, Level, Event)
     final_stats_for_merge = context_stats[list(set(stat_cols_to_bring))].drop_duplicates(subset=merge_keys)
-    
-    # Perform the merge
-    # df_to_normalize needs: MeetName, CompYear, Level, Event, Score
-    # final_stats_for_merge has: MeetName, CompYear, Level, Event, and the relevant stat columns (Median, MedAbsDev or Mean, StdDev)
-    
-    # Ensure df_to_normalize has the merge key columns
+
     missing_score_cols = [key for key in merge_keys if key not in df_to_normalize.columns]
     if any(missing_score_cols):
-        st.error(f"Scores data is missing key columns for merging with stats: {', '.join(missing_score_cols)}. Cannot normalize.")
+        st.error(f"Scores data missing keys for merge: {missing_score_cols}. Cannot normalize.")
         return df_to_normalize
 
     merged_df = pd.merge(df_to_normalize, final_stats_for_merge, on=merge_keys, how='left')
 
-    # Calculate normalized score
     calculated_any_normalization = False
     if normalization_method == "Median":
         if 'Median' in merged_df.columns and 'MedAbsDev' in merged_df.columns:
-            # Create a boolean mask for rows where normalization is possible
-            norm_possible_mask = merged_df['Median'].notna() & merged_df['MedAbsDev'].notna()
-            # Apply normalization only to these rows
-            merged_df.loc[norm_possible_mask, 'NormalizedScore'] = \
-                (merged_df.loc[norm_possible_mask, 'Score'] - merged_df.loc[norm_possible_mask, 'Median']) / \
-                (merged_df.loc[norm_possible_mask, 'MedAbsDev'] * 1.4826 + 1e-9) # Add epsilon for safety
-            
-            # For rows where normalization wasn't possible, keep original score
-            merged_df.loc[~norm_possible_mask, 'NormalizedScore'] = merged_df.loc[~norm_possible_mask, 'Score']
-            
-            if norm_possible_mask.any(): calculated_any_normalization = True
-        else: # Should not happen if missing_stat_cols check passed, but as a safeguard
-            st.warning("Median/MedAbsDev columns not found for normalization, scores remain unnormalized.")
+            norm_mask = merged_df['Median'].notna() & merged_df['MedAbsDev'].notna()
+            merged_df.loc[norm_mask, 'NormalizedScore'] = (
+                merged_df.loc[norm_mask, 'Score'] - merged_df.loc[norm_mask, 'Median']
+            ) / (merged_df.loc[norm_mask, 'MedAbsDev'] * 1.4826 + 1e-9)
+            merged_df.loc[~norm_mask, 'NormalizedScore'] = merged_df.loc[~norm_mask, 'Score']
+            if norm_mask.any():
+                calculated_any_normalization = True
+        else:
+            st.warning("Median/MedAbsDev cols not found post-merge. Scores unnormalized.")
             return df_to_normalize
-            
     elif normalization_method == "Mean":
         if 'Mean' in merged_df.columns and 'StdDev' in merged_df.columns:
-            norm_possible_mask = merged_df['Mean'].notna() & merged_df['StdDev'].notna()
-            merged_df.loc[norm_possible_mask, 'NormalizedScore'] = \
-                (merged_df.loc[norm_possible_mask, 'Score'] - merged_df.loc[norm_possible_mask, 'Mean']) / \
-                (merged_df.loc[norm_possible_mask, 'StdDev'] + 1e-9) # Add epsilon
-            merged_df.loc[~norm_possible_mask, 'NormalizedScore'] = merged_df.loc[~norm_possible_mask, 'Score']
-            if norm_possible_mask.any(): calculated_any_normalization = True
+            norm_mask = merged_df['Mean'].notna() & merged_df['StdDev'].notna()
+            merged_df.loc[norm_mask, 'NormalizedScore'] = (
+                merged_df.loc[norm_mask, 'Score'] - merged_df.loc[norm_mask, 'Mean']
+            ) / (merged_df.loc[norm_mask, 'StdDev'] + 1e-9)
+            merged_df.loc[~norm_mask, 'NormalizedScore'] = merged_df.loc[~norm_mask, 'Score']
+            if norm_mask.any():
+                calculated_any_normalization = True
         else:
-            st.warning("Mean/StdDev columns not found for normalization, scores remain unnormalized.")
+            st.warning("Mean/StdDev cols not found post-merge. Scores unnormalized.")
             return df_to_normalize
-    
+
     if calculated_any_normalization:
         merged_df['Score'] = merged_df['NormalizedScore']
-        # st.success(f"Scores successfully normalized using {normalization_method} where applicable.")
     elif normalization_method != "None":
-        # This case means method was selected, but no stats matched or cols were missing.
-        # The original df is returned if initial checks fail, or if norm_possible_mask is all False.
-        # If we reach here and calculated_any_normalization is False, it implies stats were found and merged,
-        # but all Median/MedAbsDev or Mean/StdDev values were NaN for the merged rows.
-        st.caption(f"Normalization ({normalization_method}) was selected, but no matching statistics had valid values for the current data. Original scores are shown.")
+        st.caption(f"Norm. ({normalization_method}) selected, but no valid stats found. Original scores shown.")
 
-
-    # Drop helper stat columns and NormalizedScore
     cols_to_drop = ['Median', 'MedAbsDev', 'Mean', 'StdDev', 'NormalizedScore']
     merged_df = merged_df.drop(columns=[col for col in cols_to_drop if col in merged_df.columns], errors='ignore')
-    
     return merged_df
 
 def create_placement_histogram(df: pd.DataFrame, selected_level: str, selected_year: int):
@@ -172,7 +163,7 @@ def create_placement_histogram(df: pd.DataFrame, selected_level: str, selected_y
 
 
 def create_top_scores_table(df: pd.DataFrame, stats_df: pd.DataFrame | None, normalization_method: str, selected_level: str, selected_year: int):
-    """Creates and displays a table of top 5 scores for a given level and year."""
+    """Creates and displays a table of top scores for a given level and year (count defined by TOP_SCORES_COUNT)."""
     title_level_display = "All Levels" if selected_level == LEVEL_OPTIONS_PREFIX else f"Level {selected_level}"
     
     # Prepare data for the table: filter by year and potentially level
@@ -201,14 +192,14 @@ def create_top_scores_table(df: pd.DataFrame, stats_df: pd.DataFrame | None, nor
     )
     
     # Sort by score AFTER potential normalization
-    top_scores = normalized_data_for_table.sort_values(by="Score", ascending=False).head(5)
+    top_scores = normalized_data_for_table.sort_values(by="Score", ascending=False).head(TOP_SCORES_COUNT)
 
     if top_scores.empty: # Should be redundant if data_for_table_no_aa was not empty, but good practice
         st.caption(f"No top scores data available for {title_level_display} in {selected_year} (excluding All Around) after processing.")
         return
 
     # Select and rename columns, excluding CompYear for Level view, adding Event
-    table_data = top_scores[["AthleteName", "MeetName", "Event", "Place", "Score"]].copy()
+    table_data = top_scores[["AthleteName", "Level","MeetName", "Event", "Place", "Score"]].copy()
     table_data['Place'] = table_data['Place'].astype(str) # Keep as string after fetching
     try:
         table_data['Place'] = pd.to_numeric(table_data['Place'], errors='coerce').fillna(0).astype(int)
@@ -219,7 +210,7 @@ def create_top_scores_table(df: pd.DataFrame, stats_df: pd.DataFrame | None, nor
     table_data['Score'] = table_data['Score'].apply(lambda x: score_display_format.format(x) if pd.notna(x) else "N/A")
 
 
-    st.subheader(f"Top 5 Scores for {title_level_display} - {selected_year} (Excl. AA{', Norm.' if normalization_method != 'None' else ''})")
+    st.subheader(f"Top {TOP_SCORES_COUNT} Scores for {title_level_display} - {selected_year} (Excl. AA{', Norm.' if normalization_method != 'None' else ''})")
     st.table(table_data.reset_index(drop=True))
 
 
@@ -307,6 +298,10 @@ def render_by_level_view(df: pd.DataFrame, stats_df: pd.DataFrame | None, normal
         with event_tabs[i]:
             # Filter for the current event
             event_data_for_tab = year_level_event_data_base[year_level_event_data_base.Event == event]
+            
+            # Exclude Regional meets from line plots in team view
+            if 'MeetName' in event_data_for_tab.columns:
+                event_data_for_tab = event_data_for_tab[~event_data_for_tab['MeetName'].str.contains("regional", case=False, na=False)]
             
             # Apply normalization FOR THIS SPECIFIC EVENT
             # Pass selected_level_team (which can be "All Levels") and the specific event

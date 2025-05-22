@@ -16,6 +16,7 @@ from .behaviour import (
     MEET_VIEW_LEVEL_ORDER,
     MEET_VIEW_EVENTS_TO_GRAPH,
     MEET_VIEW_TEAM_SCORE_Y_RANGE,
+    TOP_SCORES_COUNT,
 )
 
 from .plot import (
@@ -57,6 +58,7 @@ __all__ = [
     "MEET_VIEW_LEVEL_ORDER",
     "MEET_VIEW_EVENTS_TO_GRAPH",
     "MEET_VIEW_TEAM_SCORE_Y_RANGE",
+    "TOP_SCORES_COUNT",
     # plot
     "YAxisRange",
     "DEFAULT_Y_RANGE",

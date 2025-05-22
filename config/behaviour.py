@@ -31,4 +31,7 @@ MEET_VIEW_LEVEL_ORDER = [str(i) for i in range(1, 11)] + ["XB", "XS", "XG", "XP"
 # Events to graph in the 'By Meet' view
 MEET_VIEW_EVENTS_TO_GRAPH = ["Vault", "Bars", "Beam", "Floor", "All Around"]
 # Y-axis range for team scores in 'By Meet' view (top 3 AA average)
-MEET_VIEW_TEAM_SCORE_Y_RANGE = (30.0, 40.0) 
+MEET_VIEW_TEAM_SCORE_Y_RANGE = (30.0, 40.0)
+
+# Number of top scores to display in top scores tables in all views
+TOP_SCORES_COUNT = 8
