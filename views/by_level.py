@@ -78,7 +78,7 @@ def _normalize_scores_helper(
             before = len(context_stats)
             context_stats = context_stats[context_stats['Level'] == level_filter]
             after = len(context_stats)
-            log_and_caption(f"Filtering stats_info for Level='{level_filter}': {before} -> {after} rows.")
+            log_and_caption(f"Filtering stats_info for Level='{level_filter}': {before} -> {after} rows!")
         else:
             log_and_caption(f"Level filter is LEVEL_OPTIONS_PREFIX ('{LEVEL_OPTIONS_PREFIX}'); not filtering by level.")
     else:
