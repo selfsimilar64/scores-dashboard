@@ -351,7 +351,7 @@ def render_by_gymnast_view(df: pd.DataFrame, stats_df: pd.DataFrame | None, norm
 
                 plot_multiple_years = len(unique_comp_years_in_plot_data) > 1 and not show_current_year_only
 
-                fig_title = None
+                fig_title = f"{athlete} - {selected_level} - {event}{plot_title_norm_suffix}"
                 if year_filter_for_norm_helper is not None: # This means show_current_year_only was true
                      fig_title += f" ({year_filter_for_norm_helper})"
                 elif unique_comp_years_in_plot_data: # Only add year(s) if CompYear info exists
