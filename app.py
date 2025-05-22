@@ -10,7 +10,7 @@ st.set_page_config(
     layout="centered",
     initial_sidebar_state="expanded",
     menu_items={
-        'Get Help': 'mailto:youremail@example.com',
+        'Get Help': 'mailto:youremail@example.net',
         'Report a bug': "mailto:youremail@example.com",
         'About': "# Gymnastics Scores Dashboard\nThis app visualizes gymnastics competition scores."
     }
