@@ -151,8 +151,8 @@ def create_meet_placement_histogram(df: pd.DataFrame, selected_meet: str, select
     fig = px.bar(placement_df, x='Place', y='Count', text='Count',
                  title=f"Placement Distribution for {selected_meet} - {selected_year}",
                  labels={'Place': 'Place', 'Count': 'Number of Times Achieved'})
-    fig.update_layout(xaxis_tickvals=list(range(1, 11)), yaxis=dict(showticklabels=False, title=dict(text=None)))
-    fig.update_traces(**COMMON_BAR_TRACE_ARGS, texttemplate='%{text}', textfont=dict(size=MARKER_TEXTFONT_SIZE), textposition='inside')
+    fig.update_layout(xaxis_tickvals=list(range(1, 11)), yaxis=dict(showticklabels=False, title=dict(text=None)), yaxis_dtick=1)
+    fig.update_traces(**COMMON_BAR_TRACE_ARGS, texttemplate='%{text}', textfont=dict(size=MARKER_TEXTFONT_SIZE))
     st.plotly_chart(fig, use_container_width=True)
 
 
