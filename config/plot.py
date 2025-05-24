@@ -34,6 +34,7 @@ COMMON_LAYOUT_ARGS = dict(
     legend_title_font_size=22,
     legend_font_size=20,
     title_text="",  # Ensure title is blank by default, can be overridden
+    xaxis=dict(showticklabels=False, title=dict(text=None)), # Hide x-axis ticks and title
 )
 
 # New font size configurations

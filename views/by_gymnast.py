@@ -344,55 +344,80 @@ def render_by_gymnast_view(df: pd.DataFrame, stats_df: pd.DataFrame | None, norm
 
                 # --- PLOTTING --- (Based on normalized_event_data)
                 # Determine if multiple years are actually present in the current event's data for plotting
-                unique_comp_years_in_plot_data = []
+                unique_comp_years_in_plot_data = [] # This is a list of strings, sorted numerically ascending
                 if 'CompYear' in normalized_event_data.columns:
                     # Ensure CompYear is treated as string for unique values and sorting, handling potential mixed types
                     # Sort numerically then convert to string if CompYear is indeed numeric
                     numeric_years_in_plot = pd.to_numeric(normalized_event_data['CompYear'], errors='coerce').dropna().unique()
                     unique_comp_years_in_plot_data = sorted([str(int(y)) for y in numeric_years_in_plot], key=int)
 
-                plot_multiple_years = len(unique_comp_years_in_plot_data) > 1 # This logic remains relevant based on actual data in plot
+                plot_multiple_years = len(unique_comp_years_in_plot_data) > 1
                 # show_current_year_only is removed, so plot_multiple_years isn't combined with it here.
 
                 fig_title = f"{athlete} - {selected_level} - {event}{plot_title_norm_suffix}"
                 # year_filter_for_norm_helper is None, so the first part of title logic is skipped.
                 if unique_comp_years_in_plot_data: 
                     if len(unique_comp_years_in_plot_data) > 1 :
-                        fig_title += f" (Years: {', '.join(unique_comp_years_in_plot_data)})"
+                        fig_title += f" (Years: {', '.join(unique_comp_years_in_plot_data)})" # Shows ascending years
                     elif len(unique_comp_years_in_plot_data) == 1:
                         fig_title += f" (Year: {unique_comp_years_in_plot_data[0]})"
                 
                 # Data for plotting, ensure it's sorted by CompYear then MeetDate to group meets by year sequentially
                 # CompYear in current_plot_data (derived from normalized_event_data -> data_for_plots) should be numeric
-                current_plot_data = normalized_event_data.sort_values(by=['CompYear', 'MeetDate'])
+                current_plot_data = normalized_event_data.sort_values(by=['CompYear', 'MeetDate']).copy() # Use .copy()
 
-                # Create composite x-axis label of Year - MeetName and order categories for x-axis
-                current_plot_data['YearMeet'] = current_plot_data['CompYear'].astype(int).astype(str) + ' - ' + current_plot_data['MeetName']
+                # Add CompYear_str for consistent color mapping and categorical use. Robustly handle potential NaNs.
+                if 'CompYear' in current_plot_data.columns:
+                    current_plot_data['CompYear_str'] = current_plot_data['CompYear'].astype('Int64').astype(str).replace('<NA>', 'N/A')
+                    current_plot_data['YearMeet'] = current_plot_data['CompYear_str'].replace('N/A', str(pd.NA)) + ' - ' + current_plot_data['MeetName'] # Use original str for meetname construction
+                else:
+                    current_plot_data['CompYear_str'] = "N/A"
+                    current_plot_data['YearMeet'] = "N/A" + ' - ' + current_plot_data['MeetName']
+                
                 chronological_yearmeets = current_plot_data['YearMeet'].unique().tolist()
 
-                plot_params = {
+                # Define Year Colors - most recent to oldest specified by user
+                YEAR_COLORS = ['purple', 'blue', 'teal', '#FF7F0E', '#2CA02C'] # Added more for >3 years
+
+                # Sort unique years (strings) numerically in descending order for color assignment and legend
+                sorted_unique_comp_years_for_plot_desc = sorted(unique_comp_years_in_plot_data, key=int, reverse=True)
+
+                base_plot_params = {
                     "x": "YearMeet", "y": "Score",
                     "markers": True, "text": "Score",
-                    "labels": {'Score': y_axis_title_plot},
+                    "labels": {'Score': y_axis_title_plot, 'CompYear_str': 'Competition Year'},
                     "category_orders": {"YearMeet": chronological_yearmeets},
                 }
+                
+                final_plot_params = base_plot_params.copy()
 
-                if plot_multiple_years:
-                    plot_params.update({
-                        "color": "CompYear",
-                        "line_group": "CompYear", # Ensures lines don't connect across years
-                        "category_orders": { # Override/extend category_orders
-                            "YearMeet": chronological_yearmeets,
-                            # CompYear for color grouping should be string for discrete colors if not handled by plotly auto
-                            "CompYear": sorted([str(int(y)) for y in current_plot_data['CompYear'].unique()], key=int)
+                if plot_multiple_years and unique_comp_years_in_plot_data:
+                    year_color_map = {
+                        year_str: YEAR_COLORS[i % len(YEAR_COLORS)]
+                        for i, year_str in enumerate(sorted_unique_comp_years_for_plot_desc)
+                    }
+                    final_plot_params.update({
+                        "color": "CompYear_str",
+                        "line_group": "CompYear_str", # Group lines by year to prevent connecting across them
+                        "color_discrete_map": year_color_map,
+                        "category_orders": {
+                            **base_plot_params["category_orders"],
+                            "CompYear_str": sorted_unique_comp_years_for_plot_desc # Order legend items
                         }
                     })
-                    fig = px.line(current_plot_data, **plot_params)
-                else: # Single year plot or show_current_year_only is true
-                    fig = px.line(current_plot_data, **plot_params)
+                else: # Single year plot or no specific year data for multi-coloring
+                    if YEAR_COLORS: # Apply primary color if list is not empty
+                        final_plot_params["color_discrete_sequence"] = [YEAR_COLORS[0]]
                 
+                fig = px.line(current_plot_data, **final_plot_params)
+                
+                # Correct texttemplate precision to align with score_display_format_plot
+                current_text_template = '%{y:.4f}' # Default for normalized scores
+                if normalization_method == "None":
+                    current_text_template = '%{y:.3f}' # For raw scores
+
                 fig.update_traces(
-                    texttemplate='%{y:.3f}' if normalization_method == 'None' else '%{y:.1f}',
+                    texttemplate=current_text_template,
                     textposition='top center',
                     textfont=dict(size=MARKER_TEXTFONT_SIZE),
                     line=dict(width=COMMON_LINE_TRACE_ARGS['line']['width']), 
