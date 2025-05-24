@@ -377,7 +377,7 @@ def render_by_gymnast_view(df: pd.DataFrame, stats_df: pd.DataFrame | None, norm
                 chronological_yearmeets = current_plot_data['YearMeet'].unique().tolist()
 
                 # Define Year Colors - most recent to oldest specified by user
-                YEAR_COLORS = ['purple', 'blue', 'teal', '#FF7F0E', '#2CA02C'] # Added more for >3 years
+                YEAR_COLORS = ['#9A55FD', '#55a6fd', '#30cfcf', '#FF7F0E', '#2CA02C'] # Added more for >3 years
 
                 # Sort unique years (strings) numerically in descending order for color assignment and legend
                 sorted_unique_comp_years_for_plot_desc = sorted(unique_comp_years_in_plot_data, key=int, reverse=True)
