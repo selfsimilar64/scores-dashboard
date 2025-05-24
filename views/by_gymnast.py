@@ -171,9 +171,42 @@ def create_gymnast_top_scores_table(
     table_data['CompYear'] = table_data['CompYear'].astype(str)
     table_data['Place'] = table_data['Place'].astype(str)
     try:
-        table_data['Place'] = pd.to_numeric(table_data['Place'], errors='coerce').fillna(0).astype(int)
+        # Convert Place to numeric, coerce errors to NaN, then fill NaN with a placeholder (e.g., -1 or a string)
+        # to distinguish from actual 0, before converting to int.
+        table_data['Place_numeric'] = pd.to_numeric(table_data['Place'], errors='coerce')
+
+        def format_place(place_val):
+            if pd.isna(place_val):
+                return ""  # Empty string for NaN/None
+            place_int = int(place_val)
+            if place_int == 1:
+                return "🥇 1"
+            elif place_int == 2:
+                return "🥈 2"
+            elif place_int == 3:
+                return "🥉 3"
+            elif place_int == 0: # Explicitly handle 0 if it means something other than NaN
+                return ""
+            return str(place_int)
+        table_data['Place'] = table_data['Place_numeric'].apply(format_place)
+        table_data = table_data.drop(columns=['Place_numeric'])
+
     except ValueError:
-        pass 
+        # If conversion to numeric fails for all, keep original string or apply a default
+        pass # Or table_data['Place'] = "" if all are problematic
+
+    # MeetName formatting
+    table_data['MeetName'] = table_data['MeetName'].apply(lambda x: 'States ⭐' if x == 'States' else x)
+    table_data['MeetName'] = table_data['MeetName'].apply(lambda x: 'Regionals 🌟' if x == 'Regionals' else x)
+
+    # CompYear formatting with colored circles
+    # Define a simple color cycle for years
+    year_colors = ['🔴', '🟠', '🟡', '🟢', '🔵', '🟣'] # Add more if needed
+    unique_years_sorted = sorted(table_data['CompYear'].unique())
+    year_to_color_emoji = {year: year_colors[i % len(year_colors)] for i, year in enumerate(unique_years_sorted)}
+    
+    table_data['CompYear'] = table_data['CompYear'].apply(lambda year: f"{year_to_color_emoji.get(year, '⚫')} {year}")
+
     score_display_format = "{:.3f}" if normalization_method == "None" else "{:.4f}"
     table_data['Score'] = table_data['Score'].apply(lambda x: score_display_format.format(x) if pd.notna(x) else "N/A")
 
@@ -338,7 +371,7 @@ def render_by_gymnast_view(df: pd.DataFrame, stats_df: pd.DataFrame | None, norm
                     numeric_years_in_plot = pd.to_numeric(normalized_event_data['CompYear'], errors='coerce').dropna().unique()
                     unique_comp_years_in_plot_data = sorted([str(int(y)) for y in numeric_years_in_plot], key=int)
 
-                fig_title = f"{athlete} - {selected_level} - {event}{plot_title_norm_suffix}"
+                fig_title = ""
                 if unique_comp_years_in_plot_data: 
                     if len(unique_comp_years_in_plot_data) > 1 :
                         fig_title += f" (Years: {', '.join(unique_comp_years_in_plot_data)})"
