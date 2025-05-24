@@ -461,7 +461,7 @@ def render_by_gymnast_view(df: pd.DataFrame, stats_df: pd.DataFrame | None, norm
                                 color="gold"
                             ),
                             name="Max Score",
-                            showlegend=False,
+                            showlegend=True,
                             hoverinfo="skip"
                         )
                     )
