@@ -376,7 +376,7 @@ def render_by_gymnast_view(df: pd.DataFrame, stats_df: pd.DataFrame | None, norm
                         if trace_data.empty:
                             continue
 
-                        is_visible_trace = (year_str_trace == most_recent_year_str_for_plot)
+                        is_visible_trace = (year_idx < 2) # Show top 2 recent years by default
                         
                         fig.add_trace(go.Scatter(
                             x=trace_data['YearMeet'],
@@ -433,7 +433,7 @@ def render_by_gymnast_view(df: pd.DataFrame, stats_df: pd.DataFrame | None, norm
                         min_score = current_plot_data['Score'].min()
                         max_score = current_plot_data['Score'].max()
                         if pd.notna(min_score) and pd.notna(max_score):
-                            plot_layout['yaxis']['range'] = [min_score - 1, max_score + 1]
+                            plot_layout['yaxis']['range'] = [min_score - 0.75, max_score + 0.75]
                         else:
                             # Fallback to default auto-ranging if min/max score is NaN
                             if 'range' in plot_layout['yaxis']:
