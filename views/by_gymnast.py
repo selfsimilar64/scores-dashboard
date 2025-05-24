@@ -375,7 +375,7 @@ def render_by_gymnast_view(df: pd.DataFrame, stats_df: pd.DataFrame | None, norm
 
                 plot_params = {
                     "x": "YearMeet", "y": "Score",
-                    "markers": True, "text": "Score",
+                    "text": "Score",
                     "labels": {'Score': y_axis_title_plot},
                     "category_orders": {"YearMeet": chronological_yearmeets} # Base for all plots
                 }
