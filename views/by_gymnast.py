@@ -9,7 +9,7 @@ from config import (
     COMMON_LAYOUT_ARGS, 
     COMMON_LINE_TRACE_ARGS,
     # COMPARISON_BAR_Y_RANGE, # Assuming this might be for a different plot type not modified here
-    # COMMON_BAR_TRACE_ARGS, # Same as above
+    COMMON_BAR_TRACE_ARGS, # Same as above
     EVENTS_ORDER,
     CALC_METHODS,
     DEFAULT_CALC_METHOD_ATHLETE,
@@ -398,13 +398,14 @@ def render_by_gymnast_view(df: pd.DataFrame, stats_df: pd.DataFrame | None, norm
                     plot_params["trendline"] = "ols"
                     plot_params["trendline_scope"] = "overall"
 
-                fig = px.line(current_plot_data, **plot_params)
-                
+                # Use scatter to enable trendline; draw lines and markers
+                fig = px.scatter(current_plot_data, **plot_params)
                 fig.update_traces(
+                    mode='lines+markers',
                     texttemplate='%{y:.3f}' if normalization_method == 'None' else '%{y:.1f}',
                     textposition='top center',
                     textfont=dict(size=MARKER_TEXTFONT_SIZE),
-                    line=dict(width=COMMON_LINE_TRACE_ARGS['line']['width']), 
+                    line=dict(width=COMMON_LINE_TRACE_ARGS['line']['width']),
                     marker=dict(size=COMMON_LINE_TRACE_ARGS['marker']['size'])
                 )
 
