@@ -1,5 +1,22 @@
 import pandas as pd
 
+def format_comp_year(date):
+    """
+    Given a date (datetime/date/str), returns the competition year as a string.
+    If the date is before July 1st, returns the year; otherwise, returns year + 1.
+    """
+    if pd.isna(date):
+        return ""
+    # Try to convert to Timestamp (handles datetime, date, str)
+    try:
+        dt = pd.to_datetime(date)
+    except Exception:
+        return str(date)
+    if dt.month < 7:
+        return str(dt.year)
+    else:
+        return str(dt.year + 1)
+
 def format_place_emoji(place_val):
     """Converts a place value to an emoji or string representation."""
     if pd.isna(place_val):
@@ -57,13 +74,13 @@ def format_comp_year_emoji(year_series: pd.Series) -> pd.Series:
         # Fallback if conversion or sorting fails, use string representation
         unique_years_sorted_str = sorted(year_series.astype(str).unique())
 
+
+    import datetime
+    current_year = datetime.datetime.now().year
+    # Assign colors in order: purple (🟣) for current year, then blue (🔵), green (🟢), yellow (🟡), orange (🟠), red (🔴) for previous years
+    color_emojis = ['🟣', '🔵', '🟢', '🟡', '🟠', '🔴']
     year_colors = {
-        '2020': '🔴',
-        '2021': '🟠',
-        '2022': '🟡',
-        '2023': '🟢',
-        '2024': '🔵',
-        '2025': '🟣'
+        str(current_year - i): color_emojis[i] for i in range(len(color_emojis))
     }
     year_to_color_emoji = {
         year_str: year_colors[year_str] 
