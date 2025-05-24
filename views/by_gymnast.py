@@ -24,6 +24,18 @@ from config import (
 import logging
 logger = logging.getLogger()
 
+# Custom color sequence for multi-year plots that avoids red/green clash
+# Using a harmonious palette with blues, purples, and teals
+MULTI_YEAR_COLOR_SEQUENCE = [
+    "#636EFA",  # Blue (Plotly default first color)
+    "#AB63FA",  # Purple (Plotly default fourth color)
+    "#19D3F3",  # Cyan/Teal (Plotly default sixth color)
+    "#FFA15A",  # Orange (Plotly default fifth color)
+    "#FF6692",  # Pink (Plotly default seventh color)
+    "#B6E880",  # Light green (Plotly default eighth color)
+    "#FECB52"   # Yellow (Plotly default tenth color)
+]
+
 # Normalization Helper Function (Copied and adjusted from by_level.py)
 def _normalize_scores_helper(
     scores_df: pd.DataFrame,
@@ -381,6 +393,7 @@ def render_by_gymnast_view(df: pd.DataFrame, stats_df: pd.DataFrame | None, norm
                     plot_params.update({
                         "color": "CompYear",
                         "line_group": "CompYear", # Ensures lines don't connect across years
+                        "color_discrete_sequence": MULTI_YEAR_COLOR_SEQUENCE,
                         "category_orders": { # Override/extend category_orders
                             "YearMeet": chronological_yearmeets,
                             # CompYear for color grouping should be string for discrete colors if not handled by plotly auto
@@ -518,6 +531,7 @@ def render_by_gymnast_view(df: pd.DataFrame, stats_df: pd.DataFrame | None, norm
                         fig_compare_athlete = px.bar(
                             comparison_df_athlete,
                             x="Event", y="Score", color="CompYear_str", barmode="group", # Use CompYear_str
+                            color_discrete_sequence=MULTI_YEAR_COLOR_SEQUENCE,
                             labels={"Score": "Score (AA / 4)", "Event": "Event", "CompYear_str": "Competition Year"},
                             text="Score",
                             category_orders={"CompYear_str": sorted_comp_years_for_chart_athlete} # Use CompYear_str
@@ -532,7 +546,6 @@ def render_by_gymnast_view(df: pd.DataFrame, stats_df: pd.DataFrame | None, norm
                             yaxis_title="Score (AA scores are divided by 4)",
                             # yaxis_range=COMPARISON_BAR_Y_RANGE, # This was from config, ensuring it's used
                             legend_title_text="Year",
-                            height=500, # from COMMON_LAYOUT_ARGS
                             # xaxis from COMMON_LAYOUT_ARGS has showticklabels=False, title=None. Override for this specific chart.
                             xaxis=dict(showticklabels=True, title=dict(text="Event"), tickfont=dict(size=XAXIS_TICKFONT_SIZE)),
                             yaxis=dict(tickfont=dict(size=YAXIS_TICKFONT_SIZE), range=COMPARISON_BAR_Y_RANGE) # Explicitly use COMPARISON_BAR_Y_RANGE
