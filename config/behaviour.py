@@ -22,7 +22,7 @@ LEVEL_OPTIONS_PREFIX = "All teams" # The string used for the 'select all levels'
 
 # --- "By Gymnast" View specific ---
 DEFAULT_SHOW_CURRENT_YEAR_ONLY = False
-DEFAULT_FIT_Y_AXIS_ATHLETE = False
+DEFAULT_FIT_Y_AXIS_ATHLETE = True
 
 # --- "By Meet" View specific ---
 # Level order for sorting and display in the 'By Meet' view

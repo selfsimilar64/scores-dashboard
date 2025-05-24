@@ -428,9 +428,20 @@ def render_by_gymnast_view(df: pd.DataFrame, stats_df: pd.DataFrame | None, norm
                     else:
                         yrange_config = DEFAULT_Y_RANGE
                         plot_layout['yaxis']['range'] = yrange_config.all_around if event == "All Around" else yrange_config.event
-                else:
-                    if 'range' in plot_layout['yaxis']:
-                        plot_layout['yaxis'].pop('range')
+                else: # fit_y_axis is True
+                    if not current_plot_data.empty and 'Score' in current_plot_data.columns:
+                        min_score = current_plot_data['Score'].min()
+                        max_score = current_plot_data['Score'].max()
+                        if pd.notna(min_score) and pd.notna(max_score):
+                            plot_layout['yaxis']['range'] = [min_score - 1, max_score + 1]
+                        else:
+                            # Fallback to default auto-ranging if min/max score is NaN
+                            if 'range' in plot_layout['yaxis']:
+                                plot_layout['yaxis'].pop('range') 
+                    else:
+                        # Fallback to default auto-ranging if no data or Score column missing
+                        if 'range' in plot_layout['yaxis']:
+                            plot_layout['yaxis'].pop('range')
 
                 fig.update_layout(**plot_layout)
 
