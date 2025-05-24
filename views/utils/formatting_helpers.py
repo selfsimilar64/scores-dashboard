@@ -57,11 +57,17 @@ def format_comp_year_emoji(year_series: pd.Series) -> pd.Series:
         # Fallback if conversion or sorting fails, use string representation
         unique_years_sorted_str = sorted(year_series.astype(str).unique())
 
-
-    year_colors = ['🔴', '🟠', '🟡', '🟢', '🔵', '🟣'] # Add more if needed
+    year_colors = {
+        '2020': '🔴',
+        '2021': '🟠',
+        '2022': '🟡',
+        '2023': '🟢',
+        '2024': '🔵',
+        '2025': '🟣'
+    }
     year_to_color_emoji = {
-        year_str: year_colors[i % len(year_colors)] 
-        for i, year_str in enumerate(unique_years_sorted_str)
+        year_str: year_colors[year_str] 
+        for year_str in unique_years_sorted_str
     }
     
     def apply_format(year):
