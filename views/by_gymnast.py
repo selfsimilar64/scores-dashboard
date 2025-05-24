@@ -375,7 +375,6 @@ def render_by_gymnast_view(df: pd.DataFrame, stats_df: pd.DataFrame | None, norm
                     "markers": True, "text": "Score",
                     "labels": {'Score': y_axis_title_plot},
                     "category_orders": {"YearMeet": chronological_yearmeets},
-                    "color_continuous_scale": px.colors.sequential.Blues
                 }
 
                 if plot_multiple_years:
@@ -390,7 +389,6 @@ def render_by_gymnast_view(df: pd.DataFrame, stats_df: pd.DataFrame | None, norm
                     })
                     fig = px.line(current_plot_data, **plot_params)
                 else: # Single year plot or show_current_year_only is true
-                    plot_params["color_discrete_sequence"] = [EVENT_COLORS.get(event, "black")]
                     fig = px.line(current_plot_data, **plot_params)
                 
                 fig.update_traces(
