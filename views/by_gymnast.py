@@ -401,7 +401,7 @@ def render_by_gymnast_view(df: pd.DataFrame, stats_df: pd.DataFrame | None, norm
                 # Use scatter to enable trendline; draw lines and markers
                 fig = px.scatter(current_plot_data, **plot_params)
                 fig.update_traces(
-                    mode='lines+markers',
+                    mode='lines',
                     texttemplate='%{y:.3f}' if normalization_method == 'None' else '%{y:.1f}',
                     textposition='top center',
                     textfont=dict(size=MARKER_TEXTFONT_SIZE),
