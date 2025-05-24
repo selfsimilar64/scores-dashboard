@@ -24,18 +24,6 @@ from config import (
 import logging
 logger = logging.getLogger()
 
-# Custom color sequence for multi-year plots that avoids red/green clash
-# Using a harmonious palette with blues, purples, and teals
-MULTI_YEAR_COLOR_SEQUENCE = [
-    "#636EFA",  # Blue (Plotly default first color)
-    "#AB63FA",  # Purple (Plotly default fourth color)
-    "#19D3F3",  # Cyan/Teal (Plotly default sixth color)
-    "#FFA15A",  # Orange (Plotly default fifth color)
-    "#FF6692",  # Pink (Plotly default seventh color)
-    "#B6E880",  # Light green (Plotly default eighth color)
-    "#FECB52"   # Yellow (Plotly default tenth color)
-]
-
 # Normalization Helper Function (Copied and adjusted from by_level.py)
 def _normalize_scores_helper(
     scores_df: pd.DataFrame,
@@ -390,10 +378,11 @@ def render_by_gymnast_view(df: pd.DataFrame, stats_df: pd.DataFrame | None, norm
                 }
 
                 if plot_multiple_years:
+                    # Use continuous color scale for temporal continuity
                     plot_params.update({
                         "color": "CompYear",
                         "line_group": "CompYear", # Ensures lines don't connect across years
-                        "color_discrete_sequence": MULTI_YEAR_COLOR_SEQUENCE,
+                        "color_continuous_scale": "viridis",  # Use a continuous color scale
                         "category_orders": { # Override/extend category_orders
                             "YearMeet": chronological_yearmeets,
                             # CompYear for color grouping should be string for discrete colors if not handled by plotly auto
@@ -401,6 +390,9 @@ def render_by_gymnast_view(df: pd.DataFrame, stats_df: pd.DataFrame | None, norm
                         }
                     })
                     fig = px.line(current_plot_data, **plot_params)
+                    
+                    # Hide the continuous color bar since it's not needed for this context
+                    fig.update_layout(coloraxis_showscale=False)
                 else: # Single year plot or show_current_year_only is true
                     plot_params["color_discrete_sequence"] = [EVENT_COLORS.get(event, "black")]
                     fig = px.line(current_plot_data, **plot_params)
@@ -531,7 +523,6 @@ def render_by_gymnast_view(df: pd.DataFrame, stats_df: pd.DataFrame | None, norm
                         fig_compare_athlete = px.bar(
                             comparison_df_athlete,
                             x="Event", y="Score", color="CompYear_str", barmode="group", # Use CompYear_str
-                            color_discrete_sequence=MULTI_YEAR_COLOR_SEQUENCE,
                             labels={"Score": "Score (AA / 4)", "Event": "Event", "CompYear_str": "Competition Year"},
                             text="Score",
                             category_orders={"CompYear_str": sorted_comp_years_for_chart_athlete} # Use CompYear_str
