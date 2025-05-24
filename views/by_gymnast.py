@@ -23,6 +23,9 @@ from config import (
     CUSTOM_TAB_CSS
 )
 import logging
+# Add import for formatting helpers
+from views.utils.formatting_helpers import format_place_emoji, format_meet_name_special, format_comp_year_emoji
+
 logger = logging.getLogger()
 
 # Normalization Helper Function (Copied and adjusted from by_level.py)
@@ -175,49 +178,19 @@ def create_gymnast_top_scores_table(
         # to distinguish from actual 0, before converting to int.
         table_data['Place_numeric'] = pd.to_numeric(table_data['Place'], errors='coerce')
 
-        def format_place(place_val):
-            if pd.isna(place_val):
-                return ""  # Empty string for NaN/None
-            place_int = int(place_val)
-            if place_int == 1:
-                return "🥇"
-            elif place_int == 2:
-                return "🥈"
-            elif place_int == 3:
-                return "🥉"
-            elif place_int == 4:
-                return "4️⃣"
-            elif place_int == 5:
-                return "5️⃣"
-            elif place_int == 6:
-                return "6️⃣"
-            elif place_int == 7:
-                return "7️⃣"
-            elif place_int == 8:
-                return "8️⃣"
-            elif place_int == 9:
-                return "9️⃣"
-            elif place_int == 0: # Explicitly handle 0 if it means something other than NaN
-                return ""
-            return str(place_int)
-        table_data['Place'] = table_data['Place_numeric'].apply(format_place)
+        # Use the helper function for place formatting
+        table_data['Place'] = table_data['Place_numeric'].apply(format_place_emoji)
         table_data = table_data.drop(columns=['Place_numeric'])
 
     except ValueError:
         # If conversion to numeric fails for all, keep original string or apply a default
         pass # Or table_data['Place'] = "" if all are problematic
 
-    # MeetName formatting
-    table_data['MeetName'] = table_data['MeetName'].apply(lambda x: 'States ⭐' if x == 'States' else x)
-    table_data['MeetName'] = table_data['MeetName'].apply(lambda x: 'Regionals 🌟' if x == 'Regionals' else x)
+    # MeetName formatting using helper
+    table_data['MeetName'] = table_data['MeetName'].apply(format_meet_name_special)
 
-    # CompYear formatting with colored circles
-    # Define a simple color cycle for years
-    year_colors = ['🔴', '🟠', '🟡', '🟢', '🔵', '🟣'] # Add more if needed
-    unique_years_sorted = sorted(table_data['CompYear'].unique())
-    year_to_color_emoji = {year: year_colors[i % len(year_colors)] for i, year in enumerate(unique_years_sorted)}
-    
-    table_data['CompYear'] = table_data['CompYear'].apply(lambda year: f"{year_to_color_emoji.get(year, '⚫')} {year}")
+    # CompYear formatting with colored circles using helper
+    table_data['CompYear'] = format_comp_year_emoji(table_data['CompYear'])
 
     score_display_format = "{:.3f}" if normalization_method == "None" else "{:.4f}"
     table_data['Score'] = table_data['Score'].apply(lambda x: score_display_format.format(x) if pd.notna(x) else "N/A")
