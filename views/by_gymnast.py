@@ -557,7 +557,7 @@ def render_by_gymnast_view(df: pd.DataFrame, stats_df: pd.DataFrame | None, norm
                             # yaxis_range=COMPARISON_BAR_Y_RANGE, # This was from config, ensuring it's used
                             legend_title_text="Year",
                             # xaxis from COMMON_LAYOUT_ARGS has showticklabels=False, title=None. Override for this specific chart.
-                            xaxis=dict(showticklabels=True, title=dict(text="Event"), tickfont=dict(size=XAXIS_TICKFONT_SIZE)),
+                            # xaxis=dict(showticklabels=True, title=dict(text="Event"), tickfont=dict(size=XAXIS_TICKFONT_SIZE)),
                             yaxis=dict(tickfont=dict(size=YAXIS_TICKFONT_SIZE), range=COMPARISON_BAR_Y_RANGE) # Explicitly use COMPARISON_BAR_Y_RANGE
                         )
                         st.plotly_chart(fig_compare_athlete, use_container_width=True)
