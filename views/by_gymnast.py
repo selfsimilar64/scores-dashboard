@@ -8,12 +8,11 @@ from config import (
     NORMALIZED_Y_RANGE,
     COMMON_LAYOUT_ARGS, 
     COMMON_LINE_TRACE_ARGS,
-    # COMPARISON_BAR_Y_RANGE, # Assuming this might be for a different plot type not modified here
+    COMPARISON_BAR_Y_RANGE, # Assuming this might be for a different plot type not modified here
     COMMON_BAR_TRACE_ARGS, # Same as above
     EVENTS_ORDER,
     CALC_METHODS,
     DEFAULT_CALC_METHOD_ATHLETE,
-    DEFAULT_SHOW_CURRENT_YEAR_ONLY,
     DEFAULT_FIT_Y_AXIS_ATHLETE,
     XAXIS_TICKFONT_SIZE,
     YAXIS_TICKFONT_SIZE,
@@ -135,8 +134,7 @@ def create_gymnast_top_scores_table(
     normalization_method: str, 
     selected_athlete: str, 
     selected_level: str, 
-    show_current_year_only: bool, 
-    most_recent_comp_year: int | None
+    years_to_show: list[int] | None  # Changed parameter
 ):
     """Creates and displays a table of top 5 scores for a given gymnast, level, and year selection."""
     # Filter by athlete and level first
@@ -145,13 +143,14 @@ def create_gymnast_top_scores_table(
     title_year_segment = ""
     year_to_normalize = None # For _normalize_scores_helper
 
-    if show_current_year_only and most_recent_comp_year is not None:
-        data_for_table_initial = data_for_table_initial[data_for_table_initial.CompYear == most_recent_comp_year]
-        title_year_segment = f" - {most_recent_comp_year}"
-        year_to_normalize = most_recent_comp_year 
-    elif show_current_year_only and most_recent_comp_year is None:
-        st.caption(f"Top scores: Most recent year selected, but no CompYear found for {selected_athlete}, Level {selected_level}.")
-        # data_for_table_initial remains all years for athlete/level; year_to_normalize remains None
+    if years_to_show is not None:
+        data_for_table_initial = data_for_table_initial[data_for_table_initial.CompYear.isin(years_to_show)]
+        if len(years_to_show) == 1:
+            title_year_segment = f" - {years_to_show[0]}"
+            year_to_normalize = years_to_show[0] 
+        else:
+            title_year_segment = f" - {', '.join(map(str, sorted(years_to_show)))}"
+        # For multiple years, year_to_normalize remains None
 
     # Exclude "All Around" scores
     data_for_table_no_aa = data_for_table_initial[data_for_table_initial.Event != "All Around"]
@@ -233,8 +232,7 @@ def render_by_gymnast_view(df: pd.DataFrame, stats_df: pd.DataFrame | None, norm
         st.warning(f"No levels found or selected for {athlete}. Please select a level or check data.")
         return # Exit if no level is determined/selected
 
-    # Sidebar options
-    show_current_year_only = False
+    # Sidebar options (removed show_current_year_only checkbox)
     fit_y_axis = st.sidebar.checkbox("Fit Y-axis to data", DEFAULT_FIT_Y_AXIS_ATHLETE, key="gymnast_fit_y_axis_gym")
     
     # Filter data based on selected athlete AND level
@@ -243,24 +241,29 @@ def render_by_gymnast_view(df: pd.DataFrame, stats_df: pd.DataFrame | None, norm
         st.warning(f"No data for {athlete} at Level {selected_level}.")
         return
 
-    # Determine most_recent_comp_year_val based on athlete_level_data
-    most_recent_comp_year_val = None
+    # Determine available years for the athlete/level and implement new year filtering logic
+    available_years = []
     if 'CompYear' in athlete_level_data.columns:
         numeric_comp_years = pd.to_numeric(athlete_level_data['CompYear'], errors='coerce')
         if numeric_comp_years.notna().any():
-            most_recent_comp_year_val = int(numeric_comp_years.max())
+            available_years = sorted(numeric_comp_years.dropna().unique().astype(int), reverse=True)
 
-    # Prepare base data for plots (potentially filtered by year)
+    # Determine which years to show by default (2 most recent) and setup show_all_years option
+    years_to_show_for_plots = available_years.copy()  # Default to all years
+    show_all_years = True  # Default state
+    
+    if len(available_years) > 2:
+        years_to_show_for_plots = available_years[:2]  # Show only 2 most recent years by default
+        show_all_years = False  # Will be overridden by checkbox below
+    
+    # Prepare base data for plots (filtered by the determined years)
     data_for_plots = athlete_level_data.copy()
     year_filter_for_norm_helper = None # For _normalize_scores_helper call
 
-    if show_current_year_only:
-        if most_recent_comp_year_val is not None:
-            data_for_plots = data_for_plots[data_for_plots.CompYear == most_recent_comp_year_val]
-            year_filter_for_norm_helper = most_recent_comp_year_val
-        else:
-            st.caption("'Show most recent CompYear' is selected, but no valid CompYear found for plots.")
-            # data_for_plots remains all years for the selected athlete/level
+    if not show_all_years and len(available_years) > 2:
+        data_for_plots = data_for_plots[data_for_plots.CompYear.isin(years_to_show_for_plots)]
+        # For normalization, if showing multiple recent years, don't specify a single year
+        year_filter_for_norm_helper = None
 
     if 'MeetDate' not in data_for_plots.columns:
         st.error("MeetDate column missing. Cannot plot athlete data chronologically.")
@@ -269,23 +272,41 @@ def render_by_gymnast_view(df: pd.DataFrame, stats_df: pd.DataFrame | None, norm
     data_for_plots.dropna(subset=['MeetDate'], inplace=True)
     data_for_plots = data_for_plots.sort_values(by="MeetDate") # Sort by MeetDate for chronological plots
 
-    # Limit plots to two most recent years
-    if 'CompYear' in data_for_plots.columns:
-        comp_years_numeric = pd.to_numeric(data_for_plots['CompYear'], errors='coerce')
-        recent_two_years = sorted(comp_years_numeric.dropna().unique(), reverse=True)[:2]
-        data_for_plots = data_for_plots[comp_years_numeric.isin(recent_two_years)]
-
     if data_for_plots.empty:
         st.warning(f"No plottable data for {athlete} (Level {selected_level}) after date processing and year filtering.")
         # Display Top Scores table even if plot data is empty
-        create_gymnast_top_scores_table(athlete_level_data, stats_df, normalization_method, athlete, selected_level, show_current_year_only, most_recent_comp_year_val)
+        create_gymnast_top_scores_table(athlete_level_data, stats_df, normalization_method, athlete, selected_level, years_to_show_for_plots if years_to_show_for_plots else None)
         return
     
     # --- Display Top Scores Table ---
     st.markdown("---")
-    # Pass athlete_level_data (data before year-filtering for plots, but after athlete/level selection)
-    create_gymnast_top_scores_table(athlete_level_data, stats_df, normalization_method, athlete, selected_level, show_current_year_only, most_recent_comp_year_val)
+    # Pass years_to_show_for_plots for the table
+    create_gymnast_top_scores_table(athlete_level_data, stats_df, normalization_method, athlete, selected_level, years_to_show_for_plots if years_to_show_for_plots else None)
     st.markdown("---")
+
+    # Add "Show all years" checkbox if there are more than 2 years
+    if len(available_years) > 2:
+        show_all_years = st.checkbox(
+            f"Show all years ({len(available_years)} years available)", 
+            value=False, 
+            key="gymnast_show_all_years"
+        )
+        
+        # Re-filter data if checkbox state changed
+        if show_all_years:
+            years_to_show_for_plots = available_years
+            data_for_plots = athlete_level_data.copy()
+            if 'MeetDate' in data_for_plots.columns:
+                data_for_plots['MeetDate'] = pd.to_datetime(data_for_plots['MeetDate'], errors='coerce')
+                data_for_plots.dropna(subset=['MeetDate'], inplace=True)
+                data_for_plots = data_for_plots.sort_values(by="MeetDate")
+        else:
+            years_to_show_for_plots = available_years[:2]
+            data_for_plots = athlete_level_data[athlete_level_data.CompYear.isin(years_to_show_for_plots)].copy()
+            if 'MeetDate' in data_for_plots.columns:
+                data_for_plots['MeetDate'] = pd.to_datetime(data_for_plots['MeetDate'], errors='coerce')
+                data_for_plots.dropna(subset=['MeetDate'], inplace=True)
+                data_for_plots = data_for_plots.sort_values(by="MeetDate")
 
     y_axis_title_plot = "Normalized Score" if normalization_method != "None" else "Score"
     score_display_format_plot = "{:.3f}" if normalization_method == "None" else "{:.4f}"
@@ -301,7 +322,7 @@ def render_by_gymnast_view(df: pd.DataFrame, stats_df: pd.DataFrame | None, norm
                 event_data_specific,
                 stats_df,
                 normalization_method,
-                year_filter_for_norm_helper, # This is most_recent_comp_year_val if show_current_year_only, else None
+                year_filter_for_norm_helper, # This is None for multiple years or when showing all years
                 selected_level,
                 event_filter=event
             )
@@ -355,12 +376,12 @@ def render_by_gymnast_view(df: pd.DataFrame, stats_df: pd.DataFrame | None, norm
                     normalized_event_data['CompYear'] = normalized_event_data['CompYear'].astype(str)
                     unique_comp_years_in_plot_data = sorted(normalized_event_data['CompYear'].unique(), key=lambda x: int(float(x)))
 
-                plot_multiple_years = len(unique_comp_years_in_plot_data) > 1 and not show_current_year_only
+                plot_multiple_years = len(unique_comp_years_in_plot_data) > 1
 
                 fig_title = f"{athlete} - {selected_level} - {event}{plot_title_norm_suffix}"
-                if year_filter_for_norm_helper is not None: # This means show_current_year_only was true
-                     fig_title += f" ({year_filter_for_norm_helper})"
-                elif unique_comp_years_in_plot_data: # Only add year(s) if CompYear info exists
+                if len(years_to_show_for_plots) == 1: # Single year being shown
+                     fig_title += f" ({years_to_show_for_plots[0]})"
+                elif unique_comp_years_in_plot_data: # Multiple years - only add year(s) if CompYear info exists
                     if len(unique_comp_years_in_plot_data) > 1 :
                         fig_title += f" (Years: {', '.join(unique_comp_years_in_plot_data)})"
                     elif len(unique_comp_years_in_plot_data) == 1:
@@ -375,7 +396,7 @@ def render_by_gymnast_view(df: pd.DataFrame, stats_df: pd.DataFrame | None, norm
 
                 plot_params = {
                     "x": "YearMeet", "y": "Score",
-                    "text": "Score",
+                    "markers": True, "text": "Score",
                     "labels": {'Score': y_axis_title_plot},
                     "category_orders": {"YearMeet": chronological_yearmeets} # Base for all plots
                 }
@@ -384,28 +405,21 @@ def render_by_gymnast_view(df: pd.DataFrame, stats_df: pd.DataFrame | None, norm
                     plot_params.update({
                         "color": "CompYear",
                         "line_group": "CompYear", # Ensures lines don't connect across years
-                        "category_orders": {
+                        "category_orders": { # Override/extend category_orders
                             "YearMeet": chronological_yearmeets,
                             "CompYear": unique_comp_years_in_plot_data # Sorted list of year strings
                         }
                     })
-                else:
+                    fig = px.line(current_plot_data, **plot_params)
+                else: # Single year plot or limited years being shown
                     plot_params["color_discrete_sequence"] = [EVENT_COLORS.get(event, "black")]
-
-                # Show trendline if desired
-                show_trendline = st.checkbox("Show Trendline", key=f"trendline_{event}_{selected_level}_{athlete}")
-                if show_trendline:
-                    plot_params["trendline"] = "ols"
-                    plot_params["trendline_scope"] = "overall"
-
-                # Use scatter to enable trendline; draw lines and markers
-                fig = px.scatter(current_plot_data, **plot_params)
+                    fig = px.line(current_plot_data, **plot_params)
+                
                 fig.update_traces(
-                    mode='lines',
                     texttemplate='%{y:.3f}' if normalization_method == 'None' else '%{y:.1f}',
                     textposition='top center',
                     textfont=dict(size=MARKER_TEXTFONT_SIZE),
-                    line=dict(width=COMMON_LINE_TRACE_ARGS['line']['width']),
+                    line=dict(width=COMMON_LINE_TRACE_ARGS['line']['width']), 
                     marker=dict(size=COMMON_LINE_TRACE_ARGS['marker']['size'])
                 )
 
@@ -462,7 +476,7 @@ def render_by_gymnast_view(df: pd.DataFrame, stats_df: pd.DataFrame | None, norm
                 st.caption(f"No {event} scores for {athlete} (Level {selected_level}) for the selected period.")
 
     # Multi-Year Comparison Logic
-    if not show_current_year_only and not athlete_level_data.empty:
+    if not athlete_level_data.empty:
         current_level_athlete = selected_level
         all_data_at_selected_level_athlete = athlete_level_data.copy()
 
