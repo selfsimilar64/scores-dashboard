@@ -17,6 +17,8 @@ from config import (
     CUSTOM_TAB_CSS
 )
 import logging
+# Add import for formatting helpers
+from views.utils.formatting_helpers import format_place_emoji # format_meet_name_special, format_comp_year_emoji are not used in this table
 
 logger = logging.getLogger()
 
@@ -186,15 +188,23 @@ def create_meet_top_scores_table(
 
     table_data = top_scores[["AthleteName", "Level", "Event", "Place", "Score"]].copy() # Added Level
     table_data['Place'] = table_data['Place'].astype(str)
-    try: table_data['Place'] = pd.to_numeric(table_data['Place'], errors='coerce').fillna(0).astype(int)
-    except ValueError: pass
+    try: 
+        # Convert Place to numeric, coerce errors to NaN
+        table_data['Place_numeric'] = pd.to_numeric(table_data['Place'], errors='coerce')
+        # Use the helper function for place formatting
+        table_data['Place'] = table_data['Place_numeric'].apply(format_place_emoji)
+        table_data = table_data.drop(columns=['Place_numeric'])
+    except ValueError: 
+        pass # Keep original string if conversion to numeric fails
     
     score_format = "{:.3f}" if normalization_method == "None" else "{:.4f}"
     table_data['Score'] = table_data['Score'].apply(lambda x: score_format.format(x) if pd.notna(x) else "N/A")
 
     norm_suffix = " (Normalized)" if normalization_method != 'None' else ""
     st.subheader(f"Top {TOP_SCORES_COUNT} Scores for {selected_meet} - {selected_year}{norm_suffix} (Excl. AA)")
-    st.table(table_data.reset_index(drop=True))
+    # Convert table to HTML and add style for font size
+    table_html = table_data.reset_index(drop=True).to_html(escape=False, index=False)
+    st.markdown(f"<div style='font-size: 16px;'>{table_html}</div>", unsafe_allow_html=True)
 
 
 def render_by_meet_view(df: pd.DataFrame, stats_df: pd.DataFrame | None, normalization_method: str):
