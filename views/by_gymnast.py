@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
+import plotly.graph_objects as go
 from utils.maths import custom_round
 from config import (
     EVENT_COLORS, 
@@ -244,20 +245,8 @@ def render_by_gymnast_view(df: pd.DataFrame, stats_df: pd.DataFrame | None, norm
         unique_years_numeric = athlete_level_data['CompYear'].dropna().unique()
         all_comp_years_for_level = sorted([int(y) for y in unique_years_numeric], reverse=True) # Desc order, e.g. [2024, 2023, 2022]
 
-    # Initialize session state for the new checkbox if not already present
-    if 'gymnast_show_all_years_plot' not in st.session_state:
-        st.session_state.gymnast_show_all_years_plot = False # Default to not showing all (i.e., show 2 recent)
-
-    # Prepare base data for plots, filtered by year selection for plots
+    # Prepare base data for plots, no longer filtered by a limited number of years here
     data_for_plots = athlete_level_data.copy()
-    
-    years_to_display_in_plots = list(all_comp_years_for_level) # Default to all available years for the level
-    if len(all_comp_years_for_level) > 2 and not st.session_state.gymnast_show_all_years_plot:
-        years_to_display_in_plots = all_comp_years_for_level[:2] # Show only the two most recent
-
-    if all_comp_years_for_level: # Only filter if there are CompYears to filter by
-        # CompYear in data_for_plots is already numeric due to earlier conversion of athlete_level_data
-        data_for_plots = data_for_plots[data_for_plots['CompYear'].isin(years_to_display_in_plots)]
     
     year_filter_for_norm_helper = None # Normalization in plot loop uses data as filtered above
 
@@ -346,99 +335,91 @@ def render_by_gymnast_view(df: pd.DataFrame, stats_df: pd.DataFrame | None, norm
                 # Determine if multiple years are actually present in the current event's data for plotting
                 unique_comp_years_in_plot_data = [] # This is a list of strings, sorted numerically ascending
                 if 'CompYear' in normalized_event_data.columns:
-                    # Ensure CompYear is treated as string for unique values and sorting, handling potential mixed types
-                    # Sort numerically then convert to string if CompYear is indeed numeric
                     numeric_years_in_plot = pd.to_numeric(normalized_event_data['CompYear'], errors='coerce').dropna().unique()
                     unique_comp_years_in_plot_data = sorted([str(int(y)) for y in numeric_years_in_plot], key=int)
 
-                plot_multiple_years = len(unique_comp_years_in_plot_data) > 1
-                # show_current_year_only is removed, so plot_multiple_years isn't combined with it here.
-
                 fig_title = f"{athlete} - {selected_level} - {event}{plot_title_norm_suffix}"
-                # year_filter_for_norm_helper is None, so the first part of title logic is skipped.
                 if unique_comp_years_in_plot_data: 
                     if len(unique_comp_years_in_plot_data) > 1 :
-                        fig_title += f" (Years: {', '.join(unique_comp_years_in_plot_data)})" # Shows ascending years
+                        fig_title += f" (Years: {', '.join(unique_comp_years_in_plot_data)})"
                     elif len(unique_comp_years_in_plot_data) == 1:
                         fig_title += f" (Year: {unique_comp_years_in_plot_data[0]})"
                 
-                # Data for plotting, ensure it's sorted by CompYear then MeetDate to group meets by year sequentially
-                # CompYear in current_plot_data (derived from normalized_event_data -> data_for_plots) should be numeric
-                current_plot_data = normalized_event_data.sort_values(by=['CompYear', 'MeetDate']).copy() # Use .copy()
+                current_plot_data = normalized_event_data.sort_values(by=['CompYear', 'MeetDate']).copy()
 
-                # Add CompYear_str for consistent color mapping and categorical use. Robustly handle potential NaNs.
                 if 'CompYear' in current_plot_data.columns:
                     current_plot_data['CompYear_str'] = current_plot_data['CompYear'].astype('Int64').astype(str).replace('<NA>', 'N/A')
-                    current_plot_data['YearMeet'] = current_plot_data['CompYear_str'].replace('N/A', str(pd.NA)) + ' - ' + current_plot_data['MeetName'] # Use original str for meetname construction
+                    current_plot_data['YearMeet'] = current_plot_data['CompYear_str'].replace('N/A', str(pd.NA)) + ' - ' + current_plot_data['MeetName']
                 else:
                     current_plot_data['CompYear_str'] = "N/A"
                     current_plot_data['YearMeet'] = "N/A" + ' - ' + current_plot_data['MeetName']
                 
                 chronological_yearmeets = current_plot_data['YearMeet'].unique().tolist()
-
-                # Define Year Colors - most recent to oldest specified by user
-                YEAR_COLORS = ['#9A55FD', '#55a6fd', '#30cfcf', '#FF7F0E', '#2CA02C'] # Added more for >3 years
-
-                # Sort unique years (strings) numerically in descending order for color assignment and legend
+                YEAR_COLORS = ['#9A55FD', '#55a6fd', '#30cfcf', '#FF7F0E', '#2CA02C']
+                
                 sorted_unique_comp_years_for_plot_desc = sorted(unique_comp_years_in_plot_data, key=int, reverse=True)
-
-                base_plot_params = {
-                    "x": "YearMeet", "y": "Score",
-                    "markers": True, "text": "Score",
-                    "labels": {'Score': y_axis_title_plot, 'CompYear_str': 'Competition Year'},
-                    "category_orders": {"YearMeet": chronological_yearmeets},
+                
+                year_color_map = {
+                    year_str: YEAR_COLORS[i % len(YEAR_COLORS)]
+                    for i, year_str in enumerate(sorted_unique_comp_years_for_plot_desc)
                 }
-                
-                final_plot_params = base_plot_params.copy()
 
-                if plot_multiple_years and unique_comp_years_in_plot_data:
-                    year_color_map = {
-                        year_str: YEAR_COLORS[i % len(YEAR_COLORS)]
-                        for i, year_str in enumerate(sorted_unique_comp_years_for_plot_desc)
-                    }
-                    final_plot_params.update({
-                        "color": "CompYear_str",
-                        "line_group": "CompYear_str", # Group lines by year to prevent connecting across them
-                        "color_discrete_map": year_color_map,
-                        "category_orders": {
-                            **base_plot_params["category_orders"],
-                            "CompYear_str": sorted_unique_comp_years_for_plot_desc # Order legend items
-                        }
-                    })
-                else: # Single year plot or no specific year data for multi-coloring
-                    if YEAR_COLORS: # Apply primary color if list is not empty
-                        final_plot_params["color_discrete_sequence"] = [YEAR_COLORS[0]]
+                fig = go.Figure()
                 
-                fig = px.line(current_plot_data, **final_plot_params)
+                current_text_template = '%{y:.4f}' if normalization_method != "None" else '%{y:.3f}'
+
+                if not current_plot_data.empty and sorted_unique_comp_years_for_plot_desc:
+                    most_recent_year_str_for_plot = sorted_unique_comp_years_for_plot_desc[0]
+
+                    for year_idx, year_str_trace in enumerate(sorted_unique_comp_years_for_plot_desc):
+                        trace_data = current_plot_data[current_plot_data['CompYear_str'] == year_str_trace]
+                        if trace_data.empty:
+                            continue
+
+                        is_visible_trace = (year_str_trace == most_recent_year_str_for_plot)
+                        
+                        fig.add_trace(go.Scatter(
+                            x=trace_data['YearMeet'],
+                            y=trace_data['Score'],
+                            mode='lines+markers+text',
+                            name=f"{year_str_trace}",
+                            line=dict(
+                                color=year_color_map.get(year_str_trace, YEAR_COLORS[year_idx % len(YEAR_COLORS)]),
+                                width=COMMON_LINE_TRACE_ARGS['line']['width']
+                            ),
+                            marker=dict(
+                                color=year_color_map.get(year_str_trace, YEAR_COLORS[year_idx % len(YEAR_COLORS)]),
+                                size=COMMON_LINE_TRACE_ARGS['marker']['size']
+                            ),
+                            text=trace_data['Score'],
+                            texttemplate=current_text_template,
+                            textposition='top center',
+                            textfont=dict(size=MARKER_TEXTFONT_SIZE),
+                            visible=True if is_visible_trace else 'legendonly',
+                            legendgroup=year_str_trace,
+                            showlegend=True,
+                            customdata=trace_data[['MeetName', 'CompYear_str', 'Score']],
+                            hovertemplate=
+                                "<b>Meet:</b> %{customdata[0]}<br>" +
+                                "<b>Year:</b> %{customdata[1]}<br>" +
+                                "<b>Score:</b> %{customdata[2]:" + ('.3f' if normalization_method == "None" else '.4f') + "}<extra></extra>"
+                        ))
                 
-                # Correct texttemplate precision to align with score_display_format_plot
-                current_text_template = '%{y:.4f}' # Default for normalized scores
-                if normalization_method == "None":
-                    current_text_template = '%{y:.3f}' # For raw scores
-
-                fig.update_traces(
-                    texttemplate=current_text_template,
-                    textposition='top center',
-                    textfont=dict(size=MARKER_TEXTFONT_SIZE),
-                    line=dict(width=COMMON_LINE_TRACE_ARGS['line']['width']), 
-                    marker=dict(size=COMMON_LINE_TRACE_ARGS['marker']['size'])
-                )
-
                 plot_layout = COMMON_LAYOUT_ARGS.copy()
                 plot_layout['title'] = fig_title
-                
-                # Preserve original xaxis settings from COMMON_LAYOUT_ARGS, but ensure tickfont size is applied
-                # COMMON_LAYOUT_ARGS already has 'showticklabels': False, 'title': {'text': None} for xaxis
                 plot_layout['xaxis'] = {
-                    **plot_layout.get('xaxis', {}), # Start with existing common settings for xaxis
+                    **plot_layout.get('xaxis', {}),
+                    'categoryorder': 'array',
+                    'categoryarray': chronological_yearmeets,
                     'tickfont': {'size': XAXIS_TICKFONT_SIZE}
                 }
-                # Update yaxis title and tickfont size
                 plot_layout['yaxis'] = {
-                    **plot_layout.get('yaxis', {}), # Start with existing common settings for yaxis
+                    **plot_layout.get('yaxis', {}),
                     'title': {'text': y_axis_title_plot}, 
                     'tickfont': {'size': YAXIS_TICKFONT_SIZE}
                 }
+                plot_layout['legend_title_text'] = "Year"
+                plot_layout['legend'] = dict(traceorder='normal', itemsizing='constant')
                 
                 if not fit_y_axis:
                     if normalization_method != "None":
@@ -448,40 +429,34 @@ def render_by_gymnast_view(df: pd.DataFrame, stats_df: pd.DataFrame | None, norm
                         yrange_config = DEFAULT_Y_RANGE
                         plot_layout['yaxis']['range'] = yrange_config.all_around if event == "All Around" else yrange_config.event
                 else:
-                    # If yaxis range was set by COMMON_LAYOUT_ARGS, and we want to fit, remove it.
                     if 'range' in plot_layout['yaxis']:
                         plot_layout['yaxis'].pop('range')
 
                 fig.update_layout(**plot_layout)
-                # Highlight y=0 baseline when using normalized scores
+
                 if normalization_method != 'None':
                     fig.add_hline(y=0, line=dict(color='white', width=5), layer='below')
-                # Add star annotation on the highest score
-                max_row_plot = current_plot_data.loc[current_plot_data['Score'].idxmax()]
-                fig.add_trace(
-                    px.scatter(
-                        x=[max_row_plot['YearMeet']],
-                        y=[max_row_plot['Score']],
-                        text=[""],
-                        opacity=1.0
-                    ).update_traces(
-                        marker_symbol="star",
-                        marker_size=STAR_ANNOTATION_FONT_SIZE,
-                        marker_color="gold",
-                        showlegend=False,
-                        hoverinfo="skip"
-                    ).data[0]
-                )
+                
+                if not current_plot_data.empty: # Check if there's data to find a max score from
+                    max_row_plot = current_plot_data.loc[current_plot_data['Score'].idxmax()]
+                    fig.add_trace(
+                        go.Scatter(
+                            x=[max_row_plot['YearMeet']],
+                            y=[max_row_plot['Score']],
+                            mode='markers',
+                            marker=dict(
+                                symbol="star",
+                                size=STAR_ANNOTATION_FONT_SIZE,
+                                color="gold"
+                            ),
+                            name="Max Score",
+                            showlegend=False,
+                            hoverinfo="skip"
+                        )
+                    )
                 st.plotly_chart(fig, use_container_width=True)
             else:
                 st.caption(f"No {event} scores for {athlete} (Level {selected_level}) for the selected period.")
-
-    # "Show all years" checkbox for plots, placed after the event tabs
-    if len(all_comp_years_for_level) > 2:
-        st.checkbox(
-            "Show all years for plots",
-            key="gymnast_show_all_years_plot" # Updates st.session_state.gymnast_show_all_years_plot
-        )
 
     # Multi-Year Comparison Logic
     # Removed 'not show_current_year_only' from the condition
