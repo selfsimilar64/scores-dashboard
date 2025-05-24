@@ -180,11 +180,23 @@ def create_gymnast_top_scores_table(
                 return ""  # Empty string for NaN/None
             place_int = int(place_val)
             if place_int == 1:
-                return "🥇 1"
+                return "🥇"
             elif place_int == 2:
-                return "🥈 2"
+                return "🥈"
             elif place_int == 3:
-                return "🥉 3"
+                return "🥉"
+            elif place_int == 4:
+                return "4️⃣"
+            elif place_int == 5:
+                return "5️⃣"
+            elif place_int == 6:
+                return "6️⃣"
+            elif place_int == 7:
+                return "7️⃣"
+            elif place_int == 8:
+                return "8️⃣"
+            elif place_int == 9:
+                return "9️⃣"
             elif place_int == 0: # Explicitly handle 0 if it means something other than NaN
                 return ""
             return str(place_int)
