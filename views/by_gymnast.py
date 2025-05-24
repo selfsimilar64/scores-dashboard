@@ -374,22 +374,22 @@ def render_by_gymnast_view(df: pd.DataFrame, stats_df: pd.DataFrame | None, norm
                     "x": "YearMeet", "y": "Score",
                     "markers": True, "text": "Score",
                     "labels": {'Score': y_axis_title_plot},
-                    "category_orders": {"YearMeet": chronological_yearmeets} # Base for all plots
+                    "category_orders": {"YearMeet": chronological_yearmeets},
+                    "color_continuous_scale": px.colors.sequential.Blues
                 }
 
                 if plot_multiple_years:
                     plot_params.update({
-                        "color": "CompYear",  # Assumes CompYear in current_plot_data is numeric
+                        "color": "CompYear",
                         "line_group": "CompYear", # Ensures lines don't connect across years
-                        "color_continuous_scale": px.colors.sequential.Blues,  # Use a sequential color scale
-                        "category_orders": { # Ensure category_orders only contains YearMeet for this case
-                            "YearMeet": chronological_yearmeets
-                            # CompYear is now used for continuous color, so not listed here as a discrete category
-                        },
-                        "labels": {**plot_params.get("labels", {}), "CompYear": "Year"} # Update labels for color bar title
+                        "category_orders": { # Override/extend category_orders
+                            "YearMeet": chronological_yearmeets,
+                            # CompYear for color grouping should be string for discrete colors if not handled by plotly auto
+                            "CompYear": sorted([str(int(y)) for y in current_plot_data['CompYear'].unique()], key=int)
+                        }
                     })
                     fig = px.line(current_plot_data, **plot_params)
-                else: # Single year plot
+                else: # Single year plot or show_current_year_only is true
                     plot_params["color_discrete_sequence"] = [EVENT_COLORS.get(event, "black")]
                     fig = px.line(current_plot_data, **plot_params)
                 
