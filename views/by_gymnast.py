@@ -378,22 +378,18 @@ def render_by_gymnast_view(df: pd.DataFrame, stats_df: pd.DataFrame | None, norm
                 }
 
                 if plot_multiple_years:
-                    # Use continuous color scale for temporal continuity
                     plot_params.update({
-                        "color": "CompYear",
+                        "color": "CompYear",  # Assumes CompYear in current_plot_data is numeric
                         "line_group": "CompYear", # Ensures lines don't connect across years
-                        "color_continuous_scale": "viridis",  # Use a continuous color scale
-                        "category_orders": { # Override/extend category_orders
-                            "YearMeet": chronological_yearmeets,
-                            # CompYear for color grouping should be string for discrete colors if not handled by plotly auto
-                            "CompYear": sorted([str(int(y)) for y in current_plot_data['CompYear'].unique()], key=int)
-                        }
+                        "color_continuous_scale": px.colors.sequential.Blues,  # Use a sequential color scale
+                        "category_orders": { # Ensure category_orders only contains YearMeet for this case
+                            "YearMeet": chronological_yearmeets
+                            # CompYear is now used for continuous color, so not listed here as a discrete category
+                        },
+                        "labels": {**plot_params.get("labels", {}), "CompYear": "Year"} # Update labels for color bar title
                     })
                     fig = px.line(current_plot_data, **plot_params)
-                    
-                    # Hide the continuous color bar since it's not needed for this context
-                    fig.update_layout(coloraxis_showscale=False)
-                else: # Single year plot or show_current_year_only is true
+                else: # Single year plot
                     plot_params["color_discrete_sequence"] = [EVENT_COLORS.get(event, "black")]
                     fig = px.line(current_plot_data, **plot_params)
                 
