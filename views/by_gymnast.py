@@ -1,7 +1,6 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
-import numpy as np
 from utils.maths import custom_round
 from config import (
     EVENT_COLORS, 
@@ -24,12 +23,6 @@ from config import (
     CUSTOM_TAB_CSS
 )
 import logging
-
-try:
-    from sklearn.linear_model import LinearRegression
-    SKLEARN_AVAILABLE = True
-except ImportError:
-    SKLEARN_AVAILABLE = False
 
 logger = logging.getLogger()
 
@@ -365,12 +358,22 @@ def render_by_gymnast_view(df: pd.DataFrame, stats_df: pd.DataFrame | None, norm
                 current_plot_data['YearMeet'] = current_plot_data['CompYear'].astype(str) + ' - ' + current_plot_data['MeetName']
                 chronological_yearmeets = current_plot_data['YearMeet'].unique().tolist()
 
+                # Add trendline checkbox above the graph
+                show_trendline = st.checkbox(f"Show trendline for {event}", key=f"trendline_{athlete}_{selected_level}_{event}")
+
                 plot_params = {
                     "x": "YearMeet", "y": "Score",
                     "markers": True, "text": "Score",
                     "labels": {'Score': y_axis_title_plot},
                     "category_orders": {"YearMeet": chronological_yearmeets} # Base for all plots
                 }
+
+                # Add trendline parameters if checkbox is checked
+                if show_trendline and len(current_plot_data) > 1:
+                    plot_params.update({
+                        "trendline": "ols",
+                        "trendline_scope": "overall"
+                    })
 
                 if plot_multiple_years:
                     plot_params.update({
@@ -387,7 +390,7 @@ def render_by_gymnast_view(df: pd.DataFrame, stats_df: pd.DataFrame | None, norm
                     if len(unique_comp_years_in_plot_data) > 2:
                         most_recent_years = unique_comp_years_in_plot_data[-2:]  # Get last 2 years
                         for trace in fig.data:
-                            if hasattr(trace, 'name') and trace.name not in most_recent_years:
+                            if hasattr(trace, 'name') and trace.name not in most_recent_years and 'trendline' not in str(type(trace)).lower():
                                 trace.visible = 'legendonly'
                 else: # Single year plot
                     plot_params["color_discrete_sequence"] = [EVENT_COLORS.get(event, "black")]
@@ -398,8 +401,17 @@ def render_by_gymnast_view(df: pd.DataFrame, stats_df: pd.DataFrame | None, norm
                     textposition='top center',
                     textfont=dict(size=MARKER_TEXTFONT_SIZE),
                     line=dict(width=COMMON_LINE_TRACE_ARGS['line']['width']), 
-                    marker=dict(size=COMMON_LINE_TRACE_ARGS['marker']['size'])
+                    marker=dict(size=COMMON_LINE_TRACE_ARGS['marker']['size']),
+                    selector=dict(mode="lines+markers")  # Only apply to main traces, not trendline
                 )
+
+                # Style the trendline if present
+                if show_trendline and len(current_plot_data) > 1:
+                    fig.update_traces(
+                        line=dict(color='white', width=2, dash='dot'),
+                        name='Trendline',
+                        selector=dict(mode="lines")  # Apply only to trendline traces
+                    )
 
                 plot_layout = COMMON_LAYOUT_ARGS.copy()
                 plot_layout['title'] = fig_title
@@ -450,61 +462,7 @@ def render_by_gymnast_view(df: pd.DataFrame, stats_df: pd.DataFrame | None, norm
                     ).data[0]
                 )
                 
-                # Store the figure for potential trendline addition
-                chart_placeholder = st.empty()
-                chart_placeholder.plotly_chart(fig, use_container_width=True)
-                
-                # Add trendline checkbox below the graph
-                show_trendline = st.checkbox(f"Show trendline for {event}", key=f"trendline_{athlete}_{selected_level}_{event}")
-                
-                if show_trendline and not current_plot_data.empty:
-                    if not SKLEARN_AVAILABLE:
-                        st.warning("Trendline requires scikit-learn. Install with: pip install scikit-learn")
-                    else:
-                        # Create a mapping from YearMeet to numeric values for trendline calculation
-                        current_plot_data_indexed = current_plot_data.reset_index(drop=True).copy()
-                        current_plot_data_indexed['x_numeric'] = range(len(current_plot_data_indexed))
-                        
-                        # Calculate linear regression
-                        try:
-                            x_vals = current_plot_data_indexed['x_numeric'].values.reshape(-1, 1)
-                            y_vals = current_plot_data_indexed['Score'].values
-                            
-                            # Remove any NaN values
-                            mask = ~np.isnan(y_vals)
-                            x_vals = x_vals[mask]
-                            y_vals = y_vals[mask]
-                            
-                            if len(x_vals) > 1:  # Need at least 2 points for a line
-                                model = LinearRegression()
-                                model.fit(x_vals, y_vals)
-                                
-                                # Generate trendline points
-                                x_trend = np.arange(len(current_plot_data_indexed))
-                                y_trend = model.predict(x_trend.reshape(-1, 1))
-                                
-                                # Map back to YearMeet labels
-                                trendline_x = [current_plot_data_indexed.iloc[i]['YearMeet'] for i in x_trend]
-                                
-                                # Add trendline trace
-                                fig.add_trace(
-                                    px.line(
-                                        x=trendline_x, 
-                                        y=y_trend
-                                    ).update_traces(
-                                        line=dict(color='white', width=2, dash='dot'),
-                                        name='Trendline',
-                                        showlegend=True,
-                                        hovertemplate='Trendline<extra></extra>'
-                                    ).data[0]
-                                )
-                                
-                                # Update the chart
-                                chart_placeholder.plotly_chart(fig, use_container_width=True)
-                            else:
-                                st.warning("Need at least 2 data points to show trendline")
-                        except Exception as e:
-                            st.warning(f"Could not calculate trendline: {str(e)}")
+                st.plotly_chart(fig, use_container_width=True)
             else:
                 st.caption(f"No {event} scores for {athlete} (Level {selected_level}) for the selected period.")
 
