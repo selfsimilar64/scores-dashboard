@@ -434,19 +434,6 @@ def render_by_gymnast_view(df: pd.DataFrame, stats_df: pd.DataFrame | None, norm
                                     layer='below'
                                 )
                                 
-                                # Add annotation at the start of the line
-                                fig.add_annotation(
-                                    x=x_start,
-                                    y=baseline_val,
-                                    text=f"{year_str} {calc_method}: {baseline_val:{baseline_format}}",
-                                    showarrow=False,
-                                    xanchor="left",
-                                    yanchor="bottom" if year_idx % 2 == 0 else "top",
-                                    font=dict(size=11, color=year_color),
-                                    bgcolor="rgba(255,255,255,0.7)",
-                                    bordercolor=year_color,
-                                    borderwidth=1
-                                )
 
                     for year_idx, year_str_trace in enumerate(sorted_unique_comp_years_for_plot_desc):
                         trace_data = current_plot_data[current_plot_data['CompYear_str'] == year_str_trace]
