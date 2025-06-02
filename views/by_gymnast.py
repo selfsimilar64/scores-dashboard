@@ -412,7 +412,7 @@ def render_by_gymnast_view(df: pd.DataFrame, stats_df: pd.DataFrame | None, norm
                         
                         fig.add_hline(
                             y=baseline_val,
-                            line=dict(color=year_color, width=2, dash='dash', opacity=0.7),
+                            line=dict(color=year_color, width=2, dash='dash'),
                             annotation_text=f"{year_str} {stats_method}: {baseline_val:{baseline_format}}",
                             annotation_position="top left" if year_idx == 0 else "bottom left",
                             annotation=dict(font=dict(size=11, color=year_color))
