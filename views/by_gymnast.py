@@ -245,6 +245,13 @@ def render_by_gymnast_view(df: pd.DataFrame, stats_df: pd.DataFrame | None, norm
 
     # Sidebar options
     fit_y_axis = st.sidebar.checkbox("Fit Y-axis to data", DEFAULT_FIT_Y_AXIS_ATHLETE, key="gymnast_fit_y_axis_gym")
+    calc_method = st.sidebar.selectbox(
+        "Statistics Calculation Method",
+        CALC_METHODS,
+        index=CALC_METHODS.index(DEFAULT_CALC_METHOD_ATHLETE) if DEFAULT_CALC_METHOD_ATHLETE in CALC_METHODS else 0,
+        key="gymnast_calc_method",
+        help="Choose method for calculating baseline statistics and metrics"
+    )
     viz_type = st.sidebar.radio(
         "Visualization Type",
         ["Line Graph", "Dot Plot"],
@@ -320,23 +327,22 @@ def render_by_gymnast_view(df: pd.DataFrame, stats_df: pd.DataFrame | None, norm
                 max_score_details = normalized_event_data.loc[normalized_event_data['Score'].idxmax()]
                 max_score_val = custom_round(max_score_details['Score'])
                 
-                # Determine stats calculation method based on normalization selection
-                stats_method = normalization_method if normalization_method != "None" else "Median"
-                chosen_stat_val = custom_round(normalized_event_data['Score'].median() if stats_method == "Median" else normalized_event_data['Score'].mean())
-                chosen_stat_label = f"{stats_method} Score"
+                # Use the selected calculation method for stats
+                chosen_stat_val = custom_round(normalized_event_data['Score'].median() if calc_method == "Median" else normalized_event_data['Score'].mean())
+                chosen_stat_label = f"{calc_method} Score"
                 
-                # Improvement calculation: difference between median values of current and previous year
+                # Improvement calculation: difference between median/mean values of current and previous year
                 improvement_val_display = "N/A"
-                improvement_label = "Year-over-Year Median Change"
+                improvement_label = f"Year-over-Year {calc_method} Change"
                 if 'CompYear' in normalized_event_data.columns:
                     normalized_event_data['CompYear'] = pd.to_numeric(normalized_event_data['CompYear'], errors='coerce')
                     unique_years = sorted(normalized_event_data['CompYear'].dropna().unique())
                     if len(unique_years) >= 2:
                         current_year = unique_years[-1]
                         previous_year = unique_years[-2]
-                        current_median = custom_round(normalized_event_data[normalized_event_data['CompYear'] == current_year]['Score'].median())
-                        previous_median = custom_round(normalized_event_data[normalized_event_data['CompYear'] == previous_year]['Score'].median())
-                        diff = custom_round(current_median - previous_median)
+                        current_stat = custom_round(normalized_event_data[normalized_event_data['CompYear'] == current_year]['Score'].median() if calc_method == "Median" else normalized_event_data[normalized_event_data['CompYear'] == current_year]['Score'].mean())
+                        previous_stat = custom_round(normalized_event_data[normalized_event_data['CompYear'] == previous_year]['Score'].median() if calc_method == "Median" else normalized_event_data[normalized_event_data['CompYear'] == previous_year]['Score'].mean())
+                        diff = custom_round(current_stat - previous_stat)
                         improvement_val_display = f"{diff:+.3f}"
                     elif len(unique_years) == 1:
                         # Single-year data: compare first half vs second half including middle point
@@ -345,10 +351,10 @@ def render_by_gymnast_view(df: pd.DataFrame, stats_df: pd.DataFrame | None, norm
                         mid = n // 2
                         first_half = df_sorted.iloc[:mid+1]
                         second_half = df_sorted.iloc[mid:]
-                        stat_first = first_half['Score'].median() if stats_method == "Median" else first_half['Score'].mean()
-                        stat_second = second_half['Score'].median() if stats_method == "Median" else second_half['Score'].mean()
+                        stat_first = first_half['Score'].median() if calc_method == "Median" else first_half['Score'].mean()
+                        stat_second = second_half['Score'].median() if calc_method == "Median" else second_half['Score'].mean()
                         diff_half = custom_round(stat_second - stat_first)
-                        improvement_label = f"{stats_method} Half-Year Change"
+                        improvement_label = f"{calc_method} Half-Year Change"
                         improvement_val_display = f"{diff_half:+.3f}"
                 
                 stat_cols = st.columns(3)
@@ -403,7 +409,7 @@ def render_by_gymnast_view(df: pd.DataFrame, stats_df: pd.DataFrame | None, norm
                     for year_str in sorted_unique_comp_years_for_plot_desc:
                         year_data = current_plot_data[current_plot_data['CompYear_str'] == year_str]
                         if not year_data.empty:
-                            year_baseline = year_data['Score'].median() if stats_method == "Median" else year_data['Score'].mean()
+                            year_baseline = year_data['Score'].median() if calc_method == "Median" else year_data['Score'].mean()
                             year_baselines[year_str] = year_baseline
                     
                     # Add horizontal baselines for each year (only spanning their data range)
@@ -432,7 +438,7 @@ def render_by_gymnast_view(df: pd.DataFrame, stats_df: pd.DataFrame | None, norm
                                 fig.add_annotation(
                                     x=x_start,
                                     y=baseline_val,
-                                    text=f"{year_str} {stats_method}: {baseline_val:{baseline_format}}",
+                                    text=f"{year_str} {calc_method}: {baseline_val:{baseline_format}}",
                                     showarrow=False,
                                     xanchor="left",
                                     yanchor="bottom" if year_idx % 2 == 0 else "top",
@@ -489,8 +495,8 @@ def render_by_gymnast_view(df: pd.DataFrame, stats_df: pd.DataFrame | None, norm
                                 name=f"{year_str_trace}",
                                 marker=dict(
                                     color=trace_color,
-                                    size=COMMON_LINE_TRACE_ARGS['marker']['size'] + 2,  # Slightly larger for dot plot
-                                    line=dict(width=2, color='white')  # White border for better visibility
+                                    size=COMMON_LINE_TRACE_ARGS['marker']['size'],  # Slightly larger for dot plot
+                                    # line=dict(width=2, color='white')  # White border for better visibility
                                 ),
                                 text=[f"{score:{baseline_format}}" for score in trace_data['Score']],
                                 textposition='top center',
@@ -517,7 +523,7 @@ def render_by_gymnast_view(df: pd.DataFrame, stats_df: pd.DataFrame | None, norm
                                         y0=year_baseline, y1=row['Score'],
                                         line=dict(
                                             color=trace_color,
-                                            width=2,
+                                            width=4,
                                             dash='solid'
                                         ),
                                         layer='below'
