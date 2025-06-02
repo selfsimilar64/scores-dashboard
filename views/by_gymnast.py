@@ -406,17 +406,41 @@ def render_by_gymnast_view(df: pd.DataFrame, stats_df: pd.DataFrame | None, norm
                             year_baseline = year_data['Score'].median() if stats_method == "Median" else year_data['Score'].mean()
                             year_baselines[year_str] = year_baseline
                     
-                    # Add horizontal baselines for each year
+                    # Add horizontal baselines for each year (only spanning their data range)
                     for year_idx, (year_str, baseline_val) in enumerate(year_baselines.items()):
                         year_color = year_color_map.get(year_str, YEAR_COLORS[year_idx % len(YEAR_COLORS)])
+                        year_meets = current_plot_data[current_plot_data['CompYear_str'] == year_str]['YearMeet'].unique()
                         
-                        fig.add_hline(
-                            y=baseline_val,
-                            line=dict(color=year_color, width=2, dash='dash'),
-                            annotation_text=f"{year_str} {stats_method}: {baseline_val:{baseline_format}}",
-                            annotation_position="top left" if year_idx == 0 else "bottom left",
-                            annotation=dict(font=dict(size=11, color=year_color))
-                        )
+                        if len(year_meets) > 0:
+                            # Only show baseline for first 2 years by default
+                            is_visible_baseline = (year_idx < 2)
+                            
+                            if is_visible_baseline or len(sorted_unique_comp_years_for_plot_desc) <= 2:
+                                # Get the leftmost and rightmost meets for this year
+                                x_start = year_meets[0]  # First meet chronologically
+                                x_end = year_meets[-1]   # Last meet chronologically
+                                
+                                fig.add_shape(
+                                    type="line",
+                                    x0=x_start, x1=x_end,
+                                    y0=baseline_val, y1=baseline_val,
+                                    line=dict(color=year_color, width=2, dash='dash'),
+                                    layer='below'
+                                )
+                                
+                                # Add annotation at the start of the line
+                                fig.add_annotation(
+                                    x=x_start,
+                                    y=baseline_val,
+                                    text=f"{year_str} {stats_method}: {baseline_val:{baseline_format}}",
+                                    showarrow=False,
+                                    xanchor="left",
+                                    yanchor="bottom" if year_idx % 2 == 0 else "top",
+                                    font=dict(size=11, color=year_color),
+                                    bgcolor="rgba(255,255,255,0.7)",
+                                    bordercolor=year_color,
+                                    borderwidth=1
+                                )
 
                     for year_idx, year_str_trace in enumerate(sorted_unique_comp_years_for_plot_desc):
                         trace_data = current_plot_data[current_plot_data['CompYear_str'] == year_str_trace]
@@ -484,19 +508,20 @@ def render_by_gymnast_view(df: pd.DataFrame, stats_df: pd.DataFrame | None, norm
                                     "<b>Deviation:</b> %{customdata[3]}<extra></extra>"
                             ))
                             
-                            # Add vertical connectors to year-specific baseline
-                            for idx, row in trace_data.iterrows():
-                                fig.add_shape(
-                                    type="line",
-                                    x0=row['YearMeet'], x1=row['YearMeet'],
-                                    y0=year_baseline, y1=row['Score'],  # Connect to year-specific baseline
-                                    line=dict(
-                                        color=trace_color,
-                                        width=2,
-                                        dash='solid'
-                                    ),
-                                    layer='below'
-                                )
+                            # Add vertical connectors to year-specific baseline (only for visible traces)
+                            if is_visible_trace:  # Add this condition
+                                for idx, row in trace_data.iterrows():
+                                    fig.add_shape(
+                                        type="line",
+                                        x0=row['YearMeet'], x1=row['YearMeet'],
+                                        y0=year_baseline, y1=row['Score'],
+                                        line=dict(
+                                            color=trace_color,
+                                            width=2,
+                                            dash='solid'
+                                        ),
+                                        layer='below'
+                                    )
                 
                 plot_layout = COMMON_LAYOUT_ARGS.copy()
                 plot_layout['title'] = fig_title
