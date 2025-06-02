@@ -6,8 +6,8 @@ DEFAULT_VIEW = "By Gymnast"
 
 # --- Calculation Methods ---
 CALC_METHODS = ["Median", "Mean"]
-DEFAULT_CALC_METHOD_TEAM = "Median"
-DEFAULT_CALC_METHOD_ATHLETE = "Median"
+DEFAULT_CALC_METHOD_TEAM = "Mean"
+DEFAULT_CALC_METHOD_ATHLETE = "Mean"
 
 # --- Rounding ---
 # The custom_round function in app.py rounds to the nearest 0.05 (1/20).
