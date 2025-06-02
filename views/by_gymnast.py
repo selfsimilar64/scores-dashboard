@@ -245,6 +245,13 @@ def render_by_gymnast_view(df: pd.DataFrame, stats_df: pd.DataFrame | None, norm
 
     # Sidebar options
     fit_y_axis = st.sidebar.checkbox("Fit Y-axis to data", DEFAULT_FIT_Y_AXIS_ATHLETE, key="gymnast_fit_y_axis_gym")
+    viz_type = st.sidebar.radio(
+        "Visualization Type",
+        ["Line Graph", "Dot Plot"],
+        index=0,
+        key="viz_type_gymnast",
+        help="Line Graph: Connect points chronologically. Dot Plot: Show deviations from baseline (median/mean)."
+    )
     
     # Filter data based on selected athlete AND level
     athlete_level_data = athlete_all_data[athlete_all_data.Level == selected_level].copy()
@@ -389,39 +396,97 @@ def render_by_gymnast_view(df: pd.DataFrame, stats_df: pd.DataFrame | None, norm
                 if not current_plot_data.empty and sorted_unique_comp_years_for_plot_desc:
                     most_recent_year_str_for_plot = sorted_unique_comp_years_for_plot_desc[0]
 
+                    # For dot plot, calculate baseline (median or mean) for the entire event dataset
+                    if viz_type == "Dot Plot":
+                        baseline_value = current_plot_data['Score'].median() if stats_method == "Median" else current_plot_data['Score'].mean()
+                        baseline_label = f"{stats_method}: {baseline_value:.4f if normalization_method != 'None' else .3f}"
+                        
+                        # Add horizontal baseline
+                        fig.add_hline(
+                            y=baseline_value, 
+                            line=dict(color='lightgray', width=2, dash='dash'),
+                            annotation_text=baseline_label,
+                            annotation_position="top left",
+                            annotation=dict(font=dict(size=12))
+                        )
+
                     for year_idx, year_str_trace in enumerate(sorted_unique_comp_years_for_plot_desc):
                         trace_data = current_plot_data[current_plot_data['CompYear_str'] == year_str_trace]
                         if trace_data.empty:
                             continue
 
                         is_visible_trace = (year_idx < 2) # Show top 2 recent years by default
+                        trace_color = year_color_map.get(year_str_trace, YEAR_COLORS[year_idx % len(YEAR_COLORS)])
                         
-                        fig.add_trace(go.Scatter(
-                            x=trace_data['YearMeet'],
-                            y=trace_data['Score'],
-                            mode='lines+markers+text',
-                            name=f"{year_str_trace}",
-                            line=dict(
-                                color=year_color_map.get(year_str_trace, YEAR_COLORS[year_idx % len(YEAR_COLORS)]),
-                                width=COMMON_LINE_TRACE_ARGS['line']['width']
-                            ),
-                            marker=dict(
-                                color=year_color_map.get(year_str_trace, YEAR_COLORS[year_idx % len(YEAR_COLORS)]),
-                                size=COMMON_LINE_TRACE_ARGS['marker']['size']
-                            ),
-                            text=trace_data['Score'],
-                            texttemplate=current_text_template,
-                            textposition='top center',
-                            textfont=dict(size=MARKER_TEXTFONT_SIZE),
-                            visible=True if is_visible_trace else 'legendonly',
-                            legendgroup=year_str_trace,
-                            showlegend=True,
-                            customdata=trace_data[['MeetName', 'CompYear_str', 'Score']],
-                            hovertemplate=
-                                "<b>Meet:</b> %{customdata[0]}<br>" +
-                                "<b>Year:</b> %{customdata[1]}<br>" +
-                                "<b>Score:</b> %{customdata[2]:" + ('.3f' if normalization_method == "None" else '.4f') + "}<extra></extra>"
-                        ))
+                        if viz_type == "Line Graph":
+                            # Original line graph implementation
+                            fig.add_trace(go.Scatter(
+                                x=trace_data['YearMeet'],
+                                y=trace_data['Score'],
+                                mode='lines+markers+text',
+                                name=f"{year_str_trace}",
+                                line=dict(
+                                    color=trace_color,
+                                    width=COMMON_LINE_TRACE_ARGS['line']['width']
+                                ),
+                                marker=dict(
+                                    color=trace_color,
+                                    size=COMMON_LINE_TRACE_ARGS['marker']['size']
+                                ),
+                                text=trace_data['Score'],
+                                texttemplate=current_text_template,
+                                textposition='top center',
+                                textfont=dict(size=MARKER_TEXTFONT_SIZE),
+                                visible=True if is_visible_trace else 'legendonly',
+                                legendgroup=year_str_trace,
+                                showlegend=True,
+                                customdata=trace_data[['MeetName', 'CompYear_str', 'Score']],
+                                hovertemplate=
+                                    "<b>Meet:</b> %{customdata[0]}<br>" +
+                                    "<b>Year:</b> %{customdata[1]}<br>" +
+                                    "<b>Score:</b> %{customdata[2]:" + ('.3f' if normalization_method == "None" else '.4f') + "}<extra></extra>"
+                            ))
+                        else:  # Dot Plot
+                            # Add scatter points
+                            fig.add_trace(go.Scatter(
+                                x=trace_data['YearMeet'],
+                                y=trace_data['Score'],
+                                mode='markers+text',
+                                name=f"{year_str_trace}",
+                                marker=dict(
+                                    color=trace_color,
+                                    size=COMMON_LINE_TRACE_ARGS['marker']['size'] + 2,  # Slightly larger for dot plot
+                                    line=dict(width=2, color='white')  # White border for better visibility
+                                ),
+                                text=[f"{score:.4f if normalization_method != 'None' else .3f}" for score in trace_data['Score']],
+                                textposition='top center',
+                                textfont=dict(size=MARKER_TEXTFONT_SIZE),
+                                visible=True if is_visible_trace else 'legendonly',
+                                legendgroup=year_str_trace,
+                                showlegend=True,
+                                customdata=trace_data[['MeetName', 'CompYear_str', 'Score', 'Score']].apply(
+                                    lambda row: [row[0], row[1], row[2], f"{row[2] - baseline_value:+.4f if normalization_method != 'None' else +.3f}"], axis=1
+                                ).tolist(),
+                                hovertemplate=
+                                    "<b>Meet:</b> %{customdata[0]}<br>" +
+                                    "<b>Year:</b> %{customdata[1]}<br>" +
+                                    "<b>Score:</b> %{customdata[2]:" + ('.3f' if normalization_method == "None" else '.4f') + "}<br>" +
+                                    "<b>Deviation:</b> %{customdata[3]}<extra></extra>"
+                            ))
+                            
+                            # Add vertical connectors (stems) for dot plot
+                            for idx, row in trace_data.iterrows():
+                                fig.add_shape(
+                                    type="line",
+                                    x0=row['YearMeet'], x1=row['YearMeet'],
+                                    y0=baseline_value, y1=row['Score'],
+                                    line=dict(
+                                        color=trace_color,
+                                        width=2,
+                                        dash='solid'
+                                    ),
+                                    layer='below'
+                                )
                 
                 plot_layout = COMMON_LAYOUT_ARGS.copy()
                 plot_layout['title'] = fig_title
