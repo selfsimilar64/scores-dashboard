@@ -396,19 +396,26 @@ def render_by_gymnast_view(df: pd.DataFrame, stats_df: pd.DataFrame | None, norm
                 if not current_plot_data.empty and sorted_unique_comp_years_for_plot_desc:
                     most_recent_year_str_for_plot = sorted_unique_comp_years_for_plot_desc[0]
 
-                    # For dot plot, calculate baseline (median or mean) for the entire event dataset
-                    if viz_type == "Dot Plot":
-                        baseline_value = current_plot_data['Score'].median() if stats_method == "Median" else current_plot_data['Score'].mean()
-                        baseline_format = ".4f" if normalization_method != "None" else ".3f"
-                        baseline_label = f"{stats_method}: {baseline_value:{baseline_format}}"
+                    # Calculate baselines for each year separately
+                    year_baselines = {}
+                    baseline_format = ".4f" if normalization_method != "None" else ".3f"
+                    
+                    for year_str in sorted_unique_comp_years_for_plot_desc:
+                        year_data = current_plot_data[current_plot_data['CompYear_str'] == year_str]
+                        if not year_data.empty:
+                            year_baseline = year_data['Score'].median() if stats_method == "Median" else year_data['Score'].mean()
+                            year_baselines[year_str] = year_baseline
+                    
+                    # Add horizontal baselines for each year
+                    for year_idx, (year_str, baseline_val) in enumerate(year_baselines.items()):
+                        year_color = year_color_map.get(year_str, YEAR_COLORS[year_idx % len(YEAR_COLORS)])
                         
-                        # Add horizontal baseline
                         fig.add_hline(
-                            y=baseline_value, 
-                            line=dict(color='lightgray', width=2, dash='dash'),
-                            annotation_text=baseline_label,
-                            annotation_position="top left",
-                            annotation=dict(font=dict(size=12))
+                            y=baseline_val,
+                            line=dict(color=year_color, width=2, dash='dash', opacity=0.7),
+                            annotation_text=f"{year_str} {stats_method}: {baseline_val:{baseline_format}}",
+                            annotation_position="top left" if year_idx == 0 else "bottom left",
+                            annotation=dict(font=dict(size=11, color=year_color))
                         )
 
                     for year_idx, year_str_trace in enumerate(sorted_unique_comp_years_for_plot_desc):
@@ -448,6 +455,8 @@ def render_by_gymnast_view(df: pd.DataFrame, stats_df: pd.DataFrame | None, norm
                                     "<b>Score:</b> %{customdata[2]:" + ('.3f' if normalization_method == "None" else '.4f') + "}<extra></extra>"
                             ))
                         else:  # Dot Plot
+                            year_baseline = year_baselines.get(year_str_trace, 0)  # Get year-specific baseline
+                            
                             # Add scatter points
                             fig.add_trace(go.Scatter(
                                 x=trace_data['YearMeet'],
@@ -466,7 +475,7 @@ def render_by_gymnast_view(df: pd.DataFrame, stats_df: pd.DataFrame | None, norm
                                 legendgroup=year_str_trace,
                                 showlegend=True,
                                 customdata=trace_data[['MeetName', 'CompYear_str', 'Score', 'Score']].apply(
-                                    lambda row: [row[0], row[1], row[2], f"{row[2] - baseline_value:+{baseline_format}}"], axis=1
+                                    lambda row: [row[0], row[1], row[2], f"{row[2] - year_baseline:+{baseline_format}}"], axis=1
                                 ).tolist(),
                                 hovertemplate=
                                     "<b>Meet:</b> %{customdata[0]}<br>" +
@@ -475,12 +484,12 @@ def render_by_gymnast_view(df: pd.DataFrame, stats_df: pd.DataFrame | None, norm
                                     "<b>Deviation:</b> %{customdata[3]}<extra></extra>"
                             ))
                             
-                            # Add vertical connectors (stems) for dot plot
+                            # Add vertical connectors to year-specific baseline
                             for idx, row in trace_data.iterrows():
                                 fig.add_shape(
                                     type="line",
                                     x0=row['YearMeet'], x1=row['YearMeet'],
-                                    y0=baseline_value, y1=row['Score'],
+                                    y0=year_baseline, y1=row['Score'],  # Connect to year-specific baseline
                                     line=dict(
                                         color=trace_color,
                                         width=2,
