@@ -399,7 +399,8 @@ def render_by_gymnast_view(df: pd.DataFrame, stats_df: pd.DataFrame | None, norm
                     # For dot plot, calculate baseline (median or mean) for the entire event dataset
                     if viz_type == "Dot Plot":
                         baseline_value = current_plot_data['Score'].median() if stats_method == "Median" else current_plot_data['Score'].mean()
-                        baseline_label = f"{stats_method}: {baseline_value:.4f if normalization_method != 'None' else .3f}"
+                        baseline_format = ".4f" if normalization_method != "None" else ".3f"
+                        baseline_label = f"{stats_method}: {baseline_value:{baseline_format}}"
                         
                         # Add horizontal baseline
                         fig.add_hline(
@@ -458,14 +459,14 @@ def render_by_gymnast_view(df: pd.DataFrame, stats_df: pd.DataFrame | None, norm
                                     size=COMMON_LINE_TRACE_ARGS['marker']['size'] + 2,  # Slightly larger for dot plot
                                     line=dict(width=2, color='white')  # White border for better visibility
                                 ),
-                                text=[f"{score:.4f if normalization_method != 'None' else .3f}" for score in trace_data['Score']],
+                                text=[f"{score:{baseline_format}}" for score in trace_data['Score']],
                                 textposition='top center',
                                 textfont=dict(size=MARKER_TEXTFONT_SIZE),
                                 visible=True if is_visible_trace else 'legendonly',
                                 legendgroup=year_str_trace,
                                 showlegend=True,
                                 customdata=trace_data[['MeetName', 'CompYear_str', 'Score', 'Score']].apply(
-                                    lambda row: [row[0], row[1], row[2], f"{row[2] - baseline_value:+.4f if normalization_method != 'None' else +.3f}"], axis=1
+                                    lambda row: [row[0], row[1], row[2], f"{row[2] - baseline_value:+{baseline_format}}"], axis=1
                                 ).tolist(),
                                 hovertemplate=
                                     "<b>Meet:</b> %{customdata[0]}<br>" +
