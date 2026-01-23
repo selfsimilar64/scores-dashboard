@@ -923,7 +923,20 @@
 
         function formatDate(dateStr) {
             if (!dateStr) return '-';
-            const date = new Date(dateStr + 'T00:00:00');
+            // Handle various date formats from PostgreSQL
+            let date;
+            if (typeof dateStr === 'string') {
+                // If it's already an ISO string with time, use it directly
+                // Otherwise append T00:00:00 for date-only strings
+                if (dateStr.includes('T')) {
+                    date = new Date(dateStr);
+                } else {
+                    date = new Date(dateStr + 'T00:00:00');
+                }
+            } else {
+                date = new Date(dateStr);
+            }
+            if (isNaN(date.getTime())) return '-';
             return date.toLocaleDateString('en-US', { 
                 year: 'numeric', 
                 month: 'short', 

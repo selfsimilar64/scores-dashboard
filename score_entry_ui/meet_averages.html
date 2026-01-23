@@ -549,9 +549,26 @@
             });
         }
 
+        function parseDate(dateStr) {
+            if (!dateStr) return null;
+            let date;
+            if (typeof dateStr === 'string') {
+                // If it's already an ISO string with time, use it directly
+                // Otherwise append T00:00:00 for date-only strings
+                if (dateStr.includes('T')) {
+                    date = new Date(dateStr);
+                } else {
+                    date = new Date(dateStr + 'T00:00:00');
+                }
+            } else {
+                date = new Date(dateStr);
+            }
+            return isNaN(date.getTime()) ? null : date;
+        }
+
         function formatDate(dateStr) {
-            if (!dateStr) return '';
-            const date = new Date(dateStr + 'T00:00:00');
+            const date = parseDate(dateStr);
+            if (!date) return '';
             return date.toLocaleDateString('en-US', { 
                 year: 'numeric', 
                 month: 'short', 
@@ -565,11 +582,13 @@
             
             // Multiple dates - show count or abbreviated list
             const formatted = dates.map(d => {
-                const date = new Date(d + 'T00:00:00');
+                const date = parseDate(d);
+                if (!date) return '';
                 return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-            });
+            }).filter(d => d);
             
-            if (dates.length <= 3) {
+            if (formatted.length === 0) return '';
+            if (formatted.length <= 3) {
                 return formatted.join(', ');
             } else {
                 return `${formatted[0]} + ${dates.length - 1} more`;
