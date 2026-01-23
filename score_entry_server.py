@@ -103,7 +103,7 @@ def recent_athletes():
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute('SELECT DISTINCT AthleteName FROM scores ORDER BY AthleteName')
-    athletes = [row['AthleteName'] for row in cursor.fetchall()]
+    athletes = [row['athletename'] for row in cursor.fetchall()]
     conn.close()
     return jsonify(athletes)
 
@@ -113,7 +113,7 @@ def recent_meets():
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute('SELECT DISTINCT MeetName FROM scores ORDER BY MeetName')
-    meets = [row['MeetName'] for row in cursor.fetchall()]
+    meets = [row['meetname'] for row in cursor.fetchall()]
     conn.close()
     return jsonify(meets)
 
@@ -123,7 +123,7 @@ def get_levels():
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute('SELECT DISTINCT Level FROM scores ORDER BY Level')
-    levels = [row['Level'] for row in cursor.fetchall()]
+    levels = [row['level'] for row in cursor.fetchall()]
     conn.close()
     return jsonify(levels)
 
@@ -154,9 +154,9 @@ def get_personal_bests():
         conn.close()
         return jsonify({'error': 'No meets found', 'personal_bests': []})
     
-    meet_name = recent_meet['MeetName']
-    meet_date = recent_meet['MeetDate']
-    comp_year = recent_meet['CompYear']
+    meet_name = recent_meet['meetname']
+    meet_date = recent_meet['meetdate']
+    comp_year = recent_meet['compyear']
     
     # Get all scores from the most recent meet
     cursor.execute('''
@@ -171,11 +171,11 @@ def get_personal_bests():
     personal_bests = []
     
     for row in current_scores:
-        athlete = row['AthleteName']
-        level = row['Level']
-        event = row['Event']
-        current_score = row['Score']
-        place = row['Place']
+        athlete = row['athletename']
+        level = row['level']
+        event = row['event']
+        current_score = row['score']
+        place = row['place']
         
         if current_score is None:
             continue
@@ -228,7 +228,7 @@ def get_meets():
         FROM scores 
         ORDER BY MeetDate DESC
     ''')
-    meets = [{'name': row['MeetName'], 'date': row['MeetDate'], 'year': row['CompYear']} 
+    meets = [{'name': row['meetname'], 'date': row['meetdate'], 'year': row['compyear']} 
              for row in cursor.fetchall()]
     conn.close()
     return jsonify(meets)
@@ -257,7 +257,7 @@ def get_meet_scores():
         conn.close()
         return jsonify({'error': 'Meet not found', 'scores': []})
     
-    comp_year = result['CompYear']
+    comp_year = result['compyear']
     
     # Get all scores from the specified meet
     cursor.execute('''
@@ -272,11 +272,11 @@ def get_meet_scores():
     all_scores = []
     
     for row in current_scores:
-        athlete = row['AthleteName']
-        level = row['Level']
-        event = row['Event']
-        current_score = row['Score']
-        place = row['Place']
+        athlete = row['athletename']
+        level = row['level']
+        event = row['event']
+        current_score = row['score']
+        place = row['place']
         
         if current_score is None:
             all_scores.append({
@@ -415,7 +415,7 @@ def get_meet_level_averages():
     
     # Get all comp years for the dropdown
     cursor.execute('SELECT DISTINCT CompYear FROM scores ORDER BY CompYear DESC')
-    all_comp_years = [row['CompYear'] for row in cursor.fetchall()]
+    all_comp_years = [row['compyear'] for row in cursor.fetchall()]
     
     # Get all unique meet names for the selected comp year, with their earliest date for sorting
     cursor.execute('''
@@ -429,13 +429,13 @@ def get_meet_level_averages():
     
     # Sort with States and Regionals at the end (States before Regionals)
     def meet_sort_key(meet):
-        name = meet['MeetName'].lower()
+        name = meet['meetname'].lower()
         if name == 'states':
-            return (1, meet['EarliestDate'])
+            return (1, meet['earliestdate'])
         elif name == 'regionals':
-            return (2, meet['EarliestDate'])
+            return (2, meet['earliestdate'])
         else:
-            return (0, meet['EarliestDate'])
+            return (0, meet['earliestdate'])
     
     meets = sorted(meets_raw, key=meet_sort_key)
     
@@ -446,9 +446,9 @@ def get_meet_level_averages():
     results = []
     
     for meet in meets:
-        meet_name = meet['MeetName']
-        earliest_date = meet['EarliestDate']
-        meet_comp_year = meet['CompYear']
+        meet_name = meet['meetname']
+        earliest_date = meet['earliestdate']
+        meet_comp_year = meet['compyear']
         
         # Get all dates for this meet name in this comp year
         cursor.execute('''
@@ -456,7 +456,7 @@ def get_meet_level_averages():
             WHERE MeetName = %s AND CompYear = %s 
             ORDER BY MeetDate
         ''', (meet_name, meet_comp_year))
-        meet_dates = [row['MeetDate'] for row in cursor.fetchall()]
+        meet_dates = [row['meetdate'] for row in cursor.fetchall()]
         
         meet_data = {
             'meet_name': meet_name,
@@ -488,13 +488,13 @@ def get_meet_level_averages():
             level_scores = cursor.fetchall()
             
             if level_scores:
-                scores_list = [row['Score'] for row in level_scores]
+                scores_list = [row['score'] for row in level_scores]
                 avg_score = sum(scores_list) / len(scores_list)
                 
                 # Top 3 for team score - only if we have at least 3 scores
                 if len(level_scores) >= 3:
                     top3 = level_scores[:3]
-                    top3_details = [{'athlete': row['AthleteName'], 'score': row['Score']} for row in top3]
+                    top3_details = [{'athlete': row['athletename'], 'score': row['score']} for row in top3]
                     team_score = sum(item['score'] for item in top3_details)
                 else:
                     top3_details = None
@@ -509,7 +509,7 @@ def get_meet_level_averages():
                 
                 # Collect for Gymfest calculations
                 all_aa_scores.extend(scores_list)
-                all_aa_with_athletes.extend([{'athlete': row['AthleteName'], 'score': row['Score'], 'level': level} for row in level_scores])
+                all_aa_with_athletes.extend([{'athlete': row['athletename'], 'score': row['score'], 'level': level} for row in level_scores])
             else:
                 meet_data['levels'][level] = None
         
