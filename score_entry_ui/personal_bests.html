@@ -229,7 +229,9 @@
 
         /* Table styles */
         .table-container {
-            overflow-x: auto;
+            overflow: auto;
+            max-height: calc(100vh - 400px);
+            min-height: 300px;
         }
 
         table {
@@ -250,11 +252,34 @@
             letter-spacing: 0.5px;
             color: var(--text-secondary);
             border-bottom: 2px solid var(--border-color);
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        th:first-child {
+            position: sticky;
+            left: 0;
+            z-index: 20;
+            background: var(--bg-elevated);
+            box-shadow: 2px 0 8px rgba(0, 0, 0, 0.3);
         }
 
         td {
             border-bottom: 1px solid var(--border-color);
             font-size: 0.95rem;
+        }
+
+        td:first-child {
+            position: sticky;
+            left: 0;
+            z-index: 5;
+            background: var(--bg-card);
+            box-shadow: 2px 0 8px rgba(0, 0, 0, 0.3);
+        }
+
+        tr:hover td:first-child {
+            background: var(--bg-card);
         }
 
         tr:hover td {
@@ -513,6 +538,197 @@
             border-radius: 50%;
             animation: spin 0.8s linear infinite;
             margin-bottom: 12px;
+        }
+
+        /* Mobile responsiveness */
+        @media (max-width: 768px) {
+            .container {
+                padding: 16px;
+            }
+            
+            header h1 {
+                font-size: 1.8rem;
+            }
+
+            .card-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .meet-selector {
+                width: 100%;
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .meet-selector select {
+                width: 100%;
+                min-width: unset;
+            }
+
+            .meet-info {
+                gap: 16px;
+            }
+
+            .stats-row {
+                grid-template-columns: repeat(3, 1fr);
+                gap: 8px;
+            }
+
+            .stat-card {
+                padding: 12px;
+            }
+
+            .stat-value {
+                font-size: 1.5rem;
+            }
+
+            .stat-label {
+                font-size: 0.75rem;
+            }
+        }
+
+        /* Landscape phone optimization */
+        @media (max-height: 500px) and (orientation: landscape) {
+            .container {
+                padding: 8px 12px;
+            }
+
+            header {
+                margin-bottom: 8px;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                flex-wrap: wrap;
+                gap: 8px;
+                text-align: left;
+            }
+
+            header h1 {
+                font-size: 1.2rem;
+                margin-bottom: 0;
+            }
+
+            header p {
+                display: none;
+            }
+
+            .nav-links {
+                margin-top: 0;
+                gap: 12px;
+            }
+
+            .nav-link {
+                font-size: 0.8rem;
+            }
+
+            .card {
+                padding: 10px;
+                margin-bottom: 0;
+            }
+
+            .card-header {
+                margin-bottom: 6px;
+                flex-direction: row;
+                align-items: center;
+            }
+
+            .card-title {
+                font-size: 0.95rem;
+            }
+
+            .card-title::before {
+                width: 3px;
+                height: 18px;
+            }
+
+            .meet-selector {
+                flex-direction: row;
+                align-items: center;
+            }
+
+            .meet-selector label {
+                font-size: 0.75rem;
+            }
+
+            .meet-selector select {
+                min-width: 180px;
+                padding: 5px 10px;
+                font-size: 0.85rem;
+            }
+
+            .meet-info {
+                display: none;
+            }
+
+            .stats-row {
+                display: none;
+            }
+
+            /* Compact legend for landscape */
+            .card > div[style*="margin-bottom: 16px"] {
+                margin-bottom: 6px !important;
+                font-size: 0.7rem;
+            }
+
+            .card > div[style*="margin-bottom: 16px"] span[style*="width: 16px"] {
+                width: 10px !important;
+                height: 10px !important;
+            }
+
+            .table-container {
+                max-height: calc(100vh - 100px);
+                min-height: 120px;
+            }
+
+            th, td {
+                padding: 5px 6px;
+                font-size: 0.75rem;
+            }
+
+            .athlete-name {
+                font-size: 0.8rem;
+            }
+
+            .level-badge {
+                padding: 2px 5px;
+                font-size: 0.6rem;
+            }
+
+            .score-cell .score-value {
+                font-size: 0.8rem;
+                padding: 2px 4px;
+            }
+        }
+
+        /* Small phones */
+        @media (max-width: 480px) {
+            header h1 {
+                font-size: 1.5rem;
+            }
+
+            .card {
+                padding: 16px;
+                border-radius: 12px;
+            }
+
+            .card-title {
+                font-size: 1rem;
+            }
+
+            .table-container {
+                margin: 0 -16px;
+                padding: 0 16px;
+            }
+
+            table {
+                min-width: 600px;
+            }
+
+            .nav-links {
+                flex-direction: column;
+                gap: 8px;
+            }
         }
 
         /* Print styles */

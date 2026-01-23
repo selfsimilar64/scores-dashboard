@@ -149,7 +149,9 @@
 
         /* Table styles */
         .table-container {
-            overflow-x: auto;
+            overflow: auto;
+            max-height: calc(100vh - 320px);
+            min-height: 300px;
         }
 
         table {
@@ -179,6 +181,11 @@
         th:first-child {
             text-align: left;
             min-width: 200px;
+            position: sticky;
+            left: 0;
+            z-index: 20;
+            background: var(--bg-elevated);
+            box-shadow: 2px 0 8px rgba(0, 0, 0, 0.3);
         }
 
         td {
@@ -189,6 +196,15 @@
         td:first-child {
             text-align: left;
             font-weight: 500;
+            position: sticky;
+            left: 0;
+            z-index: 5;
+            background: var(--bg-card);
+            box-shadow: 2px 0 8px rgba(0, 0, 0, 0.3);
+        }
+
+        tr:hover td:first-child {
+            background: var(--bg-card);
         }
 
         tr:hover td {
@@ -218,6 +234,24 @@
 
         .score-cell.no-value {
             color: var(--text-muted);
+        }
+
+        /* Column max - Gold highlighting */
+        .score-cell.col-max .score-value {
+            color: var(--accent-gold);
+            background: rgba(255, 215, 0, 0.15);
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-weight: 600;
+        }
+
+        /* Table max (excluding Gymfest) - Turquoise highlighting */
+        .score-cell.table-max .score-value {
+            color: #5efaff;
+            background: #204348;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-weight: 600;
         }
 
         .gymfest-col {
@@ -308,6 +342,39 @@
             font-weight: 600;
         }
 
+        /* Legend */
+        .legend {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-bottom: 16px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .legend-swatch {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border-radius: 4px;
+        }
+
+        .legend-swatch.gold {
+            background: rgba(255, 215, 0, 0.3);
+            border: 2px solid var(--accent-gold);
+        }
+
+        .legend-swatch.turquoise {
+            background: #204348;
+            border: 2px solid #5efaff;
+        }
+
         /* Responsive */
         @media (max-width: 768px) {
             .container {
@@ -316,6 +383,154 @@
             
             header h1 {
                 font-size: 1.8rem;
+            }
+
+            .card-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .controls {
+                flex-wrap: wrap;
+                width: 100%;
+            }
+
+            .controls select {
+                flex: 1;
+                min-width: 120px;
+            }
+
+            .nav-links {
+                flex-direction: column;
+                gap: 8px;
+            }
+        }
+
+        /* Landscape phone optimization */
+        @media (max-height: 500px) and (orientation: landscape) {
+            .container {
+                padding: 8px 12px;
+            }
+
+            header {
+                margin-bottom: 8px;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                flex-wrap: wrap;
+                gap: 8px;
+                text-align: left;
+            }
+
+            header h1 {
+                font-size: 1.2rem;
+                margin-bottom: 0;
+            }
+
+            header p {
+                display: none;
+            }
+
+            .nav-links {
+                margin-top: 0;
+                gap: 12px;
+            }
+
+            .nav-link {
+                font-size: 0.8rem;
+            }
+
+            .card {
+                padding: 10px;
+                margin-bottom: 0;
+            }
+
+            .card-header {
+                margin-bottom: 6px;
+            }
+
+            .card-title {
+                font-size: 0.95rem;
+            }
+
+            .card-title::before {
+                width: 3px;
+                height: 18px;
+            }
+
+            .controls {
+                gap: 6px;
+            }
+
+            .controls label {
+                font-size: 0.75rem;
+            }
+
+            .controls select {
+                padding: 5px 8px;
+                font-size: 0.8rem;
+            }
+
+            .table-container {
+                max-height: calc(100vh - 110px);
+                min-height: 120px;
+            }
+
+            th, td {
+                padding: 6px 5px;
+                font-size: 0.75rem;
+            }
+
+            th:first-child {
+                min-width: 120px;
+            }
+
+            .meet-name {
+                font-size: 0.8rem;
+            }
+
+            .meet-date {
+                font-size: 0.65rem;
+            }
+
+            .score-cell {
+                font-size: 0.8rem;
+            }
+
+            .legend {
+                font-size: 0.7rem;
+                gap: 10px;
+                margin-bottom: 6px;
+            }
+
+            .legend-swatch {
+                width: 10px;
+                height: 10px;
+            }
+        }
+
+        /* Small phones */
+        @media (max-width: 480px) {
+            header h1 {
+                font-size: 1.5rem;
+            }
+
+            .card {
+                padding: 16px;
+                border-radius: 12px;
+            }
+
+            .card-title {
+                font-size: 1rem;
+            }
+
+            table {
+                min-width: 800px;
+            }
+
+            .table-container {
+                margin: 0 -16px;
+                padding: 0 16px;
             }
         }
     </style>
@@ -347,6 +562,17 @@
                 </div>
             </div>
             
+            <div class="legend">
+                <div class="legend-item">
+                    <span class="legend-swatch gold"></span>
+                    <span>Column Best</span>
+                </div>
+                <div class="legend-item">
+                    <span class="legend-swatch turquoise"></span>
+                    <span>Table Best (excl. Gymfest)</span>
+                </div>
+            </div>
+
             <div id="content">
                 <div class="loading">
                     <p>Loading meet averages...</p>
@@ -408,6 +634,45 @@
         function renderTable() {
             const isTeamMode = displayMode === 'team';
             
+            // Calculate max values for each column (excluding Gymfest for table max)
+            const columnMaxes = {};
+            let tableMax = { value: -Infinity, meetIdx: -1, level: null };
+            
+            // Initialize column maxes
+            levelOrder.forEach(level => {
+                columnMaxes[level] = { value: -Infinity, meetIdx: -1 };
+            });
+            columnMaxes['gymfest'] = { value: -Infinity, meetIdx: -1 };
+            
+            // Find max values
+            meetsData.forEach((meet, meetIdx) => {
+                levelOrder.forEach(level => {
+                    const levelData = meet.levels[level];
+                    if (levelData) {
+                        const value = isTeamMode ? levelData.team_score : levelData.avg;
+                        if (value !== null && value !== undefined) {
+                            const numVal = parseFloat(value);
+                            if (numVal > columnMaxes[level].value) {
+                                columnMaxes[level] = { value: numVal, meetIdx };
+                            }
+                            // Track table max (excluding Gymfest)
+                            if (numVal > tableMax.value) {
+                                tableMax = { value: numVal, meetIdx, level };
+                            }
+                        }
+                    }
+                });
+                
+                // Track Gymfest column max (but don't include in table max)
+                const gymfestValue = isTeamMode ? meet.gymfest_team_score : meet.gymfest_avg;
+                if (gymfestValue !== null && gymfestValue !== undefined) {
+                    const numVal = parseFloat(gymfestValue);
+                    if (numVal > columnMaxes['gymfest'].value) {
+                        columnMaxes['gymfest'] = { value: numVal, meetIdx };
+                    }
+                }
+            });
+            
             let html = `
                 <div class="table-container">
                     <table>
@@ -442,9 +707,20 @@
                     if (levelData) {
                         const value = isTeamMode ? levelData.team_score : levelData.avg;
                         if (value !== null && value !== undefined) {
-                            const cellClass = isTeamMode ? 'score-cell has-value team-score' : 'score-cell has-value';
+                            let cellClass = isTeamMode ? 'score-cell has-value team-score' : 'score-cell has-value';
                             const dataAttr = isTeamMode ? `data-meet="${meetIdx}" data-level="${level}"` : '';
-                            html += `<td class="${cellClass}" ${dataAttr}>${toFixed(value, 1)}</td>`;
+                            
+                            // Check if this is the table max (turquoise) or column max (gold)
+                            const isTableMax = tableMax.meetIdx === meetIdx && tableMax.level === level;
+                            const isColMax = columnMaxes[level].meetIdx === meetIdx;
+                            
+                            if (isTableMax) {
+                                cellClass += ' table-max';
+                            } else if (isColMax) {
+                                cellClass += ' col-max';
+                            }
+                            
+                            html += `<td class="${cellClass}" ${dataAttr}><span class="score-value">${toFixed(value, 1)}</span></td>`;
                         } else {
                             html += `<td class="score-cell no-value">—</td>`;
                         }
@@ -456,9 +732,15 @@
                 // Add Gymfest column
                 const gymfestValue = isTeamMode ? meet.gymfest_team_score : meet.gymfest_avg;
                 if (gymfestValue !== null && gymfestValue !== undefined) {
-                    const gymfestClass = isTeamMode ? 'score-cell has-value gymfest-col team-score' : 'score-cell has-value gymfest-col';
+                    let gymfestClass = isTeamMode ? 'score-cell has-value gymfest-col team-score' : 'score-cell has-value gymfest-col';
                     const gymfestDataAttr = isTeamMode ? `data-meet="${meetIdx}" data-level="gymfest"` : '';
-                    html += `<td class="${gymfestClass}" ${gymfestDataAttr}>${toFixed(gymfestValue, 1)}</td>`;
+                    
+                    // Only gold for Gymfest column (not included in table max)
+                    if (columnMaxes['gymfest'].meetIdx === meetIdx) {
+                        gymfestClass += ' col-max';
+                    }
+                    
+                    html += `<td class="${gymfestClass}" ${gymfestDataAttr}><span class="score-value">${toFixed(gymfestValue, 1)}</span></td>`;
                 } else {
                     html += `<td class="score-cell no-value gymfest-col">—</td>`;
                 }
