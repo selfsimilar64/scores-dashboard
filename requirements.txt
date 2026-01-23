@@ -1,4 +1,5 @@
 streamlit>=1.45
 pandas
 plotly-express          # or altair
-pysqlite3-binary        # ensures SQLite works on Streamlit’s Linux container
+pysqlite3-binary        # ensures SQLite works on Streamlit's Linux container
+flask                   # for score entry interface

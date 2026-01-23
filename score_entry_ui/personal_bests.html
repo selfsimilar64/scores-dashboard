@@ -1,0 +1,934 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Personal Bests - Gymfest</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-dark: #0f0f12;
+            --bg-card: #1a1a22;
+            --bg-elevated: #252532;
+            --accent-primary: #e85d75;
+            --accent-secondary: #64d2ff;
+            --accent-success: #30d158;
+            --accent-warning: #ffd60a;
+            --accent-gold: #ffd700;
+            --text-primary: #f5f5f7;
+            --text-secondary: #98989d;
+            --text-muted: #636366;
+            --border-color: #2c2c3a;
+            --shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            min-height: 100vh;
+            background-image: 
+                radial-gradient(ellipse at 20% 20%, rgba(255, 215, 0, 0.06) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 80%, rgba(48, 209, 88, 0.05) 0%, transparent 50%);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 24px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--accent-gold), var(--accent-warning));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 8px;
+        }
+
+        header p {
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+        }
+
+        .nav-link {
+            display: inline-block;
+            margin-top: 12px;
+            color: var(--accent-secondary);
+            text-decoration: none;
+            font-size: 0.95rem;
+        }
+
+        .nav-link:hover {
+            text-decoration: underline;
+        }
+
+        .card {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 24px;
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .card-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .card-title::before {
+            content: '';
+            width: 4px;
+            height: 24px;
+            background: linear-gradient(180deg, var(--accent-gold), var(--accent-success));
+            border-radius: 2px;
+        }
+
+        .meet-selector {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .meet-selector label {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        select {
+            background: var(--bg-elevated);
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            padding: 10px 16px;
+            font-size: 1rem;
+            font-family: inherit;
+            color: var(--text-primary);
+            cursor: pointer;
+            min-width: 250px;
+        }
+
+        select:focus {
+            outline: none;
+            border-color: var(--accent-gold);
+        }
+
+        .meet-info {
+            background: var(--bg-elevated);
+            border-radius: 12px;
+            padding: 16px 20px;
+            margin-bottom: 20px;
+            display: flex;
+            gap: 32px;
+            flex-wrap: wrap;
+        }
+
+        .meet-info-item {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .meet-info-label {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .meet-info-value {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .stat-card {
+            background: var(--bg-elevated);
+            border-radius: 12px;
+            padding: 16px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--accent-gold);
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .stat-label {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-top: 4px;
+        }
+
+        /* Filter tabs */
+        .filter-tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .filter-tab {
+            padding: 8px 16px;
+            border: 2px solid var(--border-color);
+            background: var(--bg-elevated);
+            color: var(--text-secondary);
+            border-radius: 8px;
+            font-family: inherit;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .filter-tab:hover {
+            border-color: var(--text-muted);
+        }
+
+        .filter-tab.active {
+            background: var(--accent-gold);
+            border-color: var(--accent-gold);
+            color: var(--bg-dark);
+            font-weight: 600;
+        }
+
+        /* Table styles */
+        .table-container {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 14px 16px;
+            text-align: left;
+        }
+
+        th {
+            background: var(--bg-elevated);
+            font-weight: 600;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-secondary);
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        td {
+            border-bottom: 1px solid var(--border-color);
+            font-size: 0.95rem;
+        }
+
+        tr:hover td {
+            background: rgba(255, 215, 0, 0.03);
+        }
+
+        .athlete-name {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .level-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            background: var(--bg-dark);
+            color: var(--accent-secondary);
+        }
+
+        .event-name {
+            color: var(--text-secondary);
+        }
+
+        .score {
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 600;
+            font-size: 1.1rem;
+            color: var(--accent-gold);
+        }
+
+        .improvement {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9rem;
+            color: var(--accent-success);
+        }
+
+        .improvement::before {
+            content: '+';
+        }
+
+        .first-meet {
+            font-size: 0.8rem;
+            color: var(--accent-secondary);
+            font-style: italic;
+        }
+
+        .place {
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .place-1 { color: var(--accent-gold); font-weight: 700; }
+        .place-2 { color: #c0c0c0; font-weight: 600; }
+        .place-3 { color: #cd7f32; font-weight: 600; }
+
+        /* Score cell with tooltip */
+        .score-cell {
+            position: relative;
+            cursor: pointer;
+        }
+
+        .score-cell .score-value {
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 500;
+            font-size: 1rem;
+            color: var(--text-primary);
+            padding: 4px 8px;
+            border-radius: 6px;
+            display: inline-block;
+            transition: all 0.2s;
+        }
+
+        .score-cell:hover .score-value {
+            transform: scale(1.05);
+        }
+
+        /* Gold - Year PB (first year at level OR beat this year's scores) */
+        .score-cell.year-pb .score-value {
+            color: var(--accent-gold);
+            background: rgba(255, 215, 0, 0.1);
+            font-weight: 600;
+        }
+
+        .score-cell.year-pb:hover .score-value {
+            background: rgba(255, 215, 0, 0.2);
+        }
+
+        /* Purple - All-time PB at level (returning athlete from previous year beat ALL previous) */
+        .score-cell.alltime-pb .score-value {
+            color: #5efaff;
+            background: #204348;
+            font-weight: 600;
+        }
+
+        .score-cell.alltime-pb:hover .score-value {
+            background: #30646c;
+        }
+
+        .score-cell .tooltip {
+            position: fixed;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 12px 16px;
+            min-width: 240px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.2s;
+            z-index: 1000;
+            pointer-events: none;
+        }
+
+        .score-cell:hover .tooltip {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .tooltip-title {
+            font-weight: 600;
+            font-size: 0.9rem;
+            margin-bottom: 10px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .tooltip-title.year-pb {
+            color: var(--accent-gold);
+        }
+
+        .tooltip-title.alltime-pb {
+            color: #5cd5f6;
+        }
+
+        /* Toggle switch styles */
+        .toggle-switch {
+            position: relative;
+            width: 48px;
+            height: 26px;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: var(--bg-elevated);
+            border: 2px solid var(--border-color);
+            border-radius: 26px;
+            transition: 0.3s;
+        }
+
+        .toggle-slider::before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 2px;
+            bottom: 2px;
+            background-color: var(--text-secondary);
+            border-radius: 50%;
+            transition: 0.3s;
+        }
+
+        .toggle-switch input:checked + .toggle-slider {
+            background-color: var(--accent-gold);
+            border-color: var(--accent-gold);
+        }
+
+        .toggle-switch input:checked + .toggle-slider::before {
+            transform: translateX(22px);
+            background-color: var(--bg-dark);
+        }
+
+        .tooltip-row {
+            display: flex;
+            justify-content: space-between;
+            gap: 16px;
+            margin-bottom: 6px;
+        }
+
+        .tooltip-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .tooltip-label {
+            color: var(--text-muted);
+            font-size: 0.8rem;
+        }
+
+        .tooltip-value {
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: var(--text-primary);
+        }
+
+        .tooltip-value.improvement {
+            color: var(--accent-success);
+        }
+
+        .tooltip-value.improvement::before {
+            content: '+';
+        }
+
+        .tooltip-meet {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            margin-top: 8px;
+            padding-top: 8px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .no-pb {
+            color: var(--text-muted);
+            font-size: 0.85rem;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 48px;
+            color: var(--text-muted);
+        }
+
+        .empty-state h3 {
+            font-size: 1.2rem;
+            margin-bottom: 8px;
+            color: var(--text-secondary);
+        }
+
+        .loading {
+            text-align: center;
+            padding: 48px;
+            color: var(--text-secondary);
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .loading::before {
+            content: '';
+            display: inline-block;
+            width: 24px;
+            height: 24px;
+            border: 3px solid var(--border-color);
+            border-top-color: var(--accent-gold);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-bottom: 12px;
+        }
+
+        /* Print styles */
+        @media print {
+            body { background: white; color: black; }
+            .card { box-shadow: none; border: 1px solid #ddd; }
+            .meet-selector, .nav-link, .filter-tabs { display: none; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🏆 Personal Bests</h1>
+            <p>Athletes who achieved new personal records</p>
+            <div class="nav-links" style="display: flex; justify-content: center; gap: 24px;">
+                <a href="/" class="nav-link">← Score Entry</a>
+                <a href="/meet-averages" class="nav-link">Meet Averages →</a>
+            </div>
+        </header>
+
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title">Meet Results</div>
+                <div class="meet-selector">
+                    <label for="meetSelect">Select Meet:</label>
+                    <select id="meetSelect" onchange="loadMeetScores()">
+                        <option value="">Loading meets...</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="meet-info" id="meetInfo" style="display: none;">
+                <div class="meet-info-item">
+                    <span class="meet-info-label">Meet</span>
+                    <span class="meet-info-value" id="meetName">-</span>
+                </div>
+                <div class="meet-info-item">
+                    <span class="meet-info-label">Date</span>
+                    <span class="meet-info-value" id="meetDate">-</span>
+                </div>
+                <div class="meet-info-item">
+                    <span class="meet-info-label">Competition Year</span>
+                    <span class="meet-info-value" id="compYear">-</span>
+                </div>
+            </div>
+
+            <div class="stats-row" id="statsRow" style="display: none;">
+                <div class="stat-card">
+                    <div class="stat-value" id="athleteCount">0</div>
+                    <div class="stat-label">Athletes</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="yearPBs">0</div>
+                    <div class="stat-label">Year PBs</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="alltimePBs">0</div>
+                    <div class="stat-label">All-Time PBs</div>
+                </div>
+            </div>
+            
+            <div style="margin-bottom: 16px; display: flex; gap: 20px; flex-wrap: wrap; font-size: 0.85rem; color: var(--text-secondary);">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <span style="display: inline-block; width: 16px; height: 16px; background: rgba(255, 215, 0, 0.2); border-radius: 4px; border: 2px solid var(--accent-gold);"></span>
+                    <span>Year PB</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <span style="display: inline-block; width: 16px; height: 16px; background: #4ebbdc; border-radius: 4px;"></span>
+                    <span>All-Time PB (returning at level)</span>
+                </div>
+            </div>
+
+
+            <div id="content">
+                <div class="loading">
+                    <p>Loading personal bests...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let allScores = [];
+        const EVENTS = ['Vault', 'Bars', 'Beam', 'Floor', 'All Around'];
+
+        // Level sorting helper
+        function getLevelSortOrder(level) {
+            const levelOrder = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'XB', 'XS', 'XG', 'XP', 'XD', 'XSA'];
+            const idx = levelOrder.indexOf(level);
+            return idx >= 0 ? idx : 999;
+        }
+
+        async function loadMeets() {
+            try {
+                const response = await fetch('/api/meets');
+                const meets = await response.json();
+                
+                const select = document.getElementById('meetSelect');
+                select.innerHTML = '';
+                
+                if (meets.length === 0) {
+                    select.innerHTML = '<option value="">No meets found</option>';
+                    return;
+                }
+                
+                meets.forEach((meet, index) => {
+                    const option = document.createElement('option');
+                    option.value = JSON.stringify({name: meet.name, date: meet.date});
+                    option.textContent = `${meet.name} (${formatDate(meet.date)})`;
+                    if (index === 0) option.selected = true;
+                    select.appendChild(option);
+                });
+                
+                loadMeetScores();
+            } catch (error) {
+                console.error('Error loading meets:', error);
+                document.getElementById('meetSelect').innerHTML = '<option value="">Error loading meets</option>';
+            }
+        }
+
+        async function loadMeetScores() {
+            const select = document.getElementById('meetSelect');
+            const value = select.value;
+            
+            if (!value) return;
+            
+            const meet = JSON.parse(value);
+            
+            document.getElementById('content').innerHTML = '<div class="loading"><p>Loading scores...</p></div>';
+            
+            try {
+                const response = await fetch(`/api/meet_scores?meet_name=${encodeURIComponent(meet.name)}&meet_date=${encodeURIComponent(meet.date)}`);
+                const data = await response.json();
+                
+                if (data.error) {
+                    document.getElementById('content').innerHTML = `<div class="empty-state"><h3>Error</h3><p>${data.error}</p></div>`;
+                    return;
+                }
+                
+                // Update meet info
+                document.getElementById('meetInfo').style.display = 'flex';
+                document.getElementById('meetName').textContent = data.meet_name;
+                document.getElementById('meetDate').textContent = formatDate(data.meet_date);
+                document.getElementById('compYear').textContent = data.comp_year;
+                
+                allScores = data.scores;
+                
+                // Group by athlete
+                const athleteScores = groupByAthlete(allScores);
+                const athleteData = Object.entries(athleteScores);
+                
+                // Calculate stats
+                const uniqueAthletes = athleteData.length;
+                let yearPBCount = 0;
+                let alltimePBCount = 0;
+                
+                allScores.forEach(s => {
+                    if (s.score === null) return;
+                    // Turquoise (all-time) takes priority over gold (year)
+                    if (s.is_alltime_pb) {
+                        alltimePBCount++;
+                    } else if (s.is_year_pb) {
+                        yearPBCount++;
+                    }
+                });
+                
+                document.getElementById('statsRow').style.display = 'grid';
+                document.getElementById('athleteCount').textContent = uniqueAthletes;
+                document.getElementById('yearPBs').textContent = yearPBCount;
+                document.getElementById('alltimePBs').textContent = alltimePBCount;
+                
+                renderTable(athleteData);
+            } catch (error) {
+                console.error('Error loading scores:', error);
+                document.getElementById('content').innerHTML = '<div class="empty-state"><h3>Error</h3><p>Failed to load scores</p></div>';
+            }
+        }
+
+        function groupByAthlete(scores) {
+            const grouped = {};
+            scores.forEach(s => {
+                if (!grouped[s.athlete]) {
+                    grouped[s.athlete] = [];
+                }
+                grouped[s.athlete].push(s);
+            });
+            return grouped;
+        }
+
+        function renderTable(athleteData) {
+            if (athleteData.length === 0) {
+                document.getElementById('content').innerHTML = `
+                    <div class="empty-state">
+                        <h3>No Scores</h3>
+                        <p>No scores found for this meet</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            // Sort by level, then by athlete name
+            athleteData.sort((a, b) => {
+                const levelA = a[1][0].level;
+                const levelB = b[1][0].level;
+                const levelDiff = getLevelSortOrder(levelA) - getLevelSortOrder(levelB);
+                if (levelDiff !== 0) return levelDiff;
+                return a[0].localeCompare(b[0]);
+            });
+            
+            let html = `
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Athlete</th>
+                                <th>Level</th>
+                                <th>Vault</th>
+                                <th>Bars</th>
+                                <th>Beam</th>
+                                <th>Floor</th>
+                                <th>AA</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+            
+            athleteData.forEach(([athlete, scores]) => {
+                const level = scores[0].level;
+                
+                // Create a map of event -> score data
+                const eventMap = {};
+                scores.forEach(s => {
+                    eventMap[s.event] = s;
+                });
+                
+                html += `
+                    <tr>
+                        <td class="athlete-name">${athlete}</td>
+                        <td><span class="level-badge">${level}</span></td>
+                `;
+                
+                EVENTS.forEach(event => {
+                    const s = eventMap[event];
+                    if (s && s.score !== null) {
+                        html += renderScoreCell(s);
+                    } else {
+                        html += `<td class="no-pb">—</td>`;
+                    }
+                });
+                
+                html += '</tr>';
+            });
+            
+            html += '</tbody></table></div>';
+            
+            document.getElementById('content').innerHTML = html;
+        }
+
+        function renderScoreCell(s) {
+            // Determine the class based on PB status
+            // Shiny gold: all-time PB for returning athlete (not first year at level)
+            // Gold: year PB (first year at level, OR beat this year's scores)
+            // Regular: not a PB
+            
+            let cellClass = 'score-cell';
+            let tooltipContent = '';
+            
+            const formatScore = (val) => val !== null && val !== undefined ? val.toFixed(3) : '-';
+            
+            if (s.is_alltime_pb) {
+                // Turquoise - returning athlete beat ALL previous scores at this level (including this year)
+                cellClass += ' alltime-pb';
+                tooltipContent = `
+                    <div class="tooltip-title alltime-pb">All-Time PB at Level!</div>
+                    ${s.alltime_best !== null ? `
+                    <div class="tooltip-row">
+                        <span class="tooltip-label">Previous Best (All-Time)</span>
+                        <span class="tooltip-value">${formatScore(s.alltime_best)}</span>
+                    </div>
+                    <div class="tooltip-row">
+                        <span class="tooltip-label">Improvement</span>
+                        <span class="tooltip-value improvement">${formatScore(s.alltime_improvement)}</span>
+                    </div>
+                    ` : ''}
+                    ${s.place ? `
+                    <div class="tooltip-row">
+                        <span class="tooltip-label">Place</span>
+                        <span class="tooltip-value">${getPlaceDisplay(s.place)}</span>
+                    </div>
+                    ` : ''}
+                    ${s.alltime_best_meet ? `
+                    <div class="tooltip-meet">
+                        Previous best at: ${s.alltime_best_meet} (${formatDate(s.alltime_best_date)})
+                    </div>
+                    ` : ''}
+                `;
+            } else if (s.is_year_pb) {
+                // Gold - year PB (beat all previous scores this year, not first meet)
+                cellClass += ' year-pb';
+                
+                tooltipContent = `
+                    <div class="tooltip-title year-pb">Year PB!</div>
+                    ${s.year_best !== null ? `
+                    <div class="tooltip-row">
+                        <span class="tooltip-label">Previous Best (Year)</span>
+                        <span class="tooltip-value">${formatScore(s.year_best)}</span>
+                    </div>
+                    <div class="tooltip-row">
+                        <span class="tooltip-label">Improvement</span>
+                        <span class="tooltip-value improvement">${formatScore(s.year_improvement)}</span>
+                    </div>
+                    ` : ''}
+                    ${s.place ? `
+                    <div class="tooltip-row">
+                        <span class="tooltip-label">Place</span>
+                        <span class="tooltip-value">${getPlaceDisplay(s.place)}</span>
+                    </div>
+                    ` : ''}
+                    ${s.year_best_meet ? `
+                    <div class="tooltip-meet">
+                        Year best at: ${s.year_best_meet} (${formatDate(s.year_best_date)})
+                    </div>
+                    ` : ''}
+                    ${s.alltime_best !== null && s.alltime_best > s.year_best ? `
+                    <div class="tooltip-row" style="margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border-color);">
+                        <span class="tooltip-label">All-Time Best to Beat</span>
+                        <span class="tooltip-value">${formatScore(s.alltime_best)}</span>
+                    </div>
+                    ` : ''}
+                `;
+            } else {
+                // Not a PB - show what they need to beat
+                tooltipContent = `
+                    <div class="tooltip-title">Best to Beat</div>
+                    ${s.year_best !== null ? `
+                    <div class="tooltip-row">
+                        <span class="tooltip-label">Year Best</span>
+                        <span class="tooltip-value">${formatScore(s.year_best)}</span>
+                    </div>
+                    <div class="tooltip-meet">
+                        Set at: ${s.year_best_meet} (${formatDate(s.year_best_date)})
+                    </div>
+                    ` : ''}
+                    ${s.alltime_best !== null && s.alltime_best !== s.year_best ? `
+                    <div class="tooltip-row" style="margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border-color);">
+                        <span class="tooltip-label">All-Time Best</span>
+                        <span class="tooltip-value">${formatScore(s.alltime_best)}</span>
+                    </div>
+                    <div class="tooltip-meet">
+                        Set at: ${s.alltime_best_meet} (${formatDate(s.alltime_best_date)})
+                    </div>
+                    ` : ''}
+                    ${s.place ? `
+                    <div class="tooltip-row" style="margin-top: 8px;">
+                        <span class="tooltip-label">Place</span>
+                        <span class="tooltip-value">${getPlaceDisplay(s.place)}</span>
+                    </div>
+                    ` : ''}
+                `;
+            }
+            
+            return `
+                <td class="${cellClass}" onmouseenter="positionTooltip(event)">
+                    <span class="score-value">${s.score.toFixed(3)}</span>
+                    <div class="tooltip">
+                        ${tooltipContent}
+                    </div>
+                </td>
+            `;
+        }
+
+        function positionTooltip(event) {
+            const cell = event.currentTarget;
+            const tooltip = cell.querySelector('.tooltip');
+            if (!tooltip) return;
+            
+            const rect = cell.getBoundingClientRect();
+            const tooltipRect = tooltip.getBoundingClientRect();
+            
+            // Position above the cell, centered
+            let left = rect.left + (rect.width / 2) - (tooltipRect.width / 2);
+            let top = rect.top - tooltipRect.height - 10;
+            
+            // Keep within viewport
+            if (left < 10) left = 10;
+            if (left + tooltipRect.width > window.innerWidth - 10) {
+                left = window.innerWidth - tooltipRect.width - 10;
+            }
+            if (top < 10) {
+                // Show below instead
+                top = rect.bottom + 10;
+            }
+            
+            tooltip.style.left = left + 'px';
+            tooltip.style.top = top + 'px';
+        }
+
+        function getPlaceDisplay(place) {
+            if (!place) return '-';
+            const suffix = place === 1 ? 'st' : place === 2 ? 'nd' : place === 3 ? 'rd' : 'th';
+            return `${place}${suffix}`;
+        }
+
+        function formatDate(dateStr) {
+            if (!dateStr) return '-';
+            const date = new Date(dateStr + 'T00:00:00');
+            return date.toLocaleDateString('en-US', { 
+                year: 'numeric', 
+                month: 'short', 
+                day: 'numeric' 
+            });
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', loadMeets);
+    </script>
+</body>
+</html>

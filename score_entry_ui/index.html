@@ -1,0 +1,1181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gymfest Score Entry</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-dark: #0f0f12;
+            --bg-card: #1a1a22;
+            --bg-elevated: #252532;
+            --accent-primary: #e85d75;
+            --accent-secondary: #64d2ff;
+            --accent-success: #30d158;
+            --accent-warning: #ffd60a;
+            --text-primary: #f5f5f7;
+            --text-secondary: #98989d;
+            --text-muted: #636366;
+            --border-color: #2c2c3a;
+            --shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            min-height: 100vh;
+            background-image: 
+                radial-gradient(ellipse at 20% 20%, rgba(232, 93, 117, 0.08) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 80%, rgba(100, 210, 255, 0.06) 0%, transparent 50%);
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 24px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 8px;
+        }
+
+        header p {
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+        }
+
+        .card {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 24px;
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow);
+        }
+
+        .card-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .card-title::before {
+            content: '';
+            width: 4px;
+            height: 24px;
+            background: linear-gradient(180deg, var(--accent-primary), var(--accent-secondary));
+            border-radius: 2px;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        label {
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        input, select {
+            background: var(--bg-elevated);
+            border: 2px solid var(--border-color);
+            border-radius: 10px;
+            padding: 12px 16px;
+            font-size: 1rem;
+            font-family: inherit;
+            color: var(--text-primary);
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 0 4px rgba(232, 93, 117, 0.15);
+        }
+
+        input.score-input {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.5rem;
+            font-weight: 600;
+            text-align: center;
+            width: 100%;
+            padding: 10px;
+        }
+
+        input.place-input {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.25rem;
+            font-weight: 600;
+            text-align: center;
+            width: 80px;
+            padding: 10px;
+        }
+
+        /* Score Entry Layout - now vertical */
+        .entry-layout {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        /* Events Grid */
+        .events-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 12px;
+        }
+
+        @media (max-width: 800px) {
+            .events-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+
+        .event-card {
+            background: var(--bg-elevated);
+            border-radius: 12px;
+            padding: 16px;
+            text-align: center;
+            border: 2px solid transparent;
+            transition: border-color 0.2s, transform 0.2s;
+        }
+
+        .event-card.active {
+            border-color: var(--accent-primary);
+            transform: scale(1.02);
+        }
+
+        .event-card h3 {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--accent-secondary);
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .event-card .score-place-row {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .event-card .field-label {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            margin-bottom: 4px;
+        }
+
+        .event-card .field-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* Keypad Styles */
+        .keypad-section {
+            width: 100%;
+        }
+        
+        .keypad-layout {
+            display: grid;
+            grid-template-columns: auto 1fr;
+            gap: 24px;
+            align-items: start;
+        }
+        
+        @media (max-width: 900px) {
+            .keypad-layout {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .keypad-toggle {
+            display: flex;
+            gap: 6px;
+        }
+
+        .toggle-btn {
+            padding: 10px 16px;
+            border: 2px solid var(--border-color);
+            background: var(--bg-elevated);
+            color: var(--text-secondary);
+            border-radius: 8px;
+            font-family: inherit;
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .toggle-btn.active {
+            background: var(--accent-primary);
+            border-color: var(--accent-primary);
+            color: white;
+        }
+
+        .keypad-tabs {
+            display: flex;
+            gap: 6px;
+        }
+
+        .tab-btn {
+            padding: 10px 20px;
+            border: none;
+            background: var(--bg-elevated);
+            color: var(--text-secondary);
+            border-radius: 8px;
+            font-family: inherit;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .tab-btn.active {
+            background: linear-gradient(135deg, var(--accent-primary), #c94860);
+            color: white;
+        }
+
+        .keypad-content {
+            display: none;
+        }
+
+        .keypad-content.active {
+            display: block;
+        }
+
+        /* Score Keypad */
+        .major-keys {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: repeat(2, 1fr);
+            gap: 10px;
+        }
+
+        .major-key {
+            padding: 24px 28px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 2rem;
+            font-weight: 700;
+            border: none;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #2d2d42, #252538);
+            color: var(--text-primary);
+            cursor: pointer;
+            transition: all 0.15s;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .major-key:hover {
+            transform: translateY(-2px);
+            background: linear-gradient(135deg, #3d3d58, #35354d);
+        }
+
+        .major-key:active {
+            transform: translateY(0);
+        }
+
+        .major-key.selected {
+            background: linear-gradient(135deg, var(--accent-primary), #c94860);
+            box-shadow: 0 4px 20px rgba(232, 93, 117, 0.4);
+        }
+
+        .minor-keys {
+            display: grid;
+            grid-template-columns: repeat(5, minmax(52px, 1fr)) 16px repeat(5, minmax(52px, 1fr));
+            grid-auto-rows: auto;
+            gap: 8px;
+        }
+
+        .minor-keys .gap {
+            width: 16px;
+            pointer-events: none;
+        }
+
+        .minor-key {
+            padding: 16px 6px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.05rem;
+            font-weight: 600;
+            border: none;
+            border-radius: 10px;
+            background: var(--bg-elevated);
+            color: var(--text-primary);
+            cursor: pointer;
+            transition: all 0.15s;
+            white-space: nowrap;
+        }
+
+        .minor-key:hover {
+            background: #35354d;
+            transform: translateY(-1px);
+        }
+
+        .minor-key:active {
+            transform: translateY(0);
+        }
+
+        .minor-key.selected {
+            background: var(--accent-secondary);
+            color: var(--bg-dark);
+        }
+
+        .minor-key.selected .digit-row2,
+        .minor-key.selected .digit-row3,
+        .minor-key.selected .digit-row4 {
+            color: var(--bg-dark);
+        }
+
+        /* Row-based coloring for extra digits */
+        .digit-row2 {
+            color: #ff9f43;
+        }
+
+        .digit-row3 {
+            color: #54a0ff;
+        }
+
+        .digit-row4 {
+            color: #a29bfe;
+        }
+
+        /* Place Keypad */
+        .place-keys {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 10px;
+        }
+
+        .place-key {
+            padding: 20px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.5rem;
+            font-weight: 700;
+            border: none;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #2d2d42, #252538);
+            color: var(--text-primary);
+            cursor: pointer;
+            transition: all 0.15s;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .place-key:hover {
+            transform: translateY(-2px);
+            background: linear-gradient(135deg, #3d3d58, #35354d);
+        }
+
+        .place-key.selected {
+            background: linear-gradient(135deg, var(--accent-success), #28b84a);
+            box-shadow: 0 4px 20px rgba(48, 209, 88, 0.4);
+        }
+
+        /* Action Buttons */
+        .actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 10px 18px;
+            border: none;
+            border-radius: 8px;
+            font-family: inherit;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent-success), #28b84a);
+            color: white;
+            box-shadow: 0 4px 12px rgba(48, 209, 88, 0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 16px rgba(48, 209, 88, 0.4);
+        }
+
+        .btn-secondary {
+            background: var(--bg-elevated);
+            color: var(--text-primary);
+            border: 2px solid var(--border-color);
+        }
+
+        .btn-secondary:hover {
+            border-color: var(--text-muted);
+        }
+        
+        /* Card header with title and actions */
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+        
+        .card-header .card-title {
+            margin-bottom: 0;
+        }
+
+        /* Toast Notification */
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            padding: 16px 24px;
+            background: var(--bg-card);
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+            border-left: 4px solid var(--accent-success);
+            transform: translateX(120%);
+            transition: transform 0.3s ease;
+            z-index: 1000;
+        }
+
+        .toast.show {
+            transform: translateX(0);
+        }
+
+        .toast.error {
+            border-left-color: var(--accent-primary);
+        }
+
+        /* Current Focus Indicator */
+        .focus-indicator {
+            background: var(--bg-elevated);
+            border-radius: 8px;
+            padding: 10px 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .focus-indicator .label {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+        }
+
+        .focus-indicator .value {
+            font-weight: 600;
+            font-size: 1.1rem;
+            color: var(--accent-secondary);
+        }
+
+        /* Clear button for fields */
+        .clear-field-btn {
+            padding: 6px 10px;
+            font-size: 0.75rem;
+            background: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--text-muted);
+            border-radius: 6px;
+            cursor: pointer;
+            margin-top: 6px;
+        }
+
+        .clear-field-btn:hover {
+            border-color: var(--accent-primary);
+            color: var(--accent-primary);
+        }
+
+        /* Athlete Input Row */
+        .athlete-row {
+            display: flex;
+            gap: 16px;
+            align-items: flex-end;
+        }
+
+        .athlete-row .form-group {
+            flex: 1;
+        }
+
+        .athlete-row .form-group:last-child {
+            flex: 0 0 150px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🤸 Gymfest Score Entry</h1>
+            <p>Streamlined score input for gymnastics competitions</p>
+            <div style="display: flex; justify-content: center; gap: 24px; margin-top: 12px;">
+                <a href="/personal-bests" style="color: var(--accent-secondary); text-decoration: none; font-size: 0.95rem;">Meet Scores →</a>
+                <a href="/meet-averages" style="color: var(--accent-secondary); text-decoration: none; font-size: 0.95rem;">Meet Averages →</a>
+            </div>
+        </header>
+
+        <!-- Session Setup -->
+        <div class="card">
+            <div class="card-title">Session Setup</div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="meetName">Meet Name</label>
+                    <input type="text" id="meetName" placeholder="e.g., Winter Classic 2026" list="meetsList">
+                    <datalist id="meetsList"></datalist>
+                </div>
+                <div class="form-group">
+                    <label for="meetDate">Meet Date</label>
+                    <input type="date" id="meetDate">
+                </div>
+                <div class="form-group">
+                    <label for="compYear">Competition Year</label>
+                    <input type="text" id="compYear" placeholder="e.g., 2026">
+                </div>
+                <div class="form-group">
+                    <label for="level">Level</label>
+                    <select id="level">
+                        <option value="">Select Level</option>
+                        <option value="1">Level 1</option>
+                        <option value="2">Level 2</option>
+                        <option value="3">Level 3</option>
+                        <option value="4">Level 4</option>
+                        <option value="5">Level 5</option>
+                        <option value="6">Level 6</option>
+                        <option value="7">Level 7</option>
+                        <option value="8">Level 8</option>
+                        <option value="9">Level 9</option>
+                        <option value="10">Level 10</option>
+                        <option value="XB">Xcel Bronze</option>
+                        <option value="XS">Xcel Silver</option>
+                        <option value="XG">Xcel Gold</option>
+                        <option value="XP">Xcel Platinum</option>
+                        <option value="XD">Xcel Diamond</option>
+                        <option value="XSA">Xcel Sapphire</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- Athlete Entry -->
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title">Athlete Scores</div>
+                <div class="actions">
+                    <button class="btn btn-secondary" onclick="clearAthlete()">Clear</button>
+                    <button class="btn btn-primary" onclick="submitScores()">Submit</button>
+                </div>
+            </div>
+            
+            <div class="athlete-row">
+                <div class="form-group">
+                    <label for="athleteName">Athlete Name</label>
+                    <input type="text" id="athleteName" placeholder="Enter athlete name" list="athletesList">
+                    <datalist id="athletesList"></datalist>
+                </div>
+            </div>
+
+            <div class="entry-layout">
+                <div class="events-section">
+                    <div class="events-grid" id="eventsGrid">
+                        <!-- Events will be generated by JS -->
+                    </div>
+                </div>
+
+                <div class="keypad-section">
+                    <div class="card" style="margin-bottom: 0;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 16px;">
+                            <div class="focus-indicator" style="margin-bottom: 0;">
+                                <span class="label">Current Field:</span>
+                                <span class="value" id="currentFieldLabel">None</span>
+                            </div>
+                            
+                            <div style="display: flex; gap: 8px;">
+                                <div class="keypad-toggle" style="margin-bottom: 0;">
+                                    <button class="toggle-btn active" id="simpleToggle" onclick="setMode('simple')">Simple</button>
+                                    <button class="toggle-btn" id="extendedToggle" onclick="setMode('extended')">Extended</button>
+                                </div>
+                                
+                                <div class="keypad-tabs" style="margin-bottom: 0;">
+                                    <button class="tab-btn active" id="scoreTab" onclick="showKeypad('score')">Score</button>
+                                    <button class="tab-btn" id="placeTab" onclick="showKeypad('place')">Place</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Score Keypad -->
+                        <div class="keypad-content active" id="scoreKeypad">
+                            <div class="keypad-layout">
+                                <div class="major-keys" id="majorKeys">
+                                    <!-- Generated by JS -->
+                                </div>
+                                <div class="minor-keys" id="minorKeys">
+                                    <!-- Generated by JS -->
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Place Keypad -->
+                        <div class="keypad-content" id="placeKeypad">
+                            <div class="place-keys" id="placeKeys">
+                                <!-- Generated by JS -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div class="toast" id="toast"></div>
+
+    <script>
+        // Events configuration
+        const EVENTS = ['Vault', 'Bars', 'Beam', 'Floor', 'All Around'];
+        
+        // Field navigation order: all scores, then all places
+        let fieldOrder = [];
+        let currentFieldIndex = 0;
+        let currentMode = 'simple';
+        let currentKeypad = 'score';
+        
+        // Selected values for current field
+        let selectedMajor = null;
+        let selectedMinor = null;
+
+        // Initialize the UI
+        function init() {
+            generateEventsGrid();
+            generateMajorKeys();
+            generateMinorKeys();
+            generatePlaceKeys();
+            buildFieldOrder();
+            loadAutocompleteData();
+            
+            // Set default date to today
+            document.getElementById('meetDate').valueAsDate = new Date();
+            
+            // Set default year
+            document.getElementById('compYear').value = new Date().getFullYear().toString();
+            
+            // Focus first field
+            if (fieldOrder.length > 0) {
+                focusField(0);
+            }
+        }
+
+        function generateEventsGrid() {
+            const grid = document.getElementById('eventsGrid');
+            grid.innerHTML = '';
+            
+            EVENTS.forEach((event, idx) => {
+                const isAllAround = idx === 4;
+                const card = document.createElement('div');
+                card.className = 'event-card';
+                card.id = `event-card-${idx}`;
+                card.innerHTML = `
+                    <h3>${event}</h3>
+                    <div class="field-group">
+                        <span class="field-label">${isAllAround ? 'Score (Auto)' : 'Score'}</span>
+                        <input type="text" 
+                               class="score-input ${isAllAround ? 'auto-calculated' : ''}" 
+                               id="score-${idx}" 
+                               data-event="${event}"
+                               data-type="score"
+                               data-index="${idx}"
+                               readonly
+                               placeholder="—"
+                               ${isAllAround ? 'style="background: #1a1a2e; color: var(--accent-warning);"' : ''}>
+                    </div>
+                    <div class="field-group" style="margin-top: 8px;">
+                        <span class="field-label">Place</span>
+                        <input type="text" 
+                               class="place-input" 
+                               id="place-${idx}" 
+                               data-event="${event}"
+                               data-type="place"
+                               data-index="${idx}"
+                               readonly
+                               placeholder="—">
+                    </div>
+                    ${isAllAround ? '' : `<button class="clear-field-btn" onclick="clearEvent(${idx})">Clear</button>`}
+                `;
+                grid.appendChild(card);
+            });
+
+            // Add click handlers to inputs (except All Around score which is auto-calculated)
+            document.querySelectorAll('.score-input:not(.auto-calculated), .place-input').forEach(input => {
+                input.addEventListener('click', () => {
+                    const idx = parseInt(input.dataset.index);
+                    const type = input.dataset.type;
+                    const fieldIdx = fieldOrder.findIndex(f => f.index === idx && f.type === type);
+                    if (fieldIdx !== -1) {
+                        focusField(fieldIdx);
+                    }
+                });
+            });
+        }
+
+        function generateMajorKeys() {
+            const container = document.getElementById('majorKeys');
+            container.innerHTML = '';
+            
+            [4, 5, 6, 7, 8, 9].forEach(num => {
+                const btn = document.createElement('button');
+                btn.className = 'major-key';
+                btn.textContent = num;
+                btn.onclick = () => selectMajor(num);
+                container.appendChild(btn);
+            });
+        }
+
+        function generateMinorKeys() {
+            const container = document.getElementById('minorKeys');
+            container.innerHTML = '';
+            
+            // Format value without trailing zeros, but keep at least one digit after decimal
+            const formatMinor = (val) => {
+                // Convert to string with 3 decimal places, then trim trailing zeros
+                let str = val.toFixed(3);
+                // Remove trailing zeros after decimal, but keep at least one digit
+                str = str.replace(/(\.\d*?)0+$/, '$1');
+                // If we end up with just "0.", make it "0.0"
+                if (str.endsWith('.')) str += '0';
+                // Remove leading zero
+                return str.replace(/^0/, '');
+            };
+            
+            // Get the row type (which determines the colored suffix)
+            // Row 0: .X00 -> no suffix (e.g., .1, .2)
+            // Row 1: .X25 -> suffix "25" colored (orange)
+            // Row 2: .X50 -> suffix "5" colored (blue)
+            // Row 3: .X75 -> suffix "75" colored (purple)
+            const getRowType = (val) => {
+                // Use string parsing to avoid floating point issues
+                const str = val.toFixed(3); // "0.025", "0.125", etc.
+                const hundredths = parseInt(str[3]);  // position 0.0X0
+                const thousandths = parseInt(str[4]); // position 0.00X
+                
+                if (hundredths === 0 && thousandths === 0) return 0; // .X00
+                if (hundredths === 2 && thousandths === 5) return 1; // .X25
+                if (hundredths === 5 && thousandths === 0) return 2; // .X50
+                if (hundredths === 7 && thousandths === 5) return 3; // .X75
+                return 0;
+            };
+            
+            // Create display HTML with colored suffix
+            const createDisplayHTML = (val, rowType) => {
+                const formatted = formatMinor(val);
+                // Row 0: no coloring (just tenths like .1, .2)
+                if (rowType === 0) return formatted;
+                
+                // For other rows, color the extra digits after the tenths place
+                // e.g., .125 -> tenths="1", suffix="25"
+                const tenths = formatted.slice(0, 2); // ".X"
+                const suffix = formatted.slice(2);    // remaining digits
+                
+                const colorClass = `digit-row${rowType + 1}`;
+                return `${tenths}<span class="${colorClass}">${suffix}</span>`;
+            };
+            
+            // Full layout with all values
+            const fullLayout = [
+                [0.000, 0.100, 0.200, 0.300, 0.400, 0.500, 0.600, 0.700, 0.800, 0.900],
+                [0.025, 0.125, 0.225, 0.325, 0.425, 0.525, 0.625, 0.725, 0.825, 0.925],
+                [0.050, 0.150, 0.250, 0.350, 0.450, 0.550, 0.650, 0.750, 0.850, 0.950],
+                [0.075, 0.175, 0.275, 0.375, 0.475, 0.575, 0.675, 0.775, 0.875, 0.975]
+            ];
+            
+            // Simple layout (only .X00 and .X50 values)
+            const simpleLayout = [
+                [0.000, 0.100, 0.200, 0.300, 0.400, 0.500, 0.600, 0.700, 0.800, 0.900],
+                [0.050, 0.150, 0.250, 0.350, 0.450, 0.550, 0.650, 0.750, 0.850, 0.950]
+            ];
+            
+            const layout = currentMode === 'simple' ? simpleLayout : fullLayout;
+            
+            for (let row = 0; row < layout.length; row++) {
+                for (let col = 0; col < 10; col++) {
+                    // Add gap spacer after column 5 (index 4)
+                    if (col === 5) {
+                        const gap = document.createElement('div');
+                        gap.className = 'gap';
+                        container.appendChild(gap);
+                    }
+                    
+                    const value = layout[row][col];
+                    const btn = document.createElement('button');
+                    const rowType = getRowType(value);
+                    
+                    btn.className = 'minor-key';
+                    btn.innerHTML = createDisplayHTML(value, rowType);
+                    btn.dataset.value = value.toFixed(3);
+                    btn.onclick = () => selectMinor(value);
+                    
+                    container.appendChild(btn);
+                }
+            }
+        }
+
+        function generatePlaceKeys() {
+            const container = document.getElementById('placeKeys');
+            container.innerHTML = '';
+            
+            for (let i = 1; i <= 10; i++) {
+                const btn = document.createElement('button');
+                btn.className = 'place-key';
+                btn.textContent = i;
+                btn.onclick = () => selectPlace(i);
+                container.appendChild(btn);
+            }
+        }
+
+        function buildFieldOrder() {
+            fieldOrder = [];
+            
+            // First scores for Vault, Bars, Beam, Floor (NOT All Around - it's auto-calculated)
+            for (let idx = 0; idx < 4; idx++) {
+                fieldOrder.push({ type: 'score', index: idx, event: EVENTS[idx] });
+            }
+            
+            // Then all places (including All Around)
+            EVENTS.forEach((event, idx) => {
+                fieldOrder.push({ type: 'place', index: idx, event: event });
+            });
+        }
+        
+        function calculateAllAround() {
+            let total = 0;
+            let validScores = 0;
+            
+            // Sum Vault (0), Bars (1), Beam (2), Floor (3)
+            for (let idx = 0; idx < 4; idx++) {
+                const scoreVal = document.getElementById(`score-${idx}`).value;
+                if (scoreVal && !isNaN(parseFloat(scoreVal))) {
+                    total += parseFloat(scoreVal);
+                    validScores++;
+                }
+            }
+            
+            // Only set All Around if all 4 events have scores
+            const aaInput = document.getElementById('score-4');
+            if (validScores === 4) {
+                aaInput.value = total.toFixed(3);
+            } else {
+                aaInput.value = '';
+            }
+        }
+
+        function focusField(index) {
+            if (index < 0 || index >= fieldOrder.length) return;
+            
+            currentFieldIndex = index;
+            const field = fieldOrder[index];
+            
+            // Update visual indicators
+            document.querySelectorAll('.event-card').forEach(card => card.classList.remove('active'));
+            document.getElementById(`event-card-${field.index}`).classList.add('active');
+            
+            // Update focus label
+            const typeLabel = field.type === 'score' ? 'Score' : 'Place';
+            document.getElementById('currentFieldLabel').textContent = `${field.event} ${typeLabel}`;
+            
+            // Switch to appropriate keypad
+            showKeypad(field.type);
+            
+            // Reset selections
+            selectedMajor = null;
+            selectedMinor = null;
+            updateKeySelections();
+            
+            // Focus the input element
+            const inputId = `${field.type}-${field.index}`;
+            document.getElementById(inputId).focus();
+        }
+
+        function advanceToNextField() {
+            const nextIndex = currentFieldIndex + 1;
+            if (nextIndex < fieldOrder.length) {
+                focusField(nextIndex);
+            }
+        }
+
+        function selectMajor(num) {
+            selectedMajor = num;
+            updateKeySelections();
+            updateCurrentScoreDisplay();
+        }
+
+        function selectMinor(value) {
+            if (selectedMajor === null) {
+                showToast('Select a major score (4-9) first', true);
+                return;
+            }
+            
+            selectedMinor = value;
+            updateKeySelections();
+            updateCurrentScoreDisplay();
+            
+            // Auto-advance to next score field or switch to place
+            advanceToNextField();
+        }
+
+        function selectPlace(num) {
+            const field = fieldOrder[currentFieldIndex];
+            if (field.type !== 'place') {
+                // Find the corresponding place field
+                const placeFieldIndex = fieldOrder.findIndex(f => f.type === 'place' && f.index === field.index);
+                if (placeFieldIndex !== -1) {
+                    currentFieldIndex = placeFieldIndex;
+                }
+            }
+            
+            // Set the place value
+            const currentField = fieldOrder[currentFieldIndex];
+            const inputId = `place-${currentField.index}`;
+            document.getElementById(inputId).value = num;
+            
+            updatePlaceKeySelections(num);
+            
+            // Auto-advance
+            advanceToNextField();
+        }
+
+        function updateCurrentScoreDisplay() {
+            if (selectedMajor === null) return;
+            
+            const field = fieldOrder[currentFieldIndex];
+            if (field.type !== 'score') return;
+            
+            const minor = selectedMinor !== null ? selectedMinor : 0;
+            const score = selectedMajor + minor;
+            
+            const inputId = `score-${field.index}`;
+            document.getElementById(inputId).value = score.toFixed(3);
+            
+            // Recalculate All Around whenever any event score changes
+            calculateAllAround();
+        }
+
+        function updateKeySelections() {
+            // Update major keys
+            document.querySelectorAll('.major-key').forEach(btn => {
+                btn.classList.toggle('selected', parseInt(btn.textContent) === selectedMajor);
+            });
+            
+            // Update minor keys
+            document.querySelectorAll('.minor-key').forEach(btn => {
+                const val = parseFloat(btn.dataset.value);
+                btn.classList.toggle('selected', val === selectedMinor);
+            });
+        }
+
+        function updatePlaceKeySelections(selected) {
+            document.querySelectorAll('.place-key').forEach(btn => {
+                btn.classList.toggle('selected', parseInt(btn.textContent) === selected);
+            });
+        }
+
+        function showKeypad(type) {
+            currentKeypad = type;
+            
+            document.getElementById('scoreKeypad').classList.toggle('active', type === 'score');
+            document.getElementById('placeKeypad').classList.toggle('active', type === 'place');
+            
+            document.getElementById('scoreTab').classList.toggle('active', type === 'score');
+            document.getElementById('placeTab').classList.toggle('active', type === 'place');
+        }
+
+        function setMode(mode) {
+            currentMode = mode;
+            
+            document.getElementById('simpleToggle').classList.toggle('active', mode === 'simple');
+            document.getElementById('extendedToggle').classList.toggle('active', mode === 'extended');
+            
+            // Regenerate minor keys with new layout
+            generateMinorKeys();
+        }
+
+        function clearEvent(index) {
+            document.getElementById(`score-${index}`).value = '';
+            document.getElementById(`place-${index}`).value = '';
+            // Recalculate All Around
+            calculateAllAround();
+        }
+
+        function clearAthlete() {
+            document.getElementById('athleteName').value = '';
+            // Clear all events including All Around
+            EVENTS.forEach((_, idx) => {
+                document.getElementById(`score-${idx}`).value = '';
+                document.getElementById(`place-${idx}`).value = '';
+            });
+            focusField(0);
+        }
+
+        async function submitScores() {
+            const meetName = document.getElementById('meetName').value.trim();
+            const meetDate = document.getElementById('meetDate').value;
+            const compYear = document.getElementById('compYear').value.trim();
+            const level = document.getElementById('level').value;
+            const athleteName = document.getElementById('athleteName').value.trim();
+            
+            if (!meetName || !meetDate || !compYear || !level || !athleteName) {
+                showToast('Please fill in all session and athlete fields', true);
+                return;
+            }
+            
+            const events = [];
+            EVENTS.forEach((event, idx) => {
+                const score = document.getElementById(`score-${idx}`).value;
+                const place = document.getElementById(`place-${idx}`).value;
+                
+                if (score) {
+                    events.push({
+                        event: event,
+                        score: score,
+                        place: place || null
+                    });
+                }
+            });
+            
+            if (events.length === 0) {
+                showToast('Please enter at least one score', true);
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/submit_scores', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        meetName,
+                        meetDate,
+                        compYear,
+                        level,
+                        athleteName,
+                        events
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showToast(`✓ ${result.message}`);
+                    clearAthlete();
+                    document.getElementById('athleteName').focus();
+                } else {
+                    showToast(result.error || 'Error submitting scores', true);
+                }
+            } catch (error) {
+                showToast('Network error: ' + error.message, true);
+            }
+        }
+
+        function showToast(message, isError = false) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.classList.toggle('error', isError);
+            toast.classList.add('show');
+            
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+
+        async function loadAutocompleteData() {
+            try {
+                const [athletesRes, meetsRes] = await Promise.all([
+                    fetch('/api/recent_athletes'),
+                    fetch('/api/recent_meets')
+                ]);
+                
+                const athletes = await athletesRes.json();
+                const meets = await meetsRes.json();
+                
+                const athletesList = document.getElementById('athletesList');
+                athletes.forEach(name => {
+                    const option = document.createElement('option');
+                    option.value = name;
+                    athletesList.appendChild(option);
+                });
+                
+                const meetsList = document.getElementById('meetsList');
+                meets.forEach(name => {
+                    const option = document.createElement('option');
+                    option.value = name;
+                    meetsList.appendChild(option);
+                });
+            } catch (error) {
+                console.log('Could not load autocomplete data');
+            }
+        }
+
+        // Keyboard navigation
+        document.addEventListener('keydown', (e) => {
+            // Tab/Enter to advance
+            if (e.key === 'Tab' && !e.shiftKey) {
+                e.preventDefault();
+                advanceToNextField();
+            } else if (e.key === 'Tab' && e.shiftKey) {
+                e.preventDefault();
+                if (currentFieldIndex > 0) {
+                    focusField(currentFieldIndex - 1);
+                }
+            }
+            
+            // Number keys for quick entry when in keypad mode
+            if (currentKeypad === 'score' && fieldOrder[currentFieldIndex]?.type === 'score') {
+                const num = parseInt(e.key);
+                if (num >= 4 && num <= 9) {
+                    selectMajor(num);
+                }
+            } else if (currentKeypad === 'place' && fieldOrder[currentFieldIndex]?.type === 'place') {
+                const num = parseInt(e.key);
+                if (num >= 1 && num <= 9) {
+                    selectPlace(num);
+                } else if (e.key === '0') {
+                    selectPlace(10);
+                }
+            }
+        });
+
+        // Initialize on load
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>

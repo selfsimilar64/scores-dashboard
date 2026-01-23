@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meet Averages - Gymfest</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-dark: #0f0f12;
+            --bg-card: #1a1a22;
+            --bg-elevated: #252532;
+            --accent-primary: #e85d75;
+            --accent-secondary: #64d2ff;
+            --accent-success: #30d158;
+            --accent-warning: #ffd60a;
+            --accent-gold: #ffd700;
+            --text-primary: #f5f5f7;
+            --text-secondary: #98989d;
+            --text-muted: #636366;
+            --border-color: #2c2c3a;
+            --shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            min-height: 100vh;
+            background-image: 
+                radial-gradient(ellipse at 20% 20%, rgba(100, 210, 255, 0.06) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 80%, rgba(232, 93, 117, 0.05) 0%, transparent 50%);
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 24px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--accent-secondary), var(--accent-primary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 8px;
+        }
+
+        header p {
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+        }
+
+        .nav-links {
+            display: flex;
+            justify-content: center;
+            gap: 24px;
+            margin-top: 12px;
+        }
+
+        .nav-link {
+            color: var(--accent-secondary);
+            text-decoration: none;
+            font-size: 0.95rem;
+        }
+
+        .nav-link:hover {
+            text-decoration: underline;
+        }
+
+        .card {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 24px;
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow);
+        }
+
+        .card-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .card-title::before {
+            content: '';
+            width: 4px;
+            height: 24px;
+            background: linear-gradient(180deg, var(--accent-secondary), var(--accent-primary));
+            border-radius: 2px;
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .card-header .card-title {
+            margin-bottom: 0;
+        }
+
+        .controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .controls label {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .controls select {
+            background: var(--bg-elevated);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 8px 12px;
+            font-family: 'Outfit', sans-serif;
+            font-size: 0.9rem;
+            cursor: pointer;
+        }
+
+        .controls select:focus {
+            outline: none;
+            border-color: var(--accent-secondary);
+        }
+
+        /* Table styles */
+        .table-container {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 1200px;
+        }
+
+        th, td {
+            padding: 12px 10px;
+            text-align: center;
+        }
+
+        th {
+            background: var(--bg-elevated);
+            font-weight: 600;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-secondary);
+            border-bottom: 2px solid var(--border-color);
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        th:first-child {
+            text-align: left;
+            min-width: 200px;
+        }
+
+        td {
+            border-bottom: 1px solid var(--border-color);
+            font-size: 0.9rem;
+        }
+
+        td:first-child {
+            text-align: left;
+            font-weight: 500;
+        }
+
+        tr:hover td {
+            background: rgba(100, 210, 255, 0.03);
+        }
+
+        .meet-name {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .meet-date {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-top: 2px;
+        }
+
+        .score-cell {
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 500;
+            font-size: 0.95rem;
+        }
+
+        .score-cell.has-value {
+            color: var(--text-primary);
+        }
+
+        .score-cell.no-value {
+            color: var(--text-muted);
+        }
+
+        .gymfest-col {
+            background: rgba(100, 210, 255, 0.05);
+            border-left: 2px solid var(--accent-secondary);
+        }
+
+        th.gymfest-col {
+            color: var(--accent-secondary);
+            background: rgba(100, 210, 255, 0.1);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 48px;
+            color: var(--text-muted);
+        }
+
+        .loading {
+            text-align: center;
+            padding: 48px;
+            color: var(--text-secondary);
+        }
+
+        /* Level group colors */
+        .level-group-compulsory th {
+            color: var(--accent-success);
+        }
+
+        .level-group-optional th {
+            color: var(--accent-warning);
+        }
+
+        .level-group-xcel th {
+            color: var(--accent-primary);
+        }
+
+        /* Tooltip */
+        .score-cell.team-score {
+            cursor: pointer;
+            position: relative;
+        }
+
+        .score-cell.team-score:hover {
+            background: rgba(100, 210, 255, 0.1);
+        }
+
+        .tooltip {
+            position: fixed;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 12px 16px;
+            z-index: 1000;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+            pointer-events: none;
+            min-width: 180px;
+        }
+
+        .tooltip-title {
+            font-weight: 600;
+            color: var(--accent-secondary);
+            margin-bottom: 8px;
+            font-size: 0.85rem;
+        }
+
+        .tooltip-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 4px 0;
+            font-size: 0.85rem;
+        }
+
+        .tooltip-athlete {
+            color: var(--text-primary);
+        }
+
+        .tooltip-score {
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--accent-gold);
+            font-weight: 500;
+        }
+
+        .tooltip-total {
+            border-top: 1px solid var(--border-color);
+            margin-top: 8px;
+            padding-top: 8px;
+            font-weight: 600;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .container {
+                padding: 16px;
+            }
+            
+            header h1 {
+                font-size: 1.8rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📊 Meet Averages</h1>
+            <p>Average All Around scores by Meet and Level</p>
+            <div class="nav-links">
+                <a href="/" class="nav-link">← Score Entry</a>
+                <a href="/personal-bests" class="nav-link">Meet Scores</a>
+            </div>
+        </header>
+
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title">All Around Averages by Level</div>
+                <div class="controls">
+                    <label for="displayMode">Show:</label>
+                    <select id="displayMode">
+                        <option value="avg">Avg All Around</option>
+                        <option value="team">Team Score</option>
+                    </select>
+                    <label for="compYearSelect">Comp Year:</label>
+                    <select id="compYearSelect">
+                        <option value="2026">2026</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div id="content">
+                <div class="loading">
+                    <p>Loading meet averages...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentCompYear = '2026';
+        let displayMode = 'avg'; // 'avg' or 'team'
+        let meetsData = null;
+        let levelOrder = null;
+
+        async function loadMeetAverages() {
+            try {
+                const response = await fetch(`/api/meet_level_averages?comp_year=${currentCompYear}`);
+                const data = await response.json();
+                
+                // Populate comp year dropdown
+                const select = document.getElementById('compYearSelect');
+                select.innerHTML = data.all_comp_years.map(year => 
+                    `<option value="${year}" ${year === data.comp_year ? 'selected' : ''}>${year}</option>`
+                ).join('');
+                
+                if (!data.meets || data.meets.length === 0) {
+                    document.getElementById('content').innerHTML = `
+                        <div class="empty-state">
+                            <h3>No Data</h3>
+                            <p>No meet data found for ${currentCompYear}</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                // Store data for re-rendering on mode change
+                meetsData = data.meets;
+                levelOrder = data.level_order;
+                
+                renderTable();
+            } catch (error) {
+                console.error('Error loading meet averages:', error);
+                document.getElementById('content').innerHTML = `
+                    <div class="empty-state">
+                        <h3>Error</h3>
+                        <p>Failed to load meet averages</p>
+                    </div>
+                `;
+            }
+        }
+
+        function renderTable() {
+            const isTeamMode = displayMode === 'team';
+            
+            let html = `
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Meet</th>
+            `;
+            
+            // Add level headers
+            levelOrder.forEach(level => {
+                html += `<th>${level}</th>`;
+            });
+            
+            // Add Gymfest column
+            html += `<th class="gymfest-col">Gymfest</th>`;
+            html += `</tr></thead><tbody>`;
+            
+            // Add rows for each meet
+            meetsData.forEach((meet, meetIdx) => {
+                const dateDisplay = formatMeetDates(meet.meet_dates || [meet.meet_date]);
+                html += `
+                    <tr>
+                        <td>
+                            <div class="meet-name">${meet.meet_name}</div>
+                            <div class="meet-date">${dateDisplay}</div>
+                        </td>
+                `;
+                
+                // Add score cells for each level
+                levelOrder.forEach((level, levelIdx) => {
+                    const levelData = meet.levels[level];
+                    if (levelData) {
+                        const value = isTeamMode ? levelData.team_score : levelData.avg;
+                        if (value !== null && value !== undefined) {
+                            const cellClass = isTeamMode ? 'score-cell has-value team-score' : 'score-cell has-value';
+                            const dataAttr = isTeamMode ? `data-meet="${meetIdx}" data-level="${level}"` : '';
+                            html += `<td class="${cellClass}" ${dataAttr}>${value.toFixed(1)}</td>`;
+                        } else {
+                            html += `<td class="score-cell no-value">—</td>`;
+                        }
+                    } else {
+                        html += `<td class="score-cell no-value">—</td>`;
+                    }
+                });
+                
+                // Add Gymfest column
+                const gymfestValue = isTeamMode ? meet.gymfest_team_score : meet.gymfest_avg;
+                if (gymfestValue !== null && gymfestValue !== undefined) {
+                    const gymfestClass = isTeamMode ? 'score-cell has-value gymfest-col team-score' : 'score-cell has-value gymfest-col';
+                    const gymfestDataAttr = isTeamMode ? `data-meet="${meetIdx}" data-level="gymfest"` : '';
+                    html += `<td class="${gymfestClass}" ${gymfestDataAttr}>${gymfestValue.toFixed(1)}</td>`;
+                } else {
+                    html += `<td class="score-cell no-value gymfest-col">—</td>`;
+                }
+                
+                html += `</tr>`;
+            });
+            
+            html += `</tbody></table></div>`;
+            
+            document.getElementById('content').innerHTML = html;
+            
+            // Add tooltip listeners if in team mode
+            if (isTeamMode) {
+                setupTooltips();
+            }
+        }
+
+        function setupTooltips() {
+            const tooltip = document.createElement('div');
+            tooltip.className = 'tooltip';
+            tooltip.style.display = 'none';
+            document.body.appendChild(tooltip);
+
+            document.querySelectorAll('.team-score').forEach(cell => {
+                cell.addEventListener('mouseenter', (e) => {
+                    const meetIdx = parseInt(cell.dataset.meet);
+                    const level = cell.dataset.level;
+                    const meet = meetsData[meetIdx];
+                    
+                    let top3, teamScore, title;
+                    
+                    if (level === 'gymfest') {
+                        // Gymfest column - top 3 across all levels
+                        if (!meet.gymfest_top3) return;
+                        top3 = meet.gymfest_top3;
+                        teamScore = meet.gymfest_team_score;
+                        title = 'Top 3 - All Levels';
+                    } else {
+                        // Level-specific column
+                        const levelData = meet.levels[level];
+                        if (!levelData || !levelData.top3) return;
+                        top3 = levelData.top3;
+                        teamScore = levelData.team_score;
+                        title = `Top 3 - Level ${level}`;
+                    }
+                    
+                    let tooltipHtml = `<div class="tooltip-title">${title}</div>`;
+                    top3.forEach((item, idx) => {
+                        const levelLabel = item.level ? ` (${item.level})` : '';
+                        tooltipHtml += `
+                            <div class="tooltip-row">
+                                <span class="tooltip-athlete">${idx + 1}. ${item.athlete}${levelLabel}</span>
+                                <span class="tooltip-score">${item.score.toFixed(2)}</span>
+                            </div>
+                        `;
+                    });
+                    tooltipHtml += `
+                        <div class="tooltip-row tooltip-total">
+                            <span>Team Score</span>
+                            <span class="tooltip-score">${teamScore.toFixed(2)}</span>
+                        </div>
+                    `;
+                    
+                    tooltip.innerHTML = tooltipHtml;
+                    tooltip.style.display = 'block';
+                    
+                    // Position tooltip
+                    const rect = cell.getBoundingClientRect();
+                    let left = rect.left + rect.width / 2;
+                    let top = rect.top - tooltip.offsetHeight - 10;
+                    
+                    // Keep within viewport
+                    if (top < 10) top = rect.bottom + 10;
+                    if (left + tooltip.offsetWidth / 2 > window.innerWidth - 10) {
+                        left = window.innerWidth - tooltip.offsetWidth - 10;
+                    } else {
+                        left -= tooltip.offsetWidth / 2;
+                    }
+                    if (left < 10) left = 10;
+                    
+                    tooltip.style.left = left + 'px';
+                    tooltip.style.top = top + 'px';
+                });
+                
+                cell.addEventListener('mouseleave', () => {
+                    tooltip.style.display = 'none';
+                });
+            });
+        }
+
+        function formatDate(dateStr) {
+            if (!dateStr) return '';
+            const date = new Date(dateStr + 'T00:00:00');
+            return date.toLocaleDateString('en-US', { 
+                year: 'numeric', 
+                month: 'short', 
+                day: 'numeric' 
+            });
+        }
+
+        function formatMeetDates(dates) {
+            if (!dates || dates.length === 0) return '';
+            if (dates.length === 1) return formatDate(dates[0]);
+            
+            // Multiple dates - show count or abbreviated list
+            const formatted = dates.map(d => {
+                const date = new Date(d + 'T00:00:00');
+                return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            });
+            
+            if (dates.length <= 3) {
+                return formatted.join(', ');
+            } else {
+                return `${formatted[0]} + ${dates.length - 1} more`;
+            }
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            loadMeetAverages();
+            
+            document.getElementById('compYearSelect').addEventListener('change', (e) => {
+                currentCompYear = e.target.value;
+                loadMeetAverages();
+            });
+            
+            document.getElementById('displayMode').addEventListener('change', (e) => {
+                displayMode = e.target.value;
+                if (meetsData) {
+                    // Remove existing tooltip if any
+                    const existingTooltip = document.querySelector('.tooltip');
+                    if (existingTooltip) existingTooltip.remove();
+                    renderTable();
+                }
+            });
+        });
+    </script>
+</body>
+</html>

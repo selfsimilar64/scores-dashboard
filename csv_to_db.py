@@ -87,9 +87,9 @@ if __name__ == "__main__":
     #                    db_uri='sqlite:///meetstats.db', 
     #                    table_name='meet_stats')
 
-    append_data_from_csv(csv_file_path='raw_stats/all_american_challenge_2024_stats.csv', 
+    append_data_from_csv(csv_file_path='raw_scores/thi_2026_gymfest_scores.csv', 
                          db_uri='sqlite:///database.db', 
-                         table_name='stats')
+                         table_name='scores')
 
     # This main block is for demonstration or testing within the script.
     # The user's specific request will be executed via a direct python command.
