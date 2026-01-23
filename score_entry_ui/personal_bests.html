@@ -781,7 +781,11 @@
             let cellClass = 'score-cell';
             let tooltipContent = '';
             
-            const formatScore = (val) => val !== null && val !== undefined ? val.toFixed(3) : '-';
+            const formatScore = (val) => {
+                if (val === null || val === undefined) return '-';
+                const num = typeof val === 'string' ? parseFloat(val) : val;
+                return isNaN(num) ? '-' : num.toFixed(3);
+            };
             
             if (s.is_alltime_pb) {
                 // Turquoise - returning athlete beat ALL previous scores at this level (including this year)
@@ -877,7 +881,7 @@
             
             return `
                 <td class="${cellClass}" onmouseenter="positionTooltip(event)">
-                    <span class="score-value">${s.score.toFixed(3)}</span>
+                    <span class="score-value">${formatScore(s.score)}</span>
                     <div class="tooltip">
                         ${tooltipContent}
                     </div>

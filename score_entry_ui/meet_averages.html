@@ -398,6 +398,13 @@
             }
         }
 
+        // Helper to safely format numbers (handles string decimals from PostgreSQL)
+        function toFixed(val, decimals) {
+            if (val === null || val === undefined) return '-';
+            const num = typeof val === 'string' ? parseFloat(val) : val;
+            return isNaN(num) ? '-' : num.toFixed(decimals);
+        }
+
         function renderTable() {
             const isTeamMode = displayMode === 'team';
             
@@ -437,7 +444,7 @@
                         if (value !== null && value !== undefined) {
                             const cellClass = isTeamMode ? 'score-cell has-value team-score' : 'score-cell has-value';
                             const dataAttr = isTeamMode ? `data-meet="${meetIdx}" data-level="${level}"` : '';
-                            html += `<td class="${cellClass}" ${dataAttr}>${value.toFixed(1)}</td>`;
+                            html += `<td class="${cellClass}" ${dataAttr}>${toFixed(value, 1)}</td>`;
                         } else {
                             html += `<td class="score-cell no-value">—</td>`;
                         }
@@ -451,7 +458,7 @@
                 if (gymfestValue !== null && gymfestValue !== undefined) {
                     const gymfestClass = isTeamMode ? 'score-cell has-value gymfest-col team-score' : 'score-cell has-value gymfest-col';
                     const gymfestDataAttr = isTeamMode ? `data-meet="${meetIdx}" data-level="gymfest"` : '';
-                    html += `<td class="${gymfestClass}" ${gymfestDataAttr}>${gymfestValue.toFixed(1)}</td>`;
+                    html += `<td class="${gymfestClass}" ${gymfestDataAttr}>${toFixed(gymfestValue, 1)}</td>`;
                 } else {
                     html += `<td class="score-cell no-value gymfest-col">—</td>`;
                 }
@@ -504,14 +511,14 @@
                         tooltipHtml += `
                             <div class="tooltip-row">
                                 <span class="tooltip-athlete">${idx + 1}. ${item.athlete}${levelLabel}</span>
-                                <span class="tooltip-score">${item.score.toFixed(2)}</span>
+                                <span class="tooltip-score">${toFixed(item.score, 2)}</span>
                             </div>
                         `;
                     });
                     tooltipHtml += `
                         <div class="tooltip-row tooltip-total">
                             <span>Team Score</span>
-                            <span class="tooltip-score">${teamScore.toFixed(2)}</span>
+                            <span class="tooltip-score">${toFixed(teamScore, 2)}</span>
                         </div>
                     `;
                     
