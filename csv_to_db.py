@@ -1,12 +1,32 @@
+import os
 import pandas as pd
 from sqlalchemy import create_engine
+from dotenv import load_dotenv
 
-def create_db_from_csv(csv_file_path: str, db_uri: str, table_name: str):
+# Load environment variables from .env file
+load_dotenv()
+
+def get_database_uri():
+    """Get database URI from environment variable or default to local SQLite."""
+    db_url = os.environ.get('DATABASE_URL')
+    if db_url:
+        # SQLAlchemy requires postgresql:// not postgres://
+        if db_url.startswith('postgres://'):
+            db_url = db_url.replace('postgres://', 'postgresql://', 1)
+        return db_url
+    return 'sqlite:///database.db'
+
+def create_db_from_csv(csv_file_path: str, db_uri: str = None, table_name: str = 'scores'):
     """
     Reads a CSV file and creates/replaces a table in the specified database
     with the structure and data from the CSV.
     Data types are inferred by pandas.
+    
+    If db_uri is not provided, uses DATABASE_URL environment variable.
     """
+    if db_uri is None:
+        db_uri = get_database_uri()
+    
     try:
         # Read the CSV file
         df = pd.read_csv(csv_file_path)
@@ -35,7 +55,7 @@ def create_db_from_csv(csv_file_path: str, db_uri: str, table_name: str):
     except Exception as e:
         print(f"An error occurred while creating table from '{csv_file_path}': {e}")
 
-def append_data_from_csv(csv_file_path: str, db_uri: str, table_name: str, chunk_size: int = 1000):
+def append_data_from_csv(csv_file_path: str, db_uri: str = None, table_name: str = 'scores', chunk_size: int = 1000):
     """
     Reads data from a CSV file in chunks and appends it to the specified table in a database.
     This function assumes the table structure is compatible with the CSV data.
@@ -43,10 +63,13 @@ def append_data_from_csv(csv_file_path: str, db_uri: str, table_name: str, chunk
 
     Args:
         csv_file_path (str): The path to the CSV file.
-        db_uri (str): The database URI.
+        db_uri (str): The database URI. If not provided, uses DATABASE_URL environment variable.
         table_name (str): The name of the table to append to.
         chunk_size (int, optional): Number of rows per chunk to read from CSV. Defaults to 1000.
     """
+    if db_uri is None:
+        db_uri = get_database_uri()
+    
     try:
         engine = create_engine(db_uri, echo=False)
         total_rows_appended = 0
@@ -82,23 +105,18 @@ def append_data_from_csv(csv_file_path: str, db_uri: str, table_name: str, chunk
         print(f"An error occurred while appending data from '{csv_file_path}': {e}")
 
 if __name__ == "__main__":
-    # Call create_db_from_csv directly with specified parameters
-    # create_db_from_csv(csv_file_path='meet_stats.csv', 
-    #                    db_uri='sqlite:///meetstats.db', 
-    #                    table_name='meet_stats')
-
-    append_data_from_csv(csv_file_path='raw_scores/thi_2026_gymfest_scores.csv', 
-                         db_uri='sqlite:///database.db', 
-                         table_name='scores')
-
-    # This main block is for demonstration or testing within the script.
-    # The user's specific request will be executed via a direct python command.
+    # Uses DATABASE_URL from environment if set, otherwise defaults to sqlite:///database.db
+    # Set DATABASE_URL in .env file for PostgreSQL:
+    # DATABASE_URL=postgresql://user:password@host/dbname
     
-    # Example:
-    # print("To run the requested conversion for 'meet_stats.csv':")
-    # print("python -c "import sys; sys.path.append('.'); from csv_to_db import create_db_from_csv; create_db_from_csv(csv_file_path='meet_stats.csv', db_uri='sqlite:///meetstats.db', table_name='meet_stats')"")
+    print(f"Using database: {get_database_uri()}")
     
-    # print(f"Module {__file__} loaded. Use its functions create_db_from_csv and append_data_from_csv.")
-    # print("Example usage:")
-    # print("create_db_from_csv(csv_file_path='your_data.csv', db_uri='sqlite:///your_database.db', table_name='your_table')")
-    # print("append_data_from_csv(csv_file_path='more_data.csv', db_uri='sqlite:///your_database.db', table_name='your_table')") 
+    # Example: Append data from a CSV file
+    append_data_from_csv(
+        csv_file_path='raw_scores/thi_2026_gymfest_scores.csv',
+        table_name='scores'
+    )
+    
+    # Other examples:
+    # create_db_from_csv(csv_file_path='your_data.csv', table_name='your_table')
+    # append_data_from_csv(csv_file_path='more_data.csv', table_name='scores') 

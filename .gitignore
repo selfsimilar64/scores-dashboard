@@ -1,0 +1,26 @@
+# Environment and secrets
+.env
+*.env
+
+# Database files (keep SQLite local only)
+*.db
+database.db
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+venv/
+env/
+.venv/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db

@@ -1,5 +1,8 @@
 streamlit>=1.45
 pandas
 plotly-express          # or altair
-pysqlite3-binary        # ensures SQLite works on Streamlit's Linux container
 flask                   # for score entry interface
+psycopg2-binary         # PostgreSQL adapter for Neon
+sqlalchemy              # database abstraction (used by csv_to_db)
+gunicorn                # production WSGI server for Render
+python-dotenv           # load environment variables from .env file

@@ -2,11 +2,19 @@
 Flask server for score entry interface.
 Run with: python score_entry_server.py
 Access at: http://localhost:5050
+
+For local development, create a .env file with:
+DATABASE_URL=postgresql://user:password@host/dbname
 """
 
-import sqlite3
-from flask import Flask, request, jsonify, send_from_directory
 import os
+import psycopg2
+from psycopg2.extras import RealDictCursor
+from flask import Flask, request, jsonify, send_from_directory
+from dotenv import load_dotenv
+
+# Load environment variables from .env file (for local development)
+load_dotenv()
 
 app = Flask(__name__, static_folder='score_entry_ui')
 
@@ -18,11 +26,13 @@ def after_request(response):
     response.headers.add('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
     return response
 
-DATABASE = 'database.db'
+# Database connection - uses DATABASE_URL environment variable
+DATABASE_URL = os.environ.get('DATABASE_URL')
 
 def get_db_connection():
-    conn = sqlite3.connect(DATABASE)
-    conn.row_factory = sqlite3.Row
+    if not DATABASE_URL:
+        raise ValueError("DATABASE_URL environment variable not set")
+    conn = psycopg2.connect(DATABASE_URL, cursor_factory=RealDictCursor)
     return conn
 
 @app.route('/')
@@ -72,7 +82,7 @@ def submit_scores():
                 
                 cursor.execute('''
                     INSERT INTO scores (AthleteName, Level, CompYear, MeetName, MeetDate, Event, StartValue, Score, Place)
-                    VALUES (?, ?, ?, ?, ?, ?, NULL, ?, ?)
+                    VALUES (%s, %s, %s, %s, %s, %s, NULL, %s, %s)
                 ''', (athlete_name, level, comp_year, meet_name, meet_date, event_name, score_value, place_value))
                 inserted_count += 1
             except (ValueError, TypeError) as e:
@@ -152,7 +162,7 @@ def get_personal_bests():
     cursor.execute('''
         SELECT AthleteName, Level, Event, Score, Place
         FROM scores
-        WHERE MeetName = ? AND MeetDate = ?
+        WHERE MeetName = %s AND MeetDate = %s
         ORDER BY AthleteName, Event
     ''', (meet_name, meet_date))
     
@@ -174,10 +184,10 @@ def get_personal_bests():
         cursor.execute('''
             SELECT MAX(Score) as prev_best
             FROM scores
-            WHERE AthleteName = ? 
-              AND Event = ? 
-              AND CompYear = ?
-              AND MeetDate < ?
+            WHERE AthleteName = %s 
+              AND Event = %s 
+              AND CompYear = %s
+              AND MeetDate < %s
               AND Score IS NOT NULL
         ''', (athlete, event, comp_year, meet_date))
         
@@ -238,7 +248,7 @@ def get_meet_scores():
     # Get the CompYear for this meet
     cursor.execute('''
         SELECT CompYear FROM scores 
-        WHERE MeetName = ? AND MeetDate = ? 
+        WHERE MeetName = %s AND MeetDate = %s 
         LIMIT 1
     ''', (meet_name, meet_date))
     result = cursor.fetchone()
@@ -253,7 +263,7 @@ def get_meet_scores():
     cursor.execute('''
         SELECT AthleteName, Level, Event, Score, Place
         FROM scores
-        WHERE MeetName = ? AND MeetDate = ?
+        WHERE MeetName = %s AND MeetDate = %s
         ORDER BY AthleteName, Event
     ''', (meet_name, meet_date))
     
@@ -282,10 +292,10 @@ def get_meet_scores():
         cursor.execute('''
             SELECT Score as best, MeetName as meet_name, MeetDate as meet_date
             FROM scores
-            WHERE AthleteName = ? 
-              AND Event = ? 
-              AND CompYear = ?
-              AND MeetDate < ?
+            WHERE AthleteName = %s 
+              AND Event = %s 
+              AND CompYear = %s
+              AND MeetDate < %s
               AND Score IS NOT NULL
             ORDER BY Score DESC
             LIMIT 1
@@ -300,10 +310,10 @@ def get_meet_scores():
         cursor.execute('''
             SELECT Score as best, MeetName as meet_name, MeetDate as meet_date
             FROM scores
-            WHERE AthleteName = ? 
-              AND Event = ? 
-              AND Level = ?
-              AND CompYear != ?
+            WHERE AthleteName = %s 
+              AND Event = %s 
+              AND Level = %s
+              AND CompYear != %s
               AND Score IS NOT NULL
             ORDER BY Score DESC
             LIMIT 1
@@ -411,7 +421,7 @@ def get_meet_level_averages():
     cursor.execute('''
         SELECT MeetName, MIN(MeetDate) as EarliestDate, CompYear
         FROM scores
-        WHERE CompYear = ?
+        WHERE CompYear = %s
         GROUP BY MeetName, CompYear
         ORDER BY MIN(MeetDate) ASC
     ''', (comp_year,))
@@ -443,7 +453,7 @@ def get_meet_level_averages():
         # Get all dates for this meet name in this comp year
         cursor.execute('''
             SELECT DISTINCT MeetDate FROM scores 
-            WHERE MeetName = ? AND CompYear = ? 
+            WHERE MeetName = %s AND CompYear = %s 
             ORDER BY MeetDate
         ''', (meet_name, meet_comp_year))
         meet_dates = [row['MeetDate'] for row in cursor.fetchall()]
@@ -467,9 +477,9 @@ def get_meet_level_averages():
             cursor.execute('''
                 SELECT AthleteName, Score
                 FROM scores
-                WHERE MeetName = ? 
-                  AND CompYear = ?
-                  AND Level = ?
+                WHERE MeetName = %s 
+                  AND CompYear = %s
+                  AND Level = %s
                   AND Event = 'All Around'
                   AND Score IS NOT NULL
                 ORDER BY Score DESC
@@ -540,8 +550,13 @@ def get_meet_level_averages():
 if __name__ == '__main__':
     # Ensure the UI folder exists
     os.makedirs('score_entry_ui', exist_ok=True)
+    
+    # Use PORT from environment (Render sets this) or default to 5050 for local dev
+    port = int(os.environ.get('PORT', 5050))
+    debug = os.environ.get('FLASK_DEBUG', 'true').lower() == 'true'
+    
     print("\n" + "="*50)
     print("  Score Entry Server")
-    print("  Open in browser: http://localhost:5050")
+    print(f"  Open in browser: http://localhost:{port}")
     print("="*50 + "\n")
-    app.run(debug=True, port=5050, host='0.0.0.0')
+    app.run(debug=debug, port=port, host='0.0.0.0')
