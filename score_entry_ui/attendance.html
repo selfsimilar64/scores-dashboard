@@ -1,0 +1,1977 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Attendance - Gymfest</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-dark: #0f0f12;
+            --bg-card: #1a1a22;
+            --bg-elevated: #252532;
+            --accent-primary: #e85d75;
+            --accent-secondary: #64d2ff;
+            --accent-success: #30d158;
+            --accent-warning: #ffd60a;
+            --accent-gold: #ffd700;
+            --accent-orange: #ff9f0a;
+            --accent-red: #ff453a;
+            --accent-purple: #bf5af2;
+            --text-primary: #f5f5f7;
+            --text-secondary: #98989d;
+            --text-muted: #636366;
+            --border-color: #2c2c3a;
+            --shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            
+            /* Attendance status colors - adjusted */
+            --status-present: #30d158;
+            --status-present-text: #0a2910;
+            --status-late: #eaef57;  /* Yellow-green, close to present */
+            --status-late-text: #0a2910;
+            --status-absent: #e25a55;
+            --status-absent-text: #0a2910;
+            --status-partial: #ffa927;  /* Yellow/orange */
+            --status-partial-text: #0a2910;
+            --status-none: #2a2a3a;
+            --status-none-text: #757576;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 16px;
+        }
+
+        /* Minimal nav */
+        .nav-bar {
+            display: flex;
+            justify-content: flex-end;
+            gap: 16px;
+            padding: 8px 0;
+            margin-bottom: 12px;
+        }
+
+        .nav-link {
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 0.85rem;
+            transition: color 0.15s ease;
+        }
+
+        .nav-link:hover {
+            color: var(--text-secondary);
+        }
+
+        /* View Tabs */
+        .view-tabs {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 16px;
+        }
+
+        .view-tab {
+            padding: 10px 24px;
+            border: none;
+            background: var(--bg-elevated);
+            color: var(--text-secondary);
+            border-radius: 10px;
+            font-family: inherit;
+            font-size: 0.95rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .view-tab:hover {
+            background: var(--bg-card);
+            color: var(--text-primary);
+        }
+
+        .view-tab.active {
+            background: var(--accent-success);
+            color: var(--bg-dark);
+            font-weight: 600;
+        }
+
+        .card {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 20px;
+            border: 1px solid var(--border-color);
+        }
+
+        /* Level Tabs */
+        .level-tabs {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+        }
+
+        .level-tab {
+            padding: 8px 18px;
+            border: none;
+            background: var(--bg-elevated);
+            color: var(--text-secondary);
+            border-radius: 8px;
+            font-family: inherit;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .level-tab:hover {
+            background: var(--bg-dark);
+            color: var(--text-primary);
+        }
+
+        .level-tab.active {
+            background: var(--accent-success);
+            color: var(--bg-dark);
+            font-weight: 600;
+        }
+
+        /* Athlete Cards Grid - Today View - 50% larger */
+        .athlete-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 12px;
+            grid-auto-rows: 1fr;
+        }
+
+        .athlete-card {
+            border-radius: 14px;
+            padding: 24px 18px;
+            cursor: pointer;
+            transition: all 0.12s ease;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100px;
+        }
+
+        .athlete-card:hover {
+            transform: scale(1.02);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+        }
+
+        .athlete-card:active {
+            transform: scale(0.98);
+        }
+
+        /* Card status colors */
+        .athlete-card.status-none { background: var(--status-none); }
+        .athlete-card.status-none .athlete-card-name { color: var(--status-none-text); }
+
+        .athlete-card.status-present { background: var(--status-present); }
+        .athlete-card.status-present .athlete-card-name { color: var(--status-present-text); }
+
+        .athlete-card.status-absent { background: var(--status-absent); }
+        .athlete-card.status-absent .athlete-card-name { color: var(--status-absent-text); }
+
+        .athlete-card.status-partial { background: var(--status-partial); }
+        .athlete-card.status-partial .athlete-card-name { color: var(--status-partial-text); }
+
+        .athlete-card-name {
+            font-weight: 600;
+            font-size: 1.1rem;
+            text-align: center;
+            line-height: 1.3;
+            transition: color 0.12s ease;
+        }
+
+        /* Minimal note button */
+        .note-btn {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            width: 28px;
+            height: 28px;
+            border-radius: 6px;
+            border: none;
+            background: rgba(0, 0, 0, 0.12);
+            color: inherit;
+            cursor: pointer;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.12s ease;
+            opacity: 0.5;
+        }
+
+        .note-btn:hover {
+            opacity: 1;
+            background: rgba(0, 0, 0, 0.2);
+        }
+
+        .note-btn.has-note {
+            opacity: 1;
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .note-btn svg {
+            width: 14px;
+            height: 14px;
+            fill: currentColor;
+        }
+
+        /* Session View Controls */
+        .session-controls {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+        }
+
+        .session-controls label {
+            color: var(--text-muted);
+            font-size: 0.85rem;
+        }
+
+        select {
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 8px 14px;
+            font-size: 0.9rem;
+            font-family: inherit;
+            color: var(--text-primary);
+            cursor: pointer;
+            min-width: 140px;
+            transition: border-color 0.15s ease;
+        }
+
+        select:focus {
+            outline: none;
+            border-color: var(--accent-success);
+        }
+
+        /* Layout toggle */
+        .layout-toggle {
+            display: flex;
+            gap: 4px;
+            margin-left: auto;
+        }
+
+        .layout-btn {
+            padding: 6px 12px;
+            border: none;
+            background: var(--bg-dark);
+            color: var(--text-muted);
+            border-radius: 6px;
+            font-family: inherit;
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: all 0.12s ease;
+        }
+
+        .layout-btn:hover {
+            color: var(--text-secondary);
+        }
+
+        .layout-btn.active {
+            background: var(--bg-elevated);
+            color: var(--text-primary);
+        }
+
+        /* Base Attendance Table */
+        .attendance-grid-container {
+            overflow: auto;
+            max-height: calc(100vh - 280px);
+        }
+
+        .attendance-table {
+            border-collapse: collapse;
+            width: 100%;
+        }
+
+        /* COMPACT LAYOUT - pixel-tight grid */
+        .attendance-grid-container.layout-compact {
+            background: #111114;
+            border-radius: 0;
+        }
+
+        .layout-compact .attendance-table {
+            border-spacing: 1px;
+            border-collapse: separate;
+            background: #111114;
+        }
+
+        .layout-compact .attendance-table th,
+        .layout-compact .attendance-table td {
+            padding: 0;
+            border: none;
+            background: #111114;
+            text-align: center;
+            vertical-align: middle;
+        }
+
+        .layout-compact .attendance-table th {
+            height: 45px;
+            vertical-align: bottom;
+            padding-bottom: 4px;
+        }
+
+        /* Force attendance td to be exactly the cell size */
+        .layout-compact .attendance-table td:not(.name-col):not(.pct-col) {
+            width: 19px;
+            min-width: 19px;
+            max-width: 19px;
+            height: 19px;
+            padding: 0;
+        }
+
+        .layout-compact .attendance-table th:not(.name-col):not(.pct-col) {
+            width: 19px;
+            min-width: 19px;
+            max-width: 19px;
+        }
+
+        .layout-compact .attendance-table td.name-col {
+            padding: 0 4px 0 2px;
+            font-size: 0.72rem;
+            font-weight: 600;
+            width: auto;
+            min-width: 95px;
+            max-width: 115px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            position: sticky;
+            left: 0;
+            z-index: 5;
+            text-align: left;
+            height: 19px;
+        }
+
+        .layout-compact .attendance-table th.name-col {
+            text-align: left;
+            padding-left: 2px;
+            font-size: 0.55rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            position: sticky;
+            left: 0;
+            z-index: 10;
+            width: auto;
+        }
+
+        .layout-compact .date-header {
+            transform: rotate(-45deg);
+            transform-origin: center center;
+            font-size: 0.55rem;
+            line-height: 1.1;
+            white-space: nowrap;
+            color: var(--text-muted);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .layout-compact .date-header .day {
+            font-weight: 600;
+            color: var(--text-secondary);
+        }
+
+        .layout-compact .date-header .date {
+            color: var(--text-muted);
+        }
+
+        .layout-compact .attendance-cell {
+            width: 18px;
+            height: 18px;
+            border-radius: 2px;
+            display: block;
+            margin: 0 auto;
+            transform: none !important;
+        }
+
+        .layout-compact .attendance-cell.animating {
+            animation: statusFlash 0.15s ease-out !important;
+        }
+
+        .layout-compact .attendance-table th.pct-col,
+        .layout-compact .attendance-table td.pct-col {
+            padding: 0 2px;
+            font-size: 0.55rem;
+            min-width: 32px;
+            width: auto;
+            height: auto;
+        }
+
+        .layout-compact .attendance-table th.pct-col {
+            vertical-align: bottom;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+
+        /* NORMAL LAYOUT */
+        .attendance-grid-container.layout-normal {
+            border-radius: 12px;
+            background: var(--bg-elevated);
+        }
+
+        .layout-normal .attendance-table th,
+        .layout-normal .attendance-table td {
+            padding: 6px 2px;
+            text-align: center;
+        }
+
+        .layout-normal .attendance-table th {
+            background: var(--bg-card);
+            font-weight: 500;
+            font-size: 0.65rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .layout-normal .attendance-table th:first-child {
+            border-radius: 12px 0 0 0;
+        }
+
+        .layout-normal .attendance-table th:last-child {
+            border-radius: 0 12px 0 0;
+        }
+
+        .layout-normal .attendance-table th.name-col,
+        .layout-normal .attendance-table td.name-col {
+            position: sticky;
+            left: 0;
+            z-index: 15;
+            background: var(--bg-elevated);
+            min-width: 120px;
+            text-align: left;
+            padding-left: 12px;
+        }
+
+        .layout-normal .attendance-table th.name-col {
+            z-index: 20;
+            background: var(--bg-card);
+        }
+
+        .layout-normal .attendance-table td.name-col {
+            font-weight: 600;
+            color: var(--text-primary);
+            font-size: 0.85rem;
+        }
+
+        .layout-normal .attendance-table tbody tr:hover {
+            background: rgba(255, 255, 255, 0.015);
+        }
+
+        .layout-normal .attendance-table tbody tr:last-child td:first-child {
+            border-radius: 0 0 0 12px;
+        }
+
+        .layout-normal .attendance-table tbody tr:last-child td:last-child {
+            border-radius: 0 0 12px 0;
+        }
+
+        .layout-normal .attendance-table th.pct-col {
+            min-width: 50px;
+            background: var(--bg-dark);
+        }
+
+        .layout-normal .attendance-table td.pct-col {
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 600;
+            font-size: 0.7rem;
+        }
+
+        .layout-normal .date-header {
+            font-size: 0.55rem;
+            line-height: 1.2;
+        }
+
+        .layout-normal .date-header .day {
+            display: block;
+            font-weight: 600;
+            color: var(--text-secondary);
+        }
+
+        .layout-normal .date-header .date {
+            display: block;
+            color: var(--text-muted);
+        }
+
+        .layout-normal .attendance-cell {
+            width: 24px;
+            height: 24px;
+            border-radius: 4px;
+            display: inline-block;
+            margin: 0;
+        }
+
+        /* Attendance cells - shared styles */
+        .attendance-cell {
+            cursor: pointer;
+            transition: all 0.1s ease;
+        }
+
+        .attendance-cell:hover {
+            transform: scale(1.15);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .attendance-cell:active {
+            transform: scale(0.95);
+        }
+
+        .attendance-cell.status-present { background: var(--status-present); }
+        .attendance-cell.status-absent { background: var(--status-absent); }
+        .attendance-cell.status-partial { background: var(--status-partial); }
+        .attendance-cell.status-none { background: var(--status-none); }
+
+        /* Animation for status change */
+        @keyframes statusPulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1); }
+            100% { transform: scale(1); }
+        }
+
+        @keyframes statusFlash {
+            0% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        .athlete-card.animating {
+            animation: statusPulse 0.2s ease;
+        }
+
+        .attendance-cell.animating {
+            animation: statusFlash 0.15s ease-out;
+        }
+
+        /* Percentage colors */
+        .pct-high { color: var(--status-present); }
+        .pct-medium { color: var(--status-partial); }
+        .pct-low { color: var(--status-absent); }
+
+        /* Compact Status Legend */
+        .status-legend {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+            margin-bottom: 14px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        .legend-dot {
+            width: 16px;
+            height: 16px;
+            border-radius: 4px;
+        }
+
+        /* Setup Panel */
+        .setup-panel {
+            background: var(--bg-elevated);
+            border-radius: 12px;
+            padding: 16px;
+        }
+
+        .setup-section {
+            margin-bottom: 20px;
+        }
+
+        .setup-section:last-child {
+            margin-bottom: 0;
+        }
+
+        .setup-section h3 {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .form-row {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 10px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+        }
+
+        .form-group label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        input[type="text"],
+        input[type="number"],
+        input[type="date"],
+        input[type="time"] {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 8px 12px;
+            font-size: 0.9rem;
+            font-family: inherit;
+            color: var(--text-primary);
+            transition: border-color 0.15s ease;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: var(--accent-success);
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 8px;
+            font-family: inherit;
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .btn-primary {
+            background: var(--accent-success);
+            color: var(--bg-dark);
+        }
+
+        .btn-primary:hover {
+            filter: brightness(1.1);
+        }
+
+        .btn-secondary {
+            background: var(--bg-elevated);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+        }
+
+        .btn-secondary:hover {
+            border-color: var(--text-muted);
+        }
+
+        .schedule-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 10px;
+        }
+
+        .schedule-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            background: var(--bg-card);
+            border-radius: 16px;
+            font-size: 0.8rem;
+        }
+
+        .schedule-chip .remove-btn {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            font-size: 14px;
+            padding: 0;
+            line-height: 1;
+            transition: color 0.12s ease;
+        }
+
+        .schedule-chip .remove-btn:hover {
+            color: var(--accent-red);
+        }
+
+        /* Modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 24px;
+            width: 90%;
+            max-width: 380px;
+            border: 1px solid var(--border-color);
+        }
+
+        .modal h3 {
+            margin-bottom: 16px;
+            font-size: 1.1rem;
+        }
+
+        .modal-section {
+            margin-bottom: 16px;
+        }
+
+        .modal-section-label {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        .modal textarea {
+            width: 100%;
+            min-height: 80px;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 12px;
+            font-family: inherit;
+            font-size: 0.9rem;
+            color: var(--text-primary);
+            resize: vertical;
+            transition: border-color 0.15s ease;
+        }
+
+        .modal textarea:focus {
+            outline: none;
+            border-color: var(--accent-success);
+        }
+
+        /* Late time picker */
+        .late-time-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 6px;
+        }
+
+        .late-time-btn {
+            padding: 8px 4px;
+            border: 1px solid var(--border-color);
+            background: var(--bg-elevated);
+            color: var(--text-secondary);
+            border-radius: 8px;
+            font-family: inherit;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.12s ease;
+        }
+
+        .late-time-btn:hover {
+            border-color: var(--text-muted);
+            color: var(--text-primary);
+        }
+
+        .late-time-btn.active {
+            background: var(--accent-warning);
+            border-color: var(--accent-warning);
+            color: var(--bg-dark);
+            font-weight: 600;
+        }
+
+        .modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 16px;
+        }
+
+        /* Empty state */
+        .empty-state {
+            text-align: center;
+            padding: 48px 20px;
+            color: var(--text-muted);
+        }
+
+        .empty-state h3 {
+            font-size: 1.1rem;
+            margin-bottom: 6px;
+            color: var(--text-secondary);
+        }
+
+        /* Loading */
+        .loading {
+            text-align: center;
+            padding: 32px;
+            color: var(--text-muted);
+        }
+
+        /* Toast notification */
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%) translateY(80px);
+            background: var(--accent-red);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 10px;
+            font-weight: 500;
+            font-size: 0.9rem;
+            z-index: 2000;
+            opacity: 0;
+            transition: all 0.25s ease;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+        }
+
+        .toast.success {
+            background: var(--accent-success);
+            color: var(--bg-dark);
+        }
+
+        .toast.show {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+        }
+
+        /* iPad optimization */
+        @media (min-width: 768px) and (max-width: 1024px) {
+            .container {
+                padding: 20px;
+            }
+            
+            .athlete-grid {
+                grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            }
+        }
+
+        /* Desktop */
+        @media (min-width: 1025px) {
+            .container {
+                padding: 24px;
+            }
+        }
+
+        /* Mobile */
+        @media (max-width: 767px) {
+            .container {
+                padding: 12px;
+            }
+
+            .athlete-grid {
+                grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+                gap: 10px;
+            }
+
+            .athlete-card {
+                padding: 18px 14px;
+                min-height: 85px;
+            }
+
+            .athlete-card-name {
+                font-size: 1rem;
+            }
+
+            .view-tab {
+                padding: 8px 16px;
+                font-size: 0.85rem;
+            }
+
+            .level-tab {
+                padding: 6px 14px;
+                font-size: 0.8rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Minimal nav -->
+        <nav class="nav-bar">
+            <a href="/" class="nav-link">Scores</a>
+            <a href="/personal-bests" class="nav-link">PBs</a>
+            <a href="/meet-averages" class="nav-link">Averages</a>
+        </nav>
+
+        <!-- View Tabs -->
+        <div class="view-tabs">
+            <button class="view-tab active" data-view="today">Today</button>
+            <button class="view-tab" data-view="session">Session</button>
+            <button class="view-tab" data-view="setup">Setup</button>
+        </div>
+
+        <!-- Today View -->
+        <div id="todayView" class="view-content">
+            <div class="card">
+                <div class="status-legend">
+                    <div class="legend-item">
+                        <div class="legend-dot" style="background: var(--status-none)"></div>
+                        <span>None</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-dot" style="background: var(--status-present)"></div>
+                        <span>Present</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-dot" style="background: var(--status-absent)"></div>
+                        <span>Absent</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-dot" style="background: var(--status-partial)"></div>
+                        <span>Partial</span>
+                    </div>
+                </div>
+
+                <div class="level-tabs" id="levelTabs"></div>
+                <div id="todayContent">
+                    <div class="loading">Loading...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Session View -->
+        <div id="sessionView" class="view-content" style="display: none;">
+            <div class="card">
+                <div class="session-controls">
+                    <label for="sessionSelect">Session:</label>
+                    <select id="sessionSelect">
+                        <option value="">Select session...</option>
+                    </select>
+                    
+                    <div class="layout-toggle">
+                        <button class="layout-btn active" data-layout="compact" onclick="setLayout('compact')">Compact</button>
+                        <button class="layout-btn" data-layout="normal" onclick="setLayout('normal')">Normal</button>
+                    </div>
+                </div>
+
+                <div class="status-legend">
+                    <div class="legend-item">
+                        <div class="legend-dot" style="background: var(--status-none)"></div>
+                        <span>None</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-dot" style="background: var(--status-present)"></div>
+                        <span>Present</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-dot" style="background: var(--status-absent)"></div>
+                        <span>Absent</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-dot" style="background: var(--status-partial)"></div>
+                        <span>Partial</span>
+                    </div>
+                </div>
+
+                <div class="level-tabs" id="sessionLevelTabs"></div>
+
+                <div id="sessionContent">
+                    <div class="empty-state">
+                        <h3>Select a Session</h3>
+                        <p>Choose a session to view attendance</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Setup View -->
+        <div id="setupView" class="view-content" style="display: none;">
+            <div class="card">
+                <div class="setup-panel">
+                    <div class="setup-section">
+                        <h3>Create Session</h3>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Name</label>
+                                <input type="text" id="sessionName" placeholder="Winter 2026">
+                            </div>
+                            <div class="form-group">
+                                <label>Year</label>
+                                <input type="number" id="sessionYear" value="2026">
+                            </div>
+                            <div class="form-group">
+                                <label>Season</label>
+                                <select id="sessionSeason">
+                                    <option value="winter">Winter</option>
+                                    <option value="spring">Spring</option>
+                                    <option value="summer">Summer</option>
+                                    <option value="fall">Fall</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Start</label>
+                                <input type="date" id="sessionStartDate">
+                            </div>
+                            <div class="form-group">
+                                <label>End</label>
+                                <input type="date" id="sessionEndDate">
+                            </div>
+                            <div class="form-group" style="justify-content: flex-end;">
+                                <button class="btn btn-primary" onclick="createSession()">Create</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="setup-section">
+                        <h3>Sessions</h3>
+                        <div id="existingSessions"><div class="loading">Loading...</div></div>
+                    </div>
+
+                    <div class="setup-section">
+                        <h3>Add Schedule</h3>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Session</label>
+                                <select id="scheduleSession"><option value="">Select...</option></select>
+                            </div>
+                            <div class="form-group">
+                                <label>Level</label>
+                                <select id="scheduleLevel"><option value="">Select...</option></select>
+                            </div>
+                            <div class="form-group">
+                                <label>Day</label>
+                                <select id="scheduleDay">
+                                    <option value="0">Sun</option>
+                                    <option value="1">Mon</option>
+                                    <option value="2">Tue</option>
+                                    <option value="3">Wed</option>
+                                    <option value="4">Thu</option>
+                                    <option value="5">Fri</option>
+                                    <option value="6">Sat</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Start</label>
+                                <input type="time" id="scheduleStartTime" value="17:00">
+                            </div>
+                            <div class="form-group">
+                                <label>End</label>
+                                <input type="time" id="scheduleEndTime" value="19:00">
+                            </div>
+                            <div class="form-group" style="justify-content: flex-end;">
+                                <button class="btn btn-primary" onclick="addSchedule()">Add</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="setup-section">
+                        <h3>Schedules</h3>
+                        <div id="currentSchedules"><div class="loading">Loading...</div></div>
+                    </div>
+
+                    <div class="setup-section">
+                        <h3>Add Athlete</h3>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Name</label>
+                                <input type="text" id="newAthleteName" placeholder="Athlete name">
+                            </div>
+                            <div class="form-group">
+                                <label>Level</label>
+                                <select id="newAthleteLevel"><option value="">Select...</option></select>
+                            </div>
+                            <div class="form-group" style="justify-content: flex-end;">
+                                <button class="btn btn-primary" onclick="addAthlete()">Add</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Note Modal -->
+    <div class="modal-overlay" id="noteModal">
+        <div class="modal">
+            <h3>Note for <span id="noteAthleteName"></span></h3>
+            
+            <div class="modal-section">
+                <span class="modal-section-label">Late by:</span>
+                <div class="late-time-grid">
+                    <button class="late-time-btn" data-minutes="0" onclick="selectLateTime(0)">On time</button>
+                    <button class="late-time-btn" data-minutes="5" onclick="selectLateTime(5)">5 min</button>
+                    <button class="late-time-btn" data-minutes="10" onclick="selectLateTime(10)">10 min</button>
+                    <button class="late-time-btn" data-minutes="15" onclick="selectLateTime(15)">15 min</button>
+                    <button class="late-time-btn" data-minutes="20" onclick="selectLateTime(20)">20 min</button>
+                    <button class="late-time-btn" data-minutes="30" onclick="selectLateTime(30)">30 min</button>
+                </div>
+            </div>
+            
+            <div class="modal-section">
+                <span class="modal-section-label">Note:</span>
+                <textarea id="noteText" placeholder="Injury, absence reason, etc."></textarea>
+            </div>
+            
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="closeNoteModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="saveNote()">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast" id="toast"></div>
+
+    <script>
+        // State
+        let currentSession = null;
+        let todayData = null;
+        let currentLevel = null;
+        let sessionData = null;
+        let sessionCurrentLevel = null;
+        let sessionLayout = 'compact';
+        let noteAthleteId = null;
+        let noteLevel = null;
+        let notePracticeDate = null;
+        let selectedLateTime = 0;
+
+        // Pending changes for debouncing
+        const pendingChanges = new Map();
+        const DEBOUNCE_DELAY = 400;
+
+        const STATUS_CYCLE = ['none', 'present', 'absent', 'partial'];
+        const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+        // Toast notification
+        function showToast(message, type = 'error', duration = 2500) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = 'toast ' + type;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), duration);
+        }
+
+        // Debounced save function
+        function debouncedSave(key, data) {
+            if (pendingChanges.has(key)) {
+                clearTimeout(pendingChanges.get(key).timeoutId);
+            }
+
+            const timeoutId = setTimeout(() => {
+                actualSave(key, data);
+            }, DEBOUNCE_DELAY);
+
+            pendingChanges.set(key, { ...data, timeoutId });
+        }
+
+        async function actualSave(key, data) {
+            pendingChanges.delete(key);
+
+            try {
+                const response = await fetch('/api/attendance', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+
+                if (!response.ok) {
+                    const err = await response.json();
+                    throw new Error(err.error || 'Failed to save');
+                }
+            } catch (error) {
+                console.error('Error saving attendance:', error);
+                showToast('Failed to save: ' + error.message);
+            }
+        }
+
+        // Layout toggle
+        function setLayout(layout) {
+            sessionLayout = layout;
+            document.querySelectorAll('.layout-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.layout === layout);
+            });
+            renderSessionGrid();
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            document.querySelectorAll('.view-tab').forEach(tab => {
+                tab.addEventListener('click', () => switchView(tab.dataset.view));
+            });
+
+            loadTodaysPractice();
+            loadSessions();
+            loadLevels();
+        });
+
+        function switchView(view) {
+            document.querySelectorAll('.view-tab').forEach(t => t.classList.remove('active'));
+            document.querySelector(`.view-tab[data-view="${view}"]`).classList.add('active');
+
+            document.querySelectorAll('.view-content').forEach(v => v.style.display = 'none');
+            document.getElementById(`${view}View`).style.display = 'block';
+
+            if (view === 'session') {
+                loadSessionAttendance();
+            } else if (view === 'setup') {
+                loadSetupData();
+            }
+        }
+
+        // =====================
+        // TODAY'S PRACTICE VIEW
+        // =====================
+        async function loadTodaysPractice() {
+            try {
+                const response = await fetch('/api/todays_practice');
+                todayData = await response.json();
+
+                if (todayData.error || !todayData.levels || todayData.levels.length === 0) {
+                    document.getElementById('todayContent').innerHTML = `
+                        <div class="empty-state">
+                            <h3>No Practice Today</h3>
+                            <p>${todayData.error || 'No scheduled practice.'}</p>
+                        </div>
+                    `;
+                    document.getElementById('levelTabs').innerHTML = '';
+                    return;
+                }
+
+                currentSession = todayData.session;
+                
+                const tabsHtml = todayData.levels.map((level, i) => `
+                    <button class="level-tab ${i === 0 ? 'active' : ''}" 
+                            data-level="${level.level}"
+                            onclick="selectTodayLevel('${level.level}')">
+                        ${level.level}
+                    </button>
+                `).join('');
+                document.getElementById('levelTabs').innerHTML = tabsHtml;
+
+                if (todayData.levels.length > 0) {
+                    currentLevel = todayData.levels[0].level;
+                    renderTodayAthletes();
+                }
+            } catch (error) {
+                console.error('Error loading today practice:', error);
+                document.getElementById('todayContent').innerHTML = `
+                    <div class="empty-state">
+                        <h3>Error</h3>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+
+        function selectTodayLevel(level) {
+            currentLevel = level;
+            document.querySelectorAll('#levelTabs .level-tab').forEach(t => {
+                t.classList.toggle('active', t.dataset.level === level);
+            });
+            renderTodayAthletes();
+        }
+
+        function renderTodayAthletes() {
+            const levelData = todayData.levels.find(l => l.level === currentLevel);
+            if (!levelData) return;
+
+            const noteIcon = `<svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>`;
+
+            const html = `
+                <div class="athlete-grid">
+                    ${levelData.athletes.map(athlete => `
+                        <div class="athlete-card status-${athlete.status}" 
+                             id="card-${athlete.id}"
+                             onclick="cycleStatus(${athlete.id}, '${currentLevel}')">
+                            <button class="note-btn ${athlete.notes || athlete.late_minutes ? 'has-note' : ''}" 
+                                    onclick="event.stopPropagation(); openNoteModal(${athlete.id}, '${athlete.name.replace(/'/g, "\\'")}', '${currentLevel}', '${todayData.date}', \`${(athlete.notes || '').replace(/`/g, '\\`')}\`, ${athlete.late_minutes || 0}, '${athlete.status}')">
+                                ${noteIcon}
+                            </button>
+                            <div class="athlete-card-name">${athlete.name}</div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+            document.getElementById('todayContent').innerHTML = html;
+        }
+
+        function cycleStatus(athleteId, level) {
+            const levelData = todayData.levels.find(l => l.level === level);
+            const athlete = levelData.athletes.find(a => a.id === athleteId);
+            
+            const currentIndex = STATUS_CYCLE.indexOf(athlete.status);
+            const newStatus = STATUS_CYCLE[(currentIndex + 1) % STATUS_CYCLE.length];
+
+            // Optimistic update
+            athlete.status = newStatus;
+            const card = document.getElementById(`card-${athleteId}`);
+            if (card) {
+                card.className = `athlete-card status-${newStatus} animating`;
+                setTimeout(() => card.classList.remove('animating'), 200);
+            }
+
+            // Debounced save
+            const key = `${athleteId}-${todayData.date}`;
+            debouncedSave(key, {
+                athlete_id: athleteId,
+                practice_date: todayData.date,
+                level: level,
+                status: newStatus,
+                notes: athlete.notes || null,
+                late_minutes: athlete.late_minutes || 0,
+                session_id: currentSession.id
+            });
+        }
+
+        // ============
+        // NOTE MODAL
+        // ============
+        function selectLateTime(minutes) {
+            selectedLateTime = minutes;
+            document.querySelectorAll('.late-time-btn').forEach(btn => {
+                btn.classList.toggle('active', parseInt(btn.dataset.minutes) === minutes);
+            });
+        }
+
+        function openNoteModal(athleteId, athleteName, level, practiceDate, currentNote, lateMinutes, status) {
+            noteAthleteId = athleteId;
+            noteLevel = level;
+            notePracticeDate = practiceDate;
+            noteStatus = status;
+            selectedLateTime = lateMinutes || 0;
+            
+            document.getElementById('noteAthleteName').textContent = athleteName;
+            document.getElementById('noteText').value = currentNote || '';
+            
+            // Set late time selection
+            document.querySelectorAll('.late-time-btn').forEach(btn => {
+                btn.classList.toggle('active', parseInt(btn.dataset.minutes) === selectedLateTime);
+            });
+            
+            document.getElementById('noteModal').classList.add('active');
+            document.getElementById('noteText').focus();
+        }
+
+        function closeNoteModal() {
+            document.getElementById('noteModal').classList.remove('active');
+            noteAthleteId = null;
+            noteLevel = null;
+            notePracticeDate = null;
+            selectedLateTime = 0;
+        }
+
+        async function saveNote() {
+            const note = document.getElementById('noteText').value;
+            
+            // Capture values BEFORE closing modal (which resets them)
+            const athleteId = noteAthleteId;
+            const level = noteLevel;
+            const practiceDate = notePracticeDate;
+            const status = noteStatus || 'none';
+            const lateMinutes = selectedLateTime;
+            const sessionId = currentSession ? currentSession.id : null;
+            
+            // Update local state if in today view
+            let athlete = null;
+            if (todayData && todayData.levels) {
+                const levelData = todayData.levels.find(l => l.level === level);
+                if (levelData) {
+                    athlete = levelData.athletes.find(a => a.id === athleteId);
+                    if (athlete) {
+                        athlete.notes = note;
+                        athlete.late_minutes = lateMinutes;
+                    }
+                }
+            }
+
+            closeNoteModal();
+            
+            if (athlete) {
+                renderTodayAthletes();
+            }
+
+            try {
+                const response = await fetch('/api/attendance', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        athlete_id: athleteId,
+                        practice_date: practiceDate,
+                        level: level,
+                        status: status,
+                        notes: note || null,
+                        late_minutes: lateMinutes,
+                        session_id: sessionId
+                    })
+                });
+
+                if (!response.ok) {
+                    const err = await response.json();
+                    throw new Error(err.error || 'Failed');
+                }
+            } catch (error) {
+                console.error('Error saving note:', error);
+                showToast('Failed to save note: ' + error.message);
+            }
+        }
+
+        document.getElementById('noteModal').addEventListener('click', (e) => {
+            if (e.target.id === 'noteModal') closeNoteModal();
+        });
+
+        // ============
+        // SESSION VIEW
+        // ============
+        async function loadSessions() {
+            try {
+                const response = await fetch('/api/sessions');
+                const sessions = await response.json();
+
+                const options = sessions.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+
+                document.getElementById('sessionSelect').innerHTML = '<option value="">Select session...</option>' + options;
+                document.getElementById('scheduleSession').innerHTML = '<option value="">Select...</option>' + options;
+
+                const currentResponse = await fetch('/api/sessions/current');
+                const current = await currentResponse.json();
+                if (current && current.id) {
+                    document.getElementById('sessionSelect').value = current.id;
+                }
+            } catch (error) {
+                console.error('Error loading sessions:', error);
+            }
+        }
+
+        async function loadLevels() {
+            try {
+                const response = await fetch('/api/levels');
+                const levels = await response.json();
+
+                const options = levels.map(l => `<option value="${l}">${l}</option>`).join('');
+
+                document.getElementById('scheduleLevel').innerHTML = '<option value="">Select...</option>' + options;
+                document.getElementById('newAthleteLevel').innerHTML = '<option value="">Select...</option>' + options;
+            } catch (error) {
+                console.error('Error loading levels:', error);
+            }
+        }
+
+        document.getElementById('sessionSelect').addEventListener('change', loadSessionAttendance);
+
+        async function loadSessionAttendance() {
+            const sessionId = document.getElementById('sessionSelect').value;
+
+            if (!sessionId) {
+                document.getElementById('sessionLevelTabs').innerHTML = '';
+                document.getElementById('sessionContent').innerHTML = `
+                    <div class="empty-state">
+                        <h3>Select a Session</h3>
+                        <p>Choose a session to view attendance</p>
+                    </div>
+                `;
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/attendance/session/${sessionId}`);
+                sessionData = await response.json();
+
+                if (!sessionData.levels || Object.keys(sessionData.levels).length === 0) {
+                    document.getElementById('sessionLevelTabs').innerHTML = '';
+                    document.getElementById('sessionContent').innerHTML = `
+                        <div class="empty-state">
+                            <h3>No Data</h3>
+                            <p>No attendance data found</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                const levels = Object.keys(sessionData.levels);
+                sessionCurrentLevel = sessionCurrentLevel && levels.includes(sessionCurrentLevel) 
+                    ? sessionCurrentLevel 
+                    : levels[0];
+
+                const tabsHtml = levels.map(level => `
+                    <button class="level-tab ${level === sessionCurrentLevel ? 'active' : ''}" 
+                            data-level="${level}"
+                            onclick="selectSessionLevel('${level}')">
+                        ${level}
+                    </button>
+                `).join('');
+                document.getElementById('sessionLevelTabs').innerHTML = tabsHtml;
+
+                renderSessionGrid();
+            } catch (error) {
+                console.error('Error loading session attendance:', error);
+                document.getElementById('sessionContent').innerHTML = `
+                    <div class="empty-state">
+                        <h3>Error</h3>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+
+        function selectSessionLevel(level) {
+            sessionCurrentLevel = level;
+            document.querySelectorAll('#sessionLevelTabs .level-tab').forEach(t => {
+                t.classList.toggle('active', t.dataset.level === level);
+            });
+            renderSessionGrid();
+        }
+
+        function renderSessionGrid() {
+            if (!sessionData || !sessionCurrentLevel) return;
+
+            const levelData = sessionData.levels[sessionCurrentLevel];
+            if (!levelData || levelData.athletes.length === 0) {
+                document.getElementById('sessionContent').innerHTML = `
+                    <div class="empty-state">
+                        <h3>No Athletes</h3>
+                        <p>No athletes for this level</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const dates = levelData.dates;
+            const dowPctCols = Object.keys(levelData.athletes[0]?.dow_pcts || {});
+            const layoutClass = `layout-${sessionLayout}`;
+
+            const html = `
+                <div class="attendance-grid-container ${layoutClass}">
+                    <table class="attendance-table">
+                        <thead>
+                            <tr>
+                                <th class="name-col">Athlete</th>
+                                ${dates.map(d => {
+                                    const date = new Date(d + 'T00:00:00');
+                                    return `<th>
+                                        <div class="date-header">
+                                            <span class="day">${DAY_NAMES[date.getDay()]}</span>
+                                            <span class="date">${date.getMonth()+1}/${date.getDate()}</span>
+                                        </div>
+                                    </th>`;
+                                }).join('')}
+                                <th class="pct-col">Total</th>
+                                ${dowPctCols.map(d => `<th class="pct-col">${d}</th>`).join('')}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${levelData.athletes.map(athlete => `
+                                <tr>
+                                    <td class="name-col">${athlete.name}</td>
+                                    ${athlete.attendance.map((att, i) => `
+                                        <td>
+                                            <div class="attendance-cell status-${att.status}" 
+                                                 id="cell-${athlete.id}-${i}"
+                                                 data-athlete-id="${athlete.id}"
+                                                 data-athlete-name="${athlete.name}"
+                                                 data-date="${att.date}"
+                                                 data-notes="${(att.notes || '').replace(/"/g, '&quot;')}"
+                                                 data-late="${att.late_minutes || 0}"
+                                                 data-cell-index="${i}"
+                                                 onclick="cycleSessionStatus(${sessionData.session.id}, ${athlete.id}, '${att.date}', '${sessionCurrentLevel}', ${i})"
+                                                 onmousedown="startLongPress(this, event)"
+                                                 onmouseup="cancelLongPress()"
+                                                 onmouseleave="cancelLongPress()"
+                                                 ontouchstart="startLongPress(this, event)"
+                                                 ontouchend="cancelLongPress()"
+                                                 oncontextmenu="return false">
+                                            </div>
+                                        </td>
+                                    `).join('')}
+                                    <td class="pct-col" style="color: ${getPctColor(athlete.total_pct)}">${athlete.total_pct}%</td>
+                                    ${dowPctCols.map(d => `
+                                        <td class="pct-col" style="color: ${getPctColor(athlete.dow_pcts[d])}">${athlete.dow_pcts[d] != null ? athlete.dow_pcts[d] + '%' : '-'}</td>
+                                    `).join('')}
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+
+            document.getElementById('sessionContent').innerHTML = html;
+        }
+
+        function getPctColor(pct) {
+            if (pct == null) return 'var(--text-muted)';
+            
+            // Clamp to 0-100
+            pct = Math.max(0, Math.min(100, pct));
+            
+            // Colors: red (absent) -> orange -> yellow -> green (present)
+            // Red: #ef4444, Orange: #f97316, Yellow: #eab308, Green: #22c55e
+            const red = { r: 239, g: 68, b: 68 };     // 0-50%
+            const orange = { r: 249, g: 115, b: 22 }; // ~50%
+            const yellow = { r: 234, g: 179, b: 8 };  // ~75%
+            const green = { r: 34, g: 197, b: 94 };   // 100%
+            
+            let r, g, b;
+            if (pct <= 50) {
+                // Red to Orange (0-50%)
+                const t = pct / 50;
+                r = Math.round(red.r + (orange.r - red.r) * t);
+                g = Math.round(red.g + (orange.g - red.g) * t);
+                b = Math.round(red.b + (orange.b - red.b) * t);
+            } else if (pct <= 75) {
+                // Orange to Yellow (50-75%)
+                const t = (pct - 50) / 25;
+                r = Math.round(orange.r + (yellow.r - orange.r) * t);
+                g = Math.round(orange.g + (yellow.g - orange.g) * t);
+                b = Math.round(orange.b + (yellow.b - orange.b) * t);
+            } else {
+                // Yellow to Green (75-100%)
+                const t = (pct - 75) / 25;
+                r = Math.round(yellow.r + (green.r - yellow.r) * t);
+                g = Math.round(yellow.g + (green.g - yellow.g) * t);
+                b = Math.round(yellow.b + (green.b - yellow.b) * t);
+            }
+            
+            return `rgb(${r}, ${g}, ${b})`;
+        }
+
+        // Long-press handling for session cells
+        let longPressTimer = null;
+        let longPressTriggered = false;
+
+        function startLongPress(cell, event) {
+            longPressTriggered = false;
+            if (event) event.preventDefault(); // Prevent context menu on mobile
+            longPressTimer = setTimeout(() => {
+                longPressTriggered = true;
+                showCellDetails(cell);
+            }, 500); // 500ms hold
+        }
+
+        function cancelLongPress() {
+            if (longPressTimer) {
+                clearTimeout(longPressTimer);
+                longPressTimer = null;
+            }
+        }
+
+        function showCellDetails(cell) {
+            const athleteName = cell.dataset.athleteName;
+            const date = cell.dataset.date;
+            const notes = cell.dataset.notes || '';
+            const late = parseInt(cell.dataset.late) || 0;
+            
+            const formattedDate = new Date(date + 'T00:00:00').toLocaleDateString('en-US', {
+                weekday: 'short', month: 'short', day: 'numeric'
+            });
+            
+            let content = `<strong>${athleteName}</strong><br>${formattedDate}`;
+            if (late > 0) {
+                content += `<br><span style="color: var(--status-partial)">Late: ${late} min</span>`;
+            }
+            if (notes) {
+                content += `<br><em style="color: var(--text-secondary)">${notes}</em>`;
+            }
+            if (!late && !notes) {
+                content += `<br><span style="color: var(--text-muted)">No notes</span>`;
+            }
+            
+            // Show a tooltip-style popup
+            const popup = document.createElement('div');
+            popup.className = 'cell-detail-popup';
+            popup.innerHTML = content;
+            popup.style.cssText = `
+                position: fixed;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                background: var(--bg-card);
+                border: 1px solid var(--border-color);
+                border-radius: 8px;
+                padding: 16px 20px;
+                z-index: 1000;
+                box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+                text-align: center;
+                font-size: 0.9rem;
+                line-height: 1.5;
+            `;
+            
+            const overlay = document.createElement('div');
+            overlay.className = 'cell-detail-overlay';
+            overlay.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: rgba(0,0,0,0.5);
+                z-index: 999;
+            `;
+            overlay.onclick = () => {
+                popup.remove();
+                overlay.remove();
+            };
+            
+            document.body.appendChild(overlay);
+            document.body.appendChild(popup);
+            
+            // Auto-dismiss after 3 seconds
+            setTimeout(() => {
+                if (popup.parentNode) popup.remove();
+                if (overlay.parentNode) overlay.remove();
+            }, 3000);
+        }
+
+        function cycleSessionStatus(sessionId, athleteId, date, level, cellIndex) {
+            // Don't cycle if long press was triggered
+            if (longPressTriggered) {
+                longPressTriggered = false;
+                return;
+            }
+            const athlete = sessionData.levels[level].athletes.find(a => a.id === athleteId);
+            if (!athlete) return;
+
+            const currentStatus = athlete.attendance[cellIndex].status;
+            const currentIdx = STATUS_CYCLE.indexOf(currentStatus);
+            const newStatus = STATUS_CYCLE[(currentIdx + 1) % STATUS_CYCLE.length];
+
+            // Optimistic update
+            athlete.attendance[cellIndex].status = newStatus;
+            const cell = document.getElementById(`cell-${athleteId}-${cellIndex}`);
+            if (cell) {
+                cell.className = `attendance-cell status-${newStatus} animating`;
+                setTimeout(() => cell.classList.remove('animating'), 200);
+            }
+
+            // Debounced save
+            const key = `${athleteId}-${date}`;
+            debouncedSave(key, {
+                athlete_id: athleteId,
+                practice_date: date,
+                level: level,
+                status: newStatus,
+                session_id: sessionId
+            });
+
+            // Debounced percentage refresh
+            clearTimeout(window.pctRefreshTimeout);
+            window.pctRefreshTimeout = setTimeout(() => {
+                loadSessionAttendance();
+            }, 1500);
+        }
+
+        // ============
+        // SETUP VIEW
+        // ============
+        async function loadSetupData() {
+            await loadSessions();
+            await loadExistingSessions();
+            await loadCurrentSchedules();
+        }
+
+        async function loadExistingSessions() {
+            try {
+                const response = await fetch('/api/sessions');
+                const sessions = await response.json();
+
+                if (sessions.length === 0) {
+                    document.getElementById('existingSessions').innerHTML = '<p style="color: var(--text-muted); font-size: 0.85rem;">No sessions yet</p>';
+                    return;
+                }
+
+                document.getElementById('existingSessions').innerHTML = `
+                    <div class="schedule-list">
+                        ${sessions.map(s => `
+                            <div class="schedule-chip">
+                                <span>${s.name}</span>
+                                <button class="remove-btn" onclick="deleteSession(${s.id})">×</button>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            } catch (error) {
+                console.error('Error loading sessions:', error);
+            }
+        }
+
+        async function loadCurrentSchedules() {
+            try {
+                const response = await fetch('/api/practice_schedules');
+                const schedules = await response.json();
+
+                if (schedules.length === 0) {
+                    document.getElementById('currentSchedules').innerHTML = '<p style="color: var(--text-muted); font-size: 0.85rem;">No schedules yet</p>';
+                    return;
+                }
+
+                const grouped = {};
+                schedules.forEach(s => {
+                    if (!grouped[s.session_name]) grouped[s.session_name] = [];
+                    grouped[s.session_name].push(s);
+                });
+
+                let html = '';
+                for (const [sessionName, scheds] of Object.entries(grouped)) {
+                    html += `<p style="margin: 8px 0 4px; color: var(--text-muted); font-size: 0.8rem;">${sessionName}</p>`;
+                    html += '<div class="schedule-list">';
+                    scheds.forEach(s => {
+                        html += `
+                            <div class="schedule-chip">
+                                <span>${s.level} ${DAY_NAMES[s.day_of_week]} ${s.start_time.slice(0,5)}</span>
+                                <button class="remove-btn" onclick="deleteSchedule(${s.id})">×</button>
+                            </div>
+                        `;
+                    });
+                    html += '</div>';
+                }
+
+                document.getElementById('currentSchedules').innerHTML = html;
+            } catch (error) {
+                console.error('Error loading schedules:', error);
+            }
+        }
+
+        async function createSession() {
+            const name = document.getElementById('sessionName').value;
+            const year = document.getElementById('sessionYear').value;
+            const season = document.getElementById('sessionSeason').value;
+            const startDate = document.getElementById('sessionStartDate').value;
+            const endDate = document.getElementById('sessionEndDate').value;
+
+            if (!name || !year || !season || !startDate || !endDate) {
+                showToast('Fill all fields');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/sessions', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, year, season, start_date: startDate, end_date: endDate })
+                });
+
+                if (response.ok) {
+                    document.getElementById('sessionName').value = '';
+                    document.getElementById('sessionStartDate').value = '';
+                    document.getElementById('sessionEndDate').value = '';
+                    loadSetupData();
+                    showToast('Session created', 'success');
+                } else {
+                    const err = await response.json();
+                    showToast(err.error);
+                }
+            } catch (error) {
+                showToast('Failed to create session');
+            }
+        }
+
+        async function deleteSession(id) {
+            if (!confirm('Delete this session?')) return;
+
+            try {
+                await fetch(`/api/sessions/${id}`, { method: 'DELETE' });
+                loadSetupData();
+            } catch (error) {
+                showToast('Failed to delete');
+            }
+        }
+
+        async function addSchedule() {
+            const sessionId = document.getElementById('scheduleSession').value;
+            const level = document.getElementById('scheduleLevel').value;
+            const day = document.getElementById('scheduleDay').value;
+            const startTime = document.getElementById('scheduleStartTime').value;
+            const endTime = document.getElementById('scheduleEndTime').value;
+
+            if (!sessionId || !level || !startTime || !endTime) {
+                showToast('Fill all fields');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/practice_schedules', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        session_id: parseInt(sessionId),
+                        level,
+                        day_of_week: parseInt(day),
+                        start_time: startTime,
+                        end_time: endTime
+                    })
+                });
+
+                if (response.ok) {
+                    loadCurrentSchedules();
+                    showToast('Schedule added', 'success');
+                } else {
+                    const err = await response.json();
+                    showToast(err.error);
+                }
+            } catch (error) {
+                showToast('Failed to add schedule');
+            }
+        }
+
+        async function deleteSchedule(id) {
+            if (!confirm('Delete schedule?')) return;
+
+            try {
+                await fetch(`/api/practice_schedules/${id}`, { method: 'DELETE' });
+                loadCurrentSchedules();
+            } catch (error) {
+                showToast('Failed to delete');
+            }
+        }
+
+        async function addAthlete() {
+            const name = document.getElementById('newAthleteName').value;
+            const level = document.getElementById('newAthleteLevel').value;
+
+            if (!name) {
+                showToast('Enter name');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/athletes', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, current_level: level })
+                });
+
+                if (response.ok) {
+                    document.getElementById('newAthleteName').value = '';
+                    showToast('Athlete added', 'success');
+                    loadTodaysPractice();
+                } else {
+                    const err = await response.json();
+                    showToast(err.error);
+                }
+            } catch (error) {
+                showToast('Failed to add athlete');
+            }
+        }
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') closeNoteModal();
+        });
+    </script>
+</body>
+</html>
