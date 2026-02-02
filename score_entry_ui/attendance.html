@@ -269,7 +269,6 @@
         .layout-toggle {
             display: flex;
             gap: 4px;
-            margin-left: auto;
         }
 
         .layout-btn {
@@ -326,9 +325,9 @@
         }
 
         .layout-compact .attendance-table th {
-            height: 45px;
+            height: 60px;
             vertical-align: bottom;
-            padding-bottom: 4px;
+            padding-bottom: 6px;
         }
 
         /* Force attendance td to be exactly the cell size */
@@ -349,7 +348,7 @@
         .layout-compact .attendance-table td.name-col {
             padding: 0 4px 0 2px;
             font-size: 0.72rem;
-            font-weight: 600;
+            font-weight: 500;
             width: auto;
             min-width: 95px;
             max-width: 115px;
@@ -376,25 +375,34 @@
         }
 
         .layout-compact .date-header {
-            transform: rotate(-45deg);
+            transform: rotate(-55deg);
             transform-origin: center center;
             font-size: 0.55rem;
-            line-height: 1.1;
+            line-height: 1;
             white-space: nowrap;
             color: var(--text-muted);
             display: flex;
-            flex-direction: column;
+            flex-direction: row;
             align-items: center;
+            gap: 2px;
         }
 
         .layout-compact .date-header .day {
             font-weight: 600;
-            color: var(--text-secondary);
         }
 
         .layout-compact .date-header .date {
-            color: var(--text-muted);
+            color: #ffffff;
         }
+        
+        /* Day of week colors */
+        .date-header .day.dow-sun { color: #ff7eb3; }
+        .date-header .day.dow-mon { color: #7eb3ff; }
+        .date-header .day.dow-tue { color: #7eff9e; }
+        .date-header .day.dow-wed { color: #ffcf7e; }
+        .date-header .day.dow-thu { color: #c87eff; }
+        .date-header .day.dow-fri { color: #7ef0ff; }
+        .date-header .day.dow-sat { color: #ffff7e; }
 
         .layout-compact .attendance-cell {
             width: 18px;
@@ -432,8 +440,9 @@
 
         .layout-normal .attendance-table th,
         .layout-normal .attendance-table td {
-            padding: 6px 2px;
+            padding: 8px 8px;
             text-align: center;
+            vertical-align: middle;
         }
 
         .layout-normal .attendance-table th {
@@ -461,9 +470,15 @@
             left: 0;
             z-index: 15;
             background: var(--bg-elevated);
-            min-width: 120px;
+            min-width: 140px;
+            max-width: 160px;
+            width: 160px;
             text-align: left;
             padding-left: 12px;
+            padding-right: 8px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         .layout-normal .attendance-table th.name-col {
@@ -472,7 +487,7 @@
         }
 
         .layout-normal .attendance-table td.name-col {
-            font-weight: 600;
+            font-weight: 500;
             color: var(--text-primary);
             font-size: 0.85rem;
         }
@@ -497,29 +512,28 @@
         .layout-normal .attendance-table td.pct-col {
             font-family: 'JetBrains Mono', monospace;
             font-weight: 600;
-            font-size: 0.7rem;
+            font-size: 0.75rem;
         }
 
         .layout-normal .date-header {
-            font-size: 0.55rem;
-            line-height: 1.2;
+            font-size: 0.6rem;
+            line-height: 1.3;
         }
 
         .layout-normal .date-header .day {
             display: block;
             font-weight: 600;
-            color: var(--text-secondary);
         }
 
         .layout-normal .date-header .date {
             display: block;
-            color: var(--text-muted);
+            color: #ffffff;
         }
 
         .layout-normal .attendance-cell {
-            width: 24px;
-            height: 24px;
-            border-radius: 4px;
+            width: 28px;
+            height: 28px;
+            border-radius: 5px;
             display: inline-block;
             margin: 0;
         }
@@ -577,12 +591,171 @@
             margin-bottom: 14px;
         }
 
+        .status-legend.vertical {
+            position: absolute;
+            right: 16px;
+            top: 16px;
+            flex-direction: column;
+            gap: 8px;
+            margin-bottom: 0;
+        }
+
         .legend-item {
             display: flex;
             align-items: center;
             gap: 6px;
             font-size: 0.8rem;
             color: var(--text-muted);
+        }
+
+        /* Day navigation */
+        .day-nav {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+
+        .day-nav-btn {
+            background: #1e1e24;
+            border: 1px solid #3a3a44;
+            border-radius: 12px;
+            width: 48px;
+            height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #a0a0a8;
+            cursor: pointer;
+            font-size: 1.5rem;
+            font-weight: 400;
+            transition: all 0.12s ease;
+            flex-shrink: 0;
+        }
+
+        .day-nav-btn:hover:not(:disabled) {
+            background: #2a2a34;
+            color: #ffffff;
+            border-color: #5a5a66;
+        }
+
+        .day-nav-btn:active:not(:disabled) {
+            transform: scale(0.95);
+            background: #252530;
+        }
+
+        .day-nav-btn:disabled {
+            opacity: 0.25;
+            cursor: not-allowed;
+        }
+
+        .day-nav-date {
+            text-align: center;
+            width: 240px;
+            flex-shrink: 0;
+        }
+
+        .day-nav-date .date-main {
+            font-size: 1.15rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            transition: opacity 0.1s ease;
+        }
+
+        .day-nav-date .date-sub {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-top: 2px;
+            transition: opacity 0.1s ease;
+        }
+
+        .day-nav-date.fade-out .date-main,
+        .day-nav-date.fade-out .date-sub {
+            opacity: 0;
+        }
+
+        .day-view-card {
+            position: relative;
+        }
+
+        /* Shimmer loading effect */
+        @keyframes shimmer {
+            0% {
+                background-position: 200% 0;
+            }
+            100% {
+                background-position: -200% 0;
+            }
+        }
+
+        .shimmer {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .shimmer::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(
+                90deg,
+                transparent 25%,
+                rgba(255, 255, 255, 0.08) 50%,
+                transparent 75%
+            );
+            background-size: 200% 100%;
+            animation: shimmer 1.5s ease-in-out infinite;
+        }
+
+        .skeleton-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 12px;
+            grid-auto-rows: 1fr;
+        }
+
+        .skeleton-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 14px;
+            min-height: 100px;
+            padding: 24px 18px;
+        }
+
+        .skeleton-tabs {
+            display: flex;
+            gap: 6px;
+        }
+
+        .skeleton-tab {
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-color);
+            width: 50px;
+            height: 34px;
+            border-radius: 8px;
+        }
+
+        .skeleton-table {
+            display: flex;
+            flex-direction: column;
+            gap: 1px;
+            background: var(--bg-elevated);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .skeleton-row {
+            background: var(--bg-card);
+            height: 36px;
+        }
+
+        .skeleton-header {
+            background: var(--bg-card);
+            height: 50px;
         }
 
         .legend-dot {
@@ -711,6 +884,121 @@
 
         .schedule-chip .remove-btn:hover {
             color: var(--accent-red);
+        }
+
+        /* Schedule Table */
+        .schedule-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+            margin-top: 10px;
+        }
+
+        .schedule-table th {
+            text-align: left;
+            padding: 8px 12px;
+            color: var(--text-muted);
+            font-weight: 500;
+            border-bottom: 1px solid var(--border);
+            font-size: 0.75rem;
+            text-transform: uppercase;
+        }
+
+        .schedule-table td {
+            padding: 8px 12px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .schedule-table tr:hover {
+            background: var(--bg-hover);
+        }
+
+        .schedule-table .actions {
+            display: flex;
+            gap: 6px;
+            justify-content: flex-end;
+        }
+
+        .schedule-table .action-btn {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            padding: 4px 8px;
+            font-size: 0.8rem;
+            border-radius: 4px;
+            transition: all 0.12s ease;
+        }
+
+        .schedule-table .action-btn:hover {
+            background: var(--bg-card);
+            color: var(--text-primary);
+        }
+
+        .schedule-table .action-btn.delete:hover {
+            color: var(--accent-red);
+        }
+
+        .schedule-table input,
+        .schedule-table select {
+            padding: 4px 8px;
+            font-size: 0.8rem;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            background: var(--bg-main);
+            color: var(--text-primary);
+        }
+
+        .schedule-table input:focus,
+        .schedule-table select:focus {
+            outline: none;
+            border-color: var(--accent-blue);
+        }
+
+        .schedule-table input[type="time"] {
+            width: 100px;
+        }
+
+        .schedule-table select {
+            min-width: 70px;
+        }
+
+        .session-group-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 16px 0 8px;
+            padding-bottom: 4px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .session-group-header h4 {
+            margin: 0;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        .copy-section {
+            display: flex;
+            gap: 10px;
+            align-items: flex-end;
+            padding: 12px;
+            background: var(--bg-card);
+            border-radius: 8px;
+            margin-bottom: 16px;
+        }
+
+        .copy-section .form-group {
+            margin: 0;
+        }
+
+        .copy-section label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        .copy-section select {
+            min-width: 140px;
         }
 
         /* Modal */
@@ -872,42 +1160,299 @@
             }
         }
 
-        /* Desktop */
-        @media (min-width: 1025px) {
-            .container {
-                padding: 24px;
+        /* ============================================================
+           ACCESSIBILITY: Reduced Motion
+           ============================================================ */
+        @media (prefers-reduced-motion: reduce) {
+            *,
+            *::before,
+            *::after {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
+            
+            .shimmer {
+                animation: none;
+                background: #1a1a20;
+            }
+            
+            .day-nav-date .date-main,
+            .day-nav-date .date-sub {
+                transition: none;
             }
         }
 
-        /* Mobile */
+        /* ============================================================
+           RESPONSIVE: Desktop Large (1440px+)
+           ============================================================ */
+        @media (min-width: 1440px) {
+            .container {
+                max-width: 1400px;
+                padding: clamp(16px, 2vw, 32px);
+            }
+            
+            .athlete-grid {
+                grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+            }
+        }
+
+        /* ============================================================
+           RESPONSIVE: Desktop (1025px - 1439px)
+           ============================================================ */
+        @media (min-width: 1025px) and (max-width: 1439px) {
+            .container {
+                padding: clamp(16px, 2vw, 24px);
+            }
+        }
+
+        /* ============================================================
+           RESPONSIVE: Tablet Landscape / iPad Pro (1024px)
+           ============================================================ */
+        @media (min-width: 768px) and (max-width: 1024px) and (orientation: landscape) {
+            .container {
+                max-width: 100%;
+                padding: 16px 24px;
+            }
+            
+            .session-controls {
+                flex-wrap: nowrap;
+            }
+            
+            .athlete-grid {
+                grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+                gap: 12px;
+            }
+            
+            .layout-normal .attendance-table td.name-col {
+                min-width: 120px;
+                max-width: 140px;
+            }
+        }
+
+        /* ============================================================
+           RESPONSIVE: Tablet Portrait / iPad (768px - 1024px)
+           ============================================================ */
+        @media (min-width: 768px) and (max-width: 1024px) and (orientation: portrait) {
+            .container {
+                padding: 16px;
+            }
+            
+            .athlete-grid {
+                grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            }
+            
+            .session-controls {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 12px;
+            }
+            
+            .session-controls .status-legend {
+                margin-left: 0;
+                margin-top: 8px;
+            }
+            
+            .status-legend.vertical {
+                position: static;
+                flex-direction: row;
+                flex-wrap: wrap;
+                margin-bottom: 12px;
+            }
+            
+            .day-nav-date {
+                width: 200px;
+            }
+        }
+
+        /* ============================================================
+           RESPONSIVE: Mobile (< 768px)
+           ============================================================ */
         @media (max-width: 767px) {
             .container {
-                padding: 12px;
+                padding: clamp(8px, 3vw, 16px);
             }
 
             .athlete-grid {
-                grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-                gap: 10px;
+                grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+                gap: 8px;
             }
 
             .athlete-card {
-                padding: 18px 14px;
-                min-height: 85px;
+                padding: 14px 12px;
+                min-height: 75px;
             }
 
             .athlete-card-name {
-                font-size: 1rem;
+                font-size: clamp(0.85rem, 3.5vw, 1rem);
+            }
+
+            .view-tabs {
+                gap: 4px;
             }
 
             .view-tab {
-                padding: 8px 16px;
-                font-size: 0.85rem;
+                padding: 8px 12px;
+                font-size: 0.8rem;
             }
 
             .level-tab {
-                padding: 6px 14px;
-                font-size: 0.8rem;
+                padding: 6px 12px;
+                font-size: 0.75rem;
             }
+            
+            /* Day navigation compact on mobile */
+            .day-nav {
+                gap: 8px;
+            }
+            
+            .day-nav-btn {
+                width: 40px;
+                height: 40px;
+                font-size: 1.2rem;
+            }
+            
+            .day-nav-date {
+                width: 180px;
+            }
+            
+            .day-nav-date .date-main {
+                font-size: 1rem;
+            }
+            
+            /* Legend below navigation on mobile */
+            .status-legend.vertical {
+                position: static;
+                flex-direction: row;
+                flex-wrap: wrap;
+                justify-content: center;
+                margin-bottom: 12px;
+                gap: 12px;
+            }
+            
+            /* Session controls stack on mobile */
+            .session-controls {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 10px;
+            }
+            
+            .session-controls .status-legend {
+                margin-left: 0;
+                justify-content: flex-start;
+            }
+            
+            .layout-toggle {
+                align-self: flex-start;
+            }
+            
+            /* Compact table even more on mobile */
+            .layout-compact .attendance-table td.name-col {
+                min-width: 70px;
+                max-width: 90px;
+                font-size: 0.65rem;
+            }
+            
+            .layout-compact .attendance-table th,
+            .layout-compact .attendance-table td {
+                font-size: 0.5rem;
+            }
+            
+            .layout-compact .attendance-cell {
+                width: 14px;
+                height: 14px;
+            }
+            
+            /* Normal layout adjustments for mobile */
+            .layout-normal .attendance-table td.name-col {
+                min-width: 100px;
+                max-width: 120px;
+                font-size: 0.75rem;
+            }
+            
+            .layout-normal .attendance-cell {
+                width: 22px;
+                height: 22px;
+            }
+            
+            /* Setup sections full width */
+            .setup-section {
+                padding: 12px;
+            }
+            
+            .form-row {
+                flex-direction: column;
+            }
+            
+            .form-group {
+                width: 100%;
+            }
+            
+            .copy-section {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .copy-section select {
+                min-width: 100%;
+            }
+        }
+
+        /* ============================================================
+           RESPONSIVE: Small Mobile (< 480px)
+           ============================================================ */
+        @media (max-width: 479px) {
+            .athlete-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 6px;
+            }
+            
+            .athlete-card {
+                padding: 12px 10px;
+                min-height: 65px;
+            }
+            
+            .athlete-card-name {
+                font-size: 0.85rem;
+            }
+            
+            .note-btn {
+                width: 20px;
+                height: 20px;
+            }
+            
+            .day-nav-date {
+                width: 150px;
+            }
+            
+            .day-nav-date .date-main {
+                font-size: 0.9rem;
+            }
+            
+            /* Hide DOW percentages on very small screens */
+            .layout-compact .attendance-table th.pct-col:not(:first-of-type),
+            .layout-compact .attendance-table td.pct-col:not(:first-of-type) {
+                display: none;
+            }
+        }
+
+        /* ============================================================
+           FLUID TYPOGRAPHY
+           ============================================================ */
+        .card h3 {
+            font-size: clamp(0.9rem, 2vw, 1.1rem);
+        }
+        
+        .setup-section h3 {
+            font-size: clamp(0.8rem, 1.8vw, 0.9rem);
+        }
+        
+        .empty-state h3 {
+            font-size: clamp(1rem, 3vw, 1.25rem);
+        }
+        
+        .empty-state p {
+            font-size: clamp(0.8rem, 2vw, 0.9rem);
         }
     </style>
 </head>
@@ -922,15 +1467,15 @@
 
         <!-- View Tabs -->
         <div class="view-tabs">
-            <button class="view-tab active" data-view="today">Today</button>
+            <button class="view-tab active" data-view="today">Day</button>
             <button class="view-tab" data-view="session">Session</button>
             <button class="view-tab" data-view="setup">Setup</button>
         </div>
 
-        <!-- Today View -->
+        <!-- Day View -->
         <div id="todayView" class="view-content">
-            <div class="card">
-                <div class="status-legend">
+            <div class="card day-view-card">
+                <div class="status-legend vertical">
                     <div class="legend-item">
                         <div class="legend-dot" style="background: var(--status-none)"></div>
                         <span>None</span>
@@ -947,6 +1492,15 @@
                         <div class="legend-dot" style="background: var(--status-partial)"></div>
                         <span>Partial</span>
                     </div>
+                </div>
+
+                <div class="day-nav">
+                    <button class="day-nav-btn" onclick="navigateDay(-1)" id="dayPrevBtn">&lt;</button>
+                    <div class="day-nav-date" id="dayNavDate">
+                        <div class="date-main" id="dayNavDateMain">Loading...</div>
+                        <div class="date-sub" id="dayNavDateSub"></div>
+                    </div>
+                    <button class="day-nav-btn" onclick="navigateDay(1)" id="dayNextBtn">&gt;</button>
                 </div>
 
                 <div class="level-tabs" id="levelTabs"></div>
@@ -958,7 +1512,7 @@
 
         <!-- Session View -->
         <div id="sessionView" class="view-content" style="display: none;">
-            <div class="card">
+            <div class="card" style="position: relative;">
                 <div class="session-controls">
                     <label for="sessionSelect">Session:</label>
                     <select id="sessionSelect">
@@ -969,24 +1523,24 @@
                         <button class="layout-btn active" data-layout="compact" onclick="setLayout('compact')">Compact</button>
                         <button class="layout-btn" data-layout="normal" onclick="setLayout('normal')">Normal</button>
                     </div>
-                </div>
-
-                <div class="status-legend">
-                    <div class="legend-item">
-                        <div class="legend-dot" style="background: var(--status-none)"></div>
-                        <span>None</span>
-                    </div>
-                    <div class="legend-item">
-                        <div class="legend-dot" style="background: var(--status-present)"></div>
-                        <span>Present</span>
-                    </div>
-                    <div class="legend-item">
-                        <div class="legend-dot" style="background: var(--status-absent)"></div>
-                        <span>Absent</span>
-                    </div>
-                    <div class="legend-item">
-                        <div class="legend-dot" style="background: var(--status-partial)"></div>
-                        <span>Partial</span>
+                    
+                    <div class="status-legend" style="margin-left: auto;">
+                        <div class="legend-item">
+                            <div class="legend-dot" style="background: var(--status-none)"></div>
+                            <span>None</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-dot" style="background: var(--status-present)"></div>
+                            <span>Present</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-dot" style="background: var(--status-absent)"></div>
+                            <span>Absent</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-dot" style="background: var(--status-partial)"></div>
+                            <span>Partial</span>
+                        </div>
                     </div>
                 </div>
 
@@ -1045,45 +1599,54 @@
                     </div>
 
                     <div class="setup-section">
-                        <h3>Add Schedule</h3>
-                        <div class="form-row">
+                        <h3>Practice Schedules</h3>
+                        
+                        <div class="copy-section">
                             <div class="form-group">
-                                <label>Session</label>
-                                <select id="scheduleSession"><option value="">Select...</option></select>
-                            </div>
-                            <div class="form-group">
-                                <label>Level</label>
-                                <select id="scheduleLevel"><option value="">Select...</option></select>
+                                <label>Copy from</label>
+                                <select id="copySourceSession"><option value="">Select source...</option></select>
                             </div>
                             <div class="form-group">
-                                <label>Day</label>
-                                <select id="scheduleDay">
-                                    <option value="0">Sun</option>
-                                    <option value="1">Mon</option>
-                                    <option value="2">Tue</option>
-                                    <option value="3">Wed</option>
-                                    <option value="4">Thu</option>
-                                    <option value="5">Fri</option>
-                                    <option value="6">Sat</option>
-                                </select>
+                                <label>Copy to</label>
+                                <select id="copyTargetSession"><option value="">Select target...</option></select>
                             </div>
-                            <div class="form-group">
-                                <label>Start</label>
-                                <input type="time" id="scheduleStartTime" value="17:00">
-                            </div>
-                            <div class="form-group">
-                                <label>End</label>
-                                <input type="time" id="scheduleEndTime" value="19:00">
-                            </div>
-                            <div class="form-group" style="justify-content: flex-end;">
-                                <button class="btn btn-primary" onclick="addSchedule()">Add</button>
-                            </div>
+                            <button class="btn btn-secondary" onclick="copySchedules()">Copy All Schedules</button>
                         </div>
+                        
+                        <div id="currentSchedules"><div class="loading">Loading...</div></div>
                     </div>
 
                     <div class="setup-section">
-                        <h3>Schedules</h3>
-                        <div id="currentSchedules"><div class="loading">Loading...</div></div>
+                        <h3>Special Practice Dates</h3>
+                        <p style="color: var(--text-muted); font-size: 0.8rem; margin-bottom: 12px;">
+                            Add one-off practice dates that don't follow the regular schedule (e.g., holiday practices, makeup days)
+                        </p>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Session</label>
+                                <select id="specialSession"><option value="">Select...</option></select>
+                            </div>
+                            <div class="form-group">
+                                <label>Date</label>
+                                <input type="date" id="specialDate">
+                            </div>
+                            <div class="form-group">
+                                <label>Level</label>
+                                <select id="specialLevel"><option value="">Select...</option></select>
+                            </div>
+                            <div class="form-group">
+                                <label>Start</label>
+                                <input type="time" id="specialStartTime" value="17:00">
+                            </div>
+                            <div class="form-group">
+                                <label>End</label>
+                                <input type="time" id="specialEndTime" value="19:00">
+                            </div>
+                            <div class="form-group" style="justify-content: flex-end;">
+                                <button class="btn btn-primary" onclick="addSpecialDate()">Add</button>
+                            </div>
+                        </div>
+                        <div id="specialDatesContainer" style="margin-top: 12px;"></div>
                     </div>
 
                     <div class="setup-section">
@@ -1151,6 +1714,13 @@
         let noteLevel = null;
         let notePracticeDate = null;
         let selectedLateTime = 0;
+        
+        // Day view navigation state
+        let currentDayDate = new Date().toISOString().split('T')[0];
+        let practiceDates = [];
+        let currentDayIndex = -1;
+        let dayNavDebounceTimer = null;
+        const DAY_NAV_DEBOUNCE_MS = 600;
 
         // Pending changes for debouncing
         const pendingChanges = new Map();
@@ -1158,6 +1728,45 @@
 
         const STATUS_CYCLE = ['none', 'present', 'absent', 'partial'];
         const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+        const FULL_DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+        const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+        
+        // Level sort order: numeric levels 1-10, then Xcel levels
+        const XCEL_ORDER = ['XB', 'XS', 'XG', 'XP', 'XD', 'XSA'];
+        
+        function sortLevels(levels) {
+            return [...levels].sort((a, b) => {
+                // Extract level string (handle both object and string)
+                const levelA = typeof a === 'object' ? a.level : a;
+                const levelB = typeof b === 'object' ? b.level : b;
+                
+                const numA = parseInt(levelA);
+                const numB = parseInt(levelB);
+                const isNumA = !isNaN(numA);
+                const isNumB = !isNaN(numB);
+                
+                // Both numeric: sort by number
+                if (isNumA && isNumB) {
+                    return numA - numB;
+                }
+                
+                // Numeric comes before Xcel
+                if (isNumA && !isNumB) return -1;
+                if (!isNumA && isNumB) return 1;
+                
+                // Both Xcel: sort by predefined order
+                const idxA = XCEL_ORDER.indexOf(levelA);
+                const idxB = XCEL_ORDER.indexOf(levelB);
+                
+                // Known Xcel levels sort by order, unknown go to end
+                if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+                if (idxA !== -1) return -1;
+                if (idxB !== -1) return 1;
+                
+                // Fallback: alphabetical
+                return levelA.localeCompare(levelB);
+            });
+        }
 
         // Toast notification
         function showToast(message, type = 'error', duration = 2500) {
@@ -1236,18 +1845,87 @@
         }
 
         // =====================
-        // TODAY'S PRACTICE VIEW
+        // DAY PRACTICE VIEW
         // =====================
+        
+        // Shimmer loading skeleton generators
+        function showDayShimmer() {
+            // Put skeleton tabs directly (level-tabs class provides flex and margin)
+            document.getElementById('levelTabs').innerHTML = `
+                <div class="skeleton-tab shimmer"></div>
+                <div class="skeleton-tab shimmer"></div>
+                <div class="skeleton-tab shimmer"></div>
+            `;
+            document.getElementById('todayContent').innerHTML = `
+                <div class="skeleton-grid">
+                    ${Array(8).fill('<div class="skeleton-card shimmer"></div>').join('')}
+                </div>
+            `;
+        }
+
+        function showSessionShimmer() {
+            // Put skeleton tabs directly (level-tabs class provides flex and margin)
+            document.getElementById('sessionLevelTabs').innerHTML = `
+                <div class="skeleton-tab shimmer"></div>
+                <div class="skeleton-tab shimmer"></div>
+                <div class="skeleton-tab shimmer"></div>
+            `;
+            document.getElementById('sessionContent').innerHTML = `
+                <div class="skeleton-table">
+                    <div class="skeleton-header shimmer"></div>
+                    ${Array(10).fill('<div class="skeleton-row shimmer"></div>').join('')}
+                </div>
+            `;
+        }
+        
         async function loadTodaysPractice() {
+            showDayShimmer();
+            
+            // First, load practice dates for navigation
             try {
-                const response = await fetch('/api/todays_practice');
+                const datesResponse = await fetch('/api/practice_dates');
+                const datesData = await datesResponse.json();
+                practiceDates = datesData.dates || [];
+                
+                // Find today's date or closest future date in practice dates
+                const today = new Date().toISOString().split('T')[0];
+                currentDayIndex = practiceDates.indexOf(today);
+                
+                if (currentDayIndex === -1) {
+                    // Find the closest practice date to today
+                    currentDayIndex = practiceDates.findIndex(d => d >= today);
+                    if (currentDayIndex === -1 && practiceDates.length > 0) {
+                        currentDayIndex = practiceDates.length - 1; // Use last date if all are in past
+                    }
+                }
+                
+                if (practiceDates.length > 0 && currentDayIndex >= 0) {
+                    currentDayDate = practiceDates[currentDayIndex];
+                }
+            } catch (error) {
+                console.error('Error loading practice dates:', error);
+            }
+            
+            await loadDayPractice(currentDayDate, false);
+        }
+
+        async function loadDayPractice(dateStr, showShimmer = true) {
+            currentDayDate = dateStr;
+            updateDayNavUI();
+            
+            if (showShimmer) {
+                showDayShimmer();
+            }
+            
+            try {
+                const response = await fetch(`/api/practice_for_date?date=${dateStr}`);
                 todayData = await response.json();
 
                 if (todayData.error || !todayData.levels || todayData.levels.length === 0) {
                     document.getElementById('todayContent').innerHTML = `
                         <div class="empty-state">
-                            <h3>No Practice Today</h3>
-                            <p>${todayData.error || 'No scheduled practice.'}</p>
+                            <h3>No Practice</h3>
+                            <p>${todayData.error || 'No scheduled practice on this day.'}</p>
                         </div>
                     `;
                     document.getElementById('levelTabs').innerHTML = '';
@@ -1256,7 +1934,10 @@
 
                 currentSession = todayData.session;
                 
-                const tabsHtml = todayData.levels.map((level, i) => `
+                // Sort levels in proper order
+                const sortedLevels = sortLevels(todayData.levels);
+                
+                const tabsHtml = sortedLevels.map((level, i) => `
                     <button class="level-tab ${i === 0 ? 'active' : ''}" 
                             data-level="${level.level}"
                             onclick="selectTodayLevel('${level.level}')">
@@ -1265,18 +1946,83 @@
                 `).join('');
                 document.getElementById('levelTabs').innerHTML = tabsHtml;
 
-                if (todayData.levels.length > 0) {
-                    currentLevel = todayData.levels[0].level;
+                if (sortedLevels.length > 0) {
+                    currentLevel = sortedLevels[0].level;
                     renderTodayAthletes();
                 }
             } catch (error) {
-                console.error('Error loading today practice:', error);
+                console.error('Error loading day practice:', error);
                 document.getElementById('todayContent').innerHTML = `
                     <div class="empty-state">
                         <h3>Error</h3>
                         <p>${error.message}</p>
                     </div>
                 `;
+            }
+        }
+
+        function updateDayNavUI(animate = false) {
+            const dateContainer = document.getElementById('dayNavDate');
+            const dateMain = document.getElementById('dayNavDateMain');
+            const dateSub = document.getElementById('dayNavDateSub');
+            
+            const date = new Date(currentDayDate + 'T00:00:00');
+            const dayName = FULL_DAY_NAMES[date.getDay()];
+            const monthName = MONTH_NAMES[date.getMonth()];
+            const dayNum = date.getDate();
+            
+            const today = new Date().toISOString().split('T')[0];
+            let subText = '';
+            if (currentDayDate === today) {
+                subText = 'Today';
+            } else if (currentDayDate === getDateOffset(today, -1)) {
+                subText = 'Yesterday';
+            } else if (currentDayDate === getDateOffset(today, 1)) {
+                subText = 'Tomorrow';
+            }
+            
+            if (animate) {
+                // Fade out
+                dateContainer.classList.add('fade-out');
+                setTimeout(() => {
+                    dateMain.textContent = `${dayName}, ${monthName} ${dayNum}`;
+                    dateSub.textContent = subText;
+                    // Fade in
+                    dateContainer.classList.remove('fade-out');
+                }, 100);
+            } else {
+                dateMain.textContent = `${dayName}, ${monthName} ${dayNum}`;
+                dateSub.textContent = subText;
+            }
+            
+            // Update nav buttons
+            currentDayIndex = practiceDates.indexOf(currentDayDate);
+            document.getElementById('dayPrevBtn').disabled = currentDayIndex <= 0;
+            document.getElementById('dayNextBtn').disabled = currentDayIndex >= practiceDates.length - 1;
+        }
+
+        function getDateOffset(dateStr, days) {
+            const d = new Date(dateStr + 'T00:00:00');
+            d.setDate(d.getDate() + days);
+            return d.toISOString().split('T')[0];
+        }
+
+        function navigateDay(direction) {
+            const newIndex = currentDayIndex + direction;
+            if (newIndex >= 0 && newIndex < practiceDates.length) {
+                currentDayIndex = newIndex;
+                currentDayDate = practiceDates[currentDayIndex];
+                
+                // Update UI immediately with animation
+                updateDayNavUI(true);
+                
+                // Debounce the actual data fetch
+                if (dayNavDebounceTimer) {
+                    clearTimeout(dayNavDebounceTimer);
+                }
+                dayNavDebounceTimer = setTimeout(() => {
+                    loadDayPractice(currentDayDate, true);
+                }, DAY_NAV_DEBOUNCE_MS);
             }
         }
 
@@ -1447,26 +2193,28 @@
                 const options = sessions.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
 
                 document.getElementById('sessionSelect').innerHTML = '<option value="">Select session...</option>' + options;
-                document.getElementById('scheduleSession').innerHTML = '<option value="">Select...</option>' + options;
+                document.getElementById('copySourceSession').innerHTML = '<option value="">Select source...</option>' + options;
+                document.getElementById('copyTargetSession').innerHTML = '<option value="">Select target...</option>' + options;
 
                 const currentResponse = await fetch('/api/sessions/current');
                 const current = await currentResponse.json();
                 if (current && current.id) {
                     document.getElementById('sessionSelect').value = current.id;
+                    document.getElementById('copyTargetSession').value = current.id;
                 }
             } catch (error) {
                 console.error('Error loading sessions:', error);
             }
         }
 
+        let allLevels = [];
         async function loadLevels() {
             try {
                 const response = await fetch('/api/levels');
-                const levels = await response.json();
+                allLevels = await response.json();
 
-                const options = levels.map(l => `<option value="${l}">${l}</option>`).join('');
+                const options = allLevels.map(l => `<option value="${l}">${l}</option>`).join('');
 
-                document.getElementById('scheduleLevel').innerHTML = '<option value="">Select...</option>' + options;
                 document.getElementById('newAthleteLevel').innerHTML = '<option value="">Select...</option>' + options;
             } catch (error) {
                 console.error('Error loading levels:', error);
@@ -1488,6 +2236,9 @@
                 `;
                 return;
             }
+            
+            // Show shimmer loading
+            showSessionShimmer();
 
             try {
                 const response = await fetch(`/api/attendance/session/${sessionId}`);
@@ -1504,7 +2255,8 @@
                     return;
                 }
 
-                const levels = Object.keys(sessionData.levels);
+                // Sort levels in proper order (numeric 1-10, then Xcel)
+                const levels = sortLevels(Object.keys(sessionData.levels));
                 sessionCurrentLevel = sessionCurrentLevel && levels.includes(sessionCurrentLevel) 
                     ? sessionCurrentLevel 
                     : levels[0];
@@ -1552,7 +2304,36 @@
                 return;
             }
 
-            const dates = levelData.dates;
+            // Filter dates: show if has records OR is in the future
+            const allDates = levelData.dates;
+            const today = new Date().toISOString().split('T')[0];
+            const filteredDates = [];
+            const dateIndices = [];
+            
+            allDates.forEach((d, i) => {
+                // Check if any athlete has a record for this date
+                const hasRecord = levelData.athletes.some(athlete => {
+                    const att = athlete.attendance[i];
+                    return att && att.status !== 'none';
+                });
+                
+                // Show date if: has records OR is today or in the future
+                if (hasRecord || d >= today) {
+                    filteredDates.push(d);
+                    dateIndices.push(i);
+                }
+            });
+
+            if (filteredDates.length === 0) {
+                document.getElementById('sessionContent').innerHTML = `
+                    <div class="empty-state">
+                        <h3>No Records Yet</h3>
+                        <p>No attendance records for this level</p>
+                    </div>
+                `;
+                return;
+            }
+
             const dowPctCols = Object.keys(levelData.athletes[0]?.dow_pcts || {});
             const layoutClass = `layout-${sessionLayout}`;
 
@@ -1562,11 +2343,12 @@
                         <thead>
                             <tr>
                                 <th class="name-col">Athlete</th>
-                                ${dates.map(d => {
+                                ${filteredDates.map(d => {
                                     const date = new Date(d + 'T00:00:00');
+                                    const dowClass = 'dow-' + DAY_NAMES[date.getDay()].toLowerCase();
                                     return `<th>
                                         <div class="date-header">
-                                            <span class="day">${DAY_NAMES[date.getDay()]}</span>
+                                            <span class="day ${dowClass}">${DAY_NAMES[date.getDay()]}</span>
                                             <span class="date">${date.getMonth()+1}/${date.getDate()}</span>
                                         </div>
                                     </th>`;
@@ -1578,8 +2360,10 @@
                         <tbody>
                             ${levelData.athletes.map(athlete => `
                                 <tr>
-                                    <td class="name-col">${athlete.name}</td>
-                                    ${athlete.attendance.map((att, i) => `
+                                    <td class="name-col" title="${athlete.name}">${athlete.name}</td>
+                                    ${dateIndices.map(i => {
+                                        const att = athlete.attendance[i];
+                                        return `
                                         <td>
                                             <div class="attendance-cell status-${att.status}" 
                                                  id="cell-${athlete.id}-${i}"
@@ -1598,7 +2382,7 @@
                                                  oncontextmenu="return false">
                                             </div>
                                         </td>
-                                    `).join('')}
+                                    `;}).join('')}
                                     <td class="pct-col" style="color: ${getPctColor(athlete.total_pct)}">${athlete.total_pct}%</td>
                                     ${dowPctCols.map(d => `
                                         <td class="pct-col" style="color: ${getPctColor(athlete.dow_pcts[d])}">${athlete.dow_pcts[d] != null ? athlete.dow_pcts[d] + '%' : '-'}</td>
@@ -1768,11 +2552,70 @@
                 session_id: sessionId
             });
 
-            // Debounced percentage refresh
-            clearTimeout(window.pctRefreshTimeout);
-            window.pctRefreshTimeout = setTimeout(() => {
-                loadSessionAttendance();
-            }, 1500);
+            // Update percentages locally (no full refresh)
+            updateAthletePercentages(athleteId, level);
+        }
+
+        function updateAthletePercentages(athleteId, level) {
+            const athlete = sessionData.levels[level].athletes.find(a => a.id === athleteId);
+            if (!athlete) return;
+
+            // Calculate new percentages based on current attendance data
+            let presentCount = 0;
+            let recordedCount = 0;
+            const dowCounts = {};
+            
+            athlete.attendance.forEach((att, i) => {
+                if (att.status === 'present' || att.status === 'absent' || att.status === 'partial') {
+                    recordedCount++;
+                    const d = new Date(att.date + 'T00:00:00');
+                    const dow = DAY_NAMES[d.getDay()];
+                    if (!dowCounts[dow]) dowCounts[dow] = { present: 0, total: 0 };
+                    dowCounts[dow].total++;
+                    
+                    if (att.status === 'present') {
+                        presentCount++;
+                        dowCounts[dow].present++;
+                    } else if (att.status === 'partial') {
+                        presentCount += 0.5;
+                        dowCounts[dow].present += 0.5;
+                    }
+                }
+            });
+
+            // Update total percentage
+            const totalPct = recordedCount > 0 ? Math.round(presentCount / recordedCount * 100) : 0;
+            athlete.total_pct = totalPct;
+
+            // Update dow percentages
+            for (const [dow, counts] of Object.entries(dowCounts)) {
+                athlete.dow_pcts[dow] = counts.total > 0 ? Math.round(counts.present / counts.total * 100) : null;
+            }
+
+            // Update DOM - find the row for this athlete and update percentage cells
+            const rows = document.querySelectorAll('.attendance-table tbody tr');
+            for (const row of rows) {
+                const firstCell = row.querySelector('.attendance-cell');
+                if (firstCell && firstCell.dataset.athleteId == athleteId) {
+                    // Found the row - update percentage cells
+                    const pctCells = row.querySelectorAll('.pct-col');
+                    if (pctCells.length > 0) {
+                        // First pct cell is total
+                        pctCells[0].textContent = `${totalPct}%`;
+                        pctCells[0].style.color = getPctColor(totalPct);
+                        
+                        // Rest are day-of-week
+                        const dowPctCols = Object.keys(athlete.dow_pcts);
+                        for (let i = 1; i < pctCells.length && i <= dowPctCols.length; i++) {
+                            const dow = dowPctCols[i - 1];
+                            const pct = athlete.dow_pcts[dow];
+                            pctCells[i].textContent = pct != null ? `${pct}%` : '-';
+                            pctCells[i].style.color = getPctColor(pct);
+                        }
+                    }
+                    break;
+                }
+            }
         }
 
         // ============
@@ -1782,6 +2625,121 @@
             await loadSessions();
             await loadExistingSessions();
             await loadCurrentSchedules();
+            await loadSpecialDates();
+            populateSpecialDateDropdowns();
+        }
+
+        function populateSpecialDateDropdowns() {
+            // Populate session dropdown for special dates
+            const sessionSelect = document.getElementById('specialSession');
+            const copySource = document.getElementById('copySourceSession');
+            if (sessionSelect && copySource) {
+                sessionSelect.innerHTML = copySource.innerHTML;
+            }
+            
+            // Populate level dropdown for special dates
+            const levelOptions = allLevels.map(l => `<option value="${l}">${l}</option>`).join('');
+            const specialLevel = document.getElementById('specialLevel');
+            if (specialLevel) {
+                specialLevel.innerHTML = '<option value="">Select...</option>' + levelOptions;
+            }
+        }
+
+        async function loadSpecialDates() {
+            try {
+                const response = await fetch('/api/special_practice_dates');
+                const dates = await response.json();
+                
+                const container = document.getElementById('specialDatesContainer');
+                if (!container) return;
+                
+                if (!dates || dates.length === 0) {
+                    container.innerHTML = '<p style="color: var(--text-muted); font-size: 0.8rem;">No special dates added yet</p>';
+                    return;
+                }
+                
+                // Group by session
+                const grouped = {};
+                dates.forEach(d => {
+                    const key = d.session_name || 'Unknown';
+                    if (!grouped[key]) grouped[key] = [];
+                    grouped[key].push(d);
+                });
+                
+                let html = '';
+                for (const [sessionName, specialDates] of Object.entries(grouped)) {
+                    html += `<p style="margin: 8px 0 4px; color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase;">${sessionName}</p>`;
+                    html += '<div class="schedule-list">';
+                    specialDates.forEach(d => {
+                        const date = new Date(d.practice_date + 'T00:00:00');
+                        const dateStr = `${date.getMonth()+1}/${date.getDate()}`;
+                        html += `
+                            <div class="schedule-chip">
+                                <span>${d.level} ${dateStr} ${d.start_time.slice(0,5)}</span>
+                                <button class="remove-btn" onclick="deleteSpecialDate(${d.id})">×</button>
+                            </div>
+                        `;
+                    });
+                    html += '</div>';
+                }
+                
+                container.innerHTML = html;
+            } catch (error) {
+                console.error('Error loading special dates:', error);
+            }
+        }
+
+        async function addSpecialDate() {
+            const sessionId = document.getElementById('specialSession').value;
+            const date = document.getElementById('specialDate').value;
+            const level = document.getElementById('specialLevel').value;
+            const startTime = document.getElementById('specialStartTime').value;
+            const endTime = document.getElementById('specialEndTime').value;
+            
+            if (!sessionId || !date || !level || !startTime || !endTime) {
+                showToast('Fill all fields');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/special_practice_dates', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        session_id: parseInt(sessionId),
+                        practice_date: date,
+                        level,
+                        start_time: startTime,
+                        end_time: endTime
+                    })
+                });
+                
+                if (response.ok) {
+                    document.getElementById('specialDate').value = '';
+                    loadSpecialDates();
+                    // Refresh practice dates for navigation
+                    loadTodaysPractice();
+                    showToast('Special date added', 'success');
+                } else {
+                    const err = await response.json();
+                    showToast(err.error || 'Failed to add');
+                }
+            } catch (error) {
+                showToast('Failed to add special date');
+            }
+        }
+
+        async function deleteSpecialDate(id) {
+            if (!confirm('Delete this special practice date?')) return;
+            
+            try {
+                await fetch(`/api/special_practice_dates/${id}`, { method: 'DELETE' });
+                loadSpecialDates();
+                loadTodaysPractice();
+                showToast('Deleted', 'success');
+            } catch (error) {
+                showToast('Failed to delete');
+            }
         }
 
         async function loadExistingSessions() {
@@ -1811,39 +2769,151 @@
 
         async function loadCurrentSchedules() {
             try {
-                const response = await fetch('/api/practice_schedules');
-                const schedules = await response.json();
+                const [schedulesRes, sessionsRes] = await Promise.all([
+                    fetch('/api/practice_schedules'),
+                    fetch('/api/sessions')
+                ]);
+                const schedules = await schedulesRes.json();
+                const sessions = await sessionsRes.json();
 
                 if (schedules.length === 0) {
-                    document.getElementById('currentSchedules').innerHTML = '<p style="color: var(--text-muted); font-size: 0.85rem;">No schedules yet</p>';
+                    document.getElementById('currentSchedules').innerHTML = `
+                        <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 12px;">No schedules yet. Copy from a previous session or add manually below.</p>
+                    `;
+                    renderAddScheduleForm(sessions);
                     return;
                 }
 
+                // Group by session, keeping session_id for reference
                 const grouped = {};
                 schedules.forEach(s => {
-                    if (!grouped[s.session_name]) grouped[s.session_name] = [];
-                    grouped[s.session_name].push(s);
+                    const key = s.session_id || s.session_name;
+                    if (!grouped[key]) {
+                        grouped[key] = { 
+                            name: s.session_name, 
+                            id: s.session_id,
+                            schedules: [] 
+                        };
+                    }
+                    grouped[key].schedules.push(s);
                 });
 
+                const levelOptions = allLevels.map(l => `<option value="${l}">${l}</option>`).join('');
+                const dayOptions = DAY_NAMES.map((d, i) => `<option value="${i}">${d}</option>`).join('');
+
                 let html = '';
-                for (const [sessionName, scheds] of Object.entries(grouped)) {
-                    html += `<p style="margin: 8px 0 4px; color: var(--text-muted); font-size: 0.8rem;">${sessionName}</p>`;
-                    html += '<div class="schedule-list">';
-                    scheds.forEach(s => {
+                for (const [key, group] of Object.entries(grouped)) {
+                    html += `
+                        <div class="session-group-header">
+                            <h4>${group.name}</h4>
+                        </div>
+                        <table class="schedule-table">
+                            <thead>
+                                <tr>
+                                    <th>Level</th>
+                                    <th>Day</th>
+                                    <th>Start</th>
+                                    <th>End</th>
+                                    <th style="text-align: right;">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                    `;
+                    
+                    group.schedules.forEach(s => {
                         html += `
-                            <div class="schedule-chip">
-                                <span>${s.level} ${DAY_NAMES[s.day_of_week]} ${s.start_time.slice(0,5)}</span>
-                                <button class="remove-btn" onclick="deleteSchedule(${s.id})">×</button>
-                            </div>
+                            <tr id="sched-row-${s.id}" data-id="${s.id}">
+                                <td><span class="sched-level">${s.level}</span></td>
+                                <td><span class="sched-day">${DAY_NAMES[s.day_of_week]}</span></td>
+                                <td><span class="sched-start">${s.start_time.slice(0,5)}</span></td>
+                                <td><span class="sched-end">${s.end_time.slice(0,5)}</span></td>
+                                <td class="actions">
+                                    <button class="action-btn" onclick="editScheduleRow(${s.id}, '${s.level}', ${s.day_of_week}, '${s.start_time.slice(0,5)}', '${s.end_time.slice(0,5)}')">Edit</button>
+                                    <button class="action-btn delete" onclick="deleteSchedule(${s.id})">Delete</button>
+                                </td>
+                            </tr>
                         `;
                     });
-                    html += '</div>';
+                    
+                    // Add new row form for this session
+                    html += `
+                            <tr class="add-row" id="add-row-${group.id}">
+                                <td>
+                                    <select id="new-level-${group.id}">
+                                        <option value="">Level...</option>
+                                        ${levelOptions}
+                                    </select>
+                                </td>
+                                <td>
+                                    <select id="new-day-${group.id}">
+                                        ${dayOptions}
+                                    </select>
+                                </td>
+                                <td><input type="time" id="new-start-${group.id}" value="17:00"></td>
+                                <td><input type="time" id="new-end-${group.id}" value="19:00"></td>
+                                <td class="actions">
+                                    <button class="action-btn" onclick="addScheduleToSession(${group.id})">+ Add</button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    `;
                 }
 
                 document.getElementById('currentSchedules').innerHTML = html;
+                
+                // If there are sessions without schedules, show add form
+                const sessionsWithSchedules = new Set(Object.values(grouped).map(g => g.id));
+                const sessionsWithoutSchedules = sessions.filter(s => !sessionsWithSchedules.has(s.id));
+                if (sessionsWithoutSchedules.length > 0) {
+                    renderAddScheduleForm(sessionsWithoutSchedules);
+                }
             } catch (error) {
                 console.error('Error loading schedules:', error);
             }
+        }
+
+        function renderAddScheduleForm(sessions) {
+            if (!sessions || sessions.length === 0) return;
+            
+            const levelOptions = allLevels.map(l => `<option value="${l}">${l}</option>`).join('');
+            const dayOptions = DAY_NAMES.map((d, i) => `<option value="${i}">${d}</option>`).join('');
+            const sessionOptions = sessions.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+            
+            const container = document.getElementById('currentSchedules');
+            const existingContent = container.innerHTML;
+            
+            container.innerHTML = existingContent + `
+                <div style="margin-top: 16px; padding: 12px; background: var(--bg-card); border-radius: 8px;">
+                    <p style="margin: 0 0 10px; font-size: 0.8rem; color: var(--text-muted);">Add schedule to session:</p>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <select id="scheduleSession">
+                                <option value="">Session...</option>
+                                ${sessionOptions}
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <select id="scheduleLevel">
+                                <option value="">Level...</option>
+                                ${levelOptions}
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <select id="scheduleDay">${dayOptions}</select>
+                        </div>
+                        <div class="form-group">
+                            <input type="time" id="scheduleStartTime" value="17:00">
+                        </div>
+                        <div class="form-group">
+                            <input type="time" id="scheduleEndTime" value="19:00">
+                        </div>
+                        <div class="form-group">
+                            <button class="btn btn-primary" onclick="addSchedule()">Add</button>
+                        </div>
+                    </div>
+                </div>
+            `;
         }
 
         async function createSession() {
@@ -1892,11 +2962,19 @@
         }
 
         async function addSchedule() {
-            const sessionId = document.getElementById('scheduleSession').value;
-            const level = document.getElementById('scheduleLevel').value;
-            const day = document.getElementById('scheduleDay').value;
-            const startTime = document.getElementById('scheduleStartTime').value;
-            const endTime = document.getElementById('scheduleEndTime').value;
+            const sessionEl = document.getElementById('scheduleSession');
+            const levelEl = document.getElementById('scheduleLevel');
+            const dayEl = document.getElementById('scheduleDay');
+            const startEl = document.getElementById('scheduleStartTime');
+            const endEl = document.getElementById('scheduleEndTime');
+            
+            if (!sessionEl || !levelEl) return;
+            
+            const sessionId = sessionEl.value;
+            const level = levelEl.value;
+            const day = dayEl.value;
+            const startTime = startEl.value;
+            const endTime = endEl.value;
 
             if (!sessionId || !level || !startTime || !endTime) {
                 showToast('Fill all fields');
@@ -1928,14 +3006,139 @@
             }
         }
 
+        async function addScheduleToSession(sessionId) {
+            const level = document.getElementById(`new-level-${sessionId}`).value;
+            const day = document.getElementById(`new-day-${sessionId}`).value;
+            const startTime = document.getElementById(`new-start-${sessionId}`).value;
+            const endTime = document.getElementById(`new-end-${sessionId}`).value;
+
+            if (!level) {
+                showToast('Select a level');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/practice_schedules', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        session_id: sessionId,
+                        level,
+                        day_of_week: parseInt(day),
+                        start_time: startTime,
+                        end_time: endTime
+                    })
+                });
+
+                if (response.ok) {
+                    loadCurrentSchedules();
+                    showToast('Schedule added', 'success');
+                } else {
+                    const err = await response.json();
+                    showToast(err.error);
+                }
+            } catch (error) {
+                showToast('Failed to add schedule');
+            }
+        }
+
         async function deleteSchedule(id) {
-            if (!confirm('Delete schedule?')) return;
+            if (!confirm('Delete this schedule?')) return;
 
             try {
                 await fetch(`/api/practice_schedules/${id}`, { method: 'DELETE' });
                 loadCurrentSchedules();
+                showToast('Schedule deleted', 'success');
             } catch (error) {
                 showToast('Failed to delete');
+            }
+        }
+
+        function editScheduleRow(id, level, day, start, end) {
+            const levelOptions = allLevels.map(l => `<option value="${l}" ${l === level ? 'selected' : ''}>${l}</option>`).join('');
+            const dayOptions = DAY_NAMES.map((d, i) => `<option value="${i}" ${i === day ? 'selected' : ''}>${d}</option>`).join('');
+            
+            const row = document.getElementById(`sched-row-${id}`);
+            row.innerHTML = `
+                <td>
+                    <select id="edit-level-${id}">${levelOptions}</select>
+                </td>
+                <td>
+                    <select id="edit-day-${id}">${dayOptions}</select>
+                </td>
+                <td><input type="time" id="edit-start-${id}" value="${start}"></td>
+                <td><input type="time" id="edit-end-${id}" value="${end}"></td>
+                <td class="actions">
+                    <button class="action-btn" onclick="saveScheduleEdit(${id})">Save</button>
+                    <button class="action-btn" onclick="loadCurrentSchedules()">Cancel</button>
+                </td>
+            `;
+        }
+
+        async function saveScheduleEdit(id) {
+            const level = document.getElementById(`edit-level-${id}`).value;
+            const day = document.getElementById(`edit-day-${id}`).value;
+            const startTime = document.getElementById(`edit-start-${id}`).value;
+            const endTime = document.getElementById(`edit-end-${id}`).value;
+
+            try {
+                const response = await fetch(`/api/practice_schedules/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        level,
+                        day_of_week: parseInt(day),
+                        start_time: startTime,
+                        end_time: endTime
+                    })
+                });
+
+                if (response.ok) {
+                    loadCurrentSchedules();
+                    showToast('Schedule updated', 'success');
+                } else {
+                    const err = await response.json();
+                    showToast(err.error);
+                }
+            } catch (error) {
+                showToast('Failed to update schedule');
+            }
+        }
+
+        async function copySchedules() {
+            const sourceId = document.getElementById('copySourceSession').value;
+            const targetId = document.getElementById('copyTargetSession').value;
+
+            if (!sourceId || !targetId) {
+                showToast('Select both source and target sessions');
+                return;
+            }
+
+            if (sourceId === targetId) {
+                showToast('Source and target must be different');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/practice_schedules/copy', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        source_session_id: parseInt(sourceId),
+                        target_session_id: parseInt(targetId)
+                    })
+                });
+
+                const result = await response.json();
+                
+                if (response.ok) {
+                    loadCurrentSchedules();
+                    showToast(`Copied ${result.copied} of ${result.total} schedules`, 'success');
+                } else {
+                    showToast(result.error);
+                }
+            } catch (error) {
+                showToast('Failed to copy schedules');
             }
         }
 

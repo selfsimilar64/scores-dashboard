@@ -8,32 +8,128 @@ DATABASE_URL=postgresql://user:password@host/dbname
 """
 
 import os
+import time
 import psycopg2
+from psycopg2 import pool
 from psycopg2.extras import RealDictCursor
-from flask import Flask, request, jsonify, send_from_directory
+from flask import Flask, request, jsonify, send_from_directory, g
 from dotenv import load_dotenv
+from functools import wraps
 
 # Load environment variables from .env file (for local development)
 load_dotenv()
 
 app = Flask(__name__, static_folder='score_entry_ui')
 
-# Enable CORS for local development
+# ============================================================
+# DATABASE CONNECTION POOLING
+# ============================================================
+DATABASE_URL = os.environ.get('DATABASE_URL')
+
+# Connection pool - min 2, max 10 connections
+db_pool = None
+
+def init_db_pool():
+    """Initialize the database connection pool."""
+    global db_pool
+    if DATABASE_URL and db_pool is None:
+        try:
+            db_pool = pool.ThreadedConnectionPool(
+                minconn=2,
+                maxconn=10,
+                dsn=DATABASE_URL
+            )
+            print("[DB] Connection pool initialized")
+        except Exception as e:
+            print(f"[DB] Failed to create pool: {e}")
+            db_pool = None
+
+def get_db_connection():
+    """Get a connection from the pool."""
+    global db_pool
+    if not DATABASE_URL:
+        raise ValueError("DATABASE_URL environment variable not set")
+    
+    # Initialize pool if needed
+    if db_pool is None:
+        init_db_pool()
+    
+    # Get connection from pool or create direct connection as fallback
+    if db_pool:
+        conn = db_pool.getconn()
+        conn.cursor_factory = RealDictCursor
+        return conn
+    else:
+        return psycopg2.connect(DATABASE_URL, cursor_factory=RealDictCursor)
+
+def release_db_connection(conn):
+    """Return a connection to the pool."""
+    global db_pool
+    if db_pool and conn:
+        try:
+            db_pool.putconn(conn)
+        except Exception:
+            pass
+
+# Initialize pool on startup
+with app.app_context():
+    init_db_pool()
+
+# ============================================================
+# IN-MEMORY CACHE
+# ============================================================
+class SimpleCache:
+    """Simple time-based cache for frequently accessed data."""
+    def __init__(self):
+        self._cache = {}
+        self._timestamps = {}
+    
+    def get(self, key, max_age_seconds=60):
+        """Get value from cache if not expired."""
+        if key in self._cache:
+            age = time.time() - self._timestamps.get(key, 0)
+            if age < max_age_seconds:
+                return self._cache[key]
+        return None
+    
+    def set(self, key, value):
+        """Store value in cache."""
+        self._cache[key] = value
+        self._timestamps[key] = time.time()
+    
+    def invalidate(self, key=None):
+        """Invalidate specific key or all cache."""
+        if key:
+            self._cache.pop(key, None)
+            self._timestamps.pop(key, None)
+        else:
+            self._cache.clear()
+            self._timestamps.clear()
+
+cache = SimpleCache()
+
+# Cache TTLs (in seconds)
+CACHE_TTL_SESSIONS = 300      # 5 minutes
+CACHE_TTL_LEVELS = 300        # 5 minutes
+CACHE_TTL_ATHLETES = 120      # 2 minutes
+CACHE_TTL_SCHEDULES = 300     # 5 minutes
+
+# ============================================================
+# CORS AND REQUEST HANDLING
+# ============================================================
 @app.after_request
 def after_request(response):
     response.headers.add('Access-Control-Allow-Origin', '*')
     response.headers.add('Access-Control-Allow-Headers', 'Content-Type')
-    response.headers.add('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+    response.headers.add('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
     return response
 
-# Database connection - uses DATABASE_URL environment variable
-DATABASE_URL = os.environ.get('DATABASE_URL')
-
-def get_db_connection():
-    if not DATABASE_URL:
-        raise ValueError("DATABASE_URL environment variable not set")
-    conn = psycopg2.connect(DATABASE_URL, cursor_factory=RealDictCursor)
-    return conn
+@app.teardown_appcontext
+def close_db_connection(exception=None):
+    """Release connection back to pool after request."""
+    conn = g.pop('db_conn', None)
+    if conn:
+        release_db_connection(conn)
 
 def serialize_row(row):
     """Convert a database row to a JSON-serializable dict."""
@@ -104,7 +200,7 @@ def submit_scores():
                 continue  # Skip invalid scores
     
     conn.commit()
-    conn.close()
+    release_db_connection(conn)
     
     return jsonify({
         'success': True,
@@ -119,7 +215,7 @@ def recent_athletes():
     cursor = conn.cursor()
     cursor.execute('SELECT DISTINCT AthleteName FROM scores ORDER BY AthleteName')
     athletes = [row['athletename'] for row in cursor.fetchall()]
-    conn.close()
+    release_db_connection(conn)
     return jsonify(athletes)
 
 @app.route('/api/recent_meets', methods=['GET'])
@@ -129,17 +225,23 @@ def recent_meets():
     cursor = conn.cursor()
     cursor.execute('SELECT DISTINCT MeetName FROM scores ORDER BY MeetName')
     meets = [row['meetname'] for row in cursor.fetchall()]
-    conn.close()
+    release_db_connection(conn)
     return jsonify(meets)
 
 @app.route('/api/levels', methods=['GET'])
 def get_levels():
-    """Get list of levels for selection."""
+    """Get list of levels for selection (cached)."""
+    cached = cache.get('levels', CACHE_TTL_LEVELS)
+    if cached is not None:
+        return jsonify(cached)
+    
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute('SELECT DISTINCT Level FROM scores ORDER BY Level')
     levels = [row['level'] for row in cursor.fetchall()]
-    conn.close()
+    release_db_connection(conn)
+    
+    cache.set('levels', levels)
     return jsonify(levels)
 
 @app.route('/personal-bests')
@@ -166,7 +268,7 @@ def get_personal_bests():
     recent_meet = cursor.fetchone()
     
     if not recent_meet:
-        conn.close()
+        release_db_connection(conn)
         return jsonify({'error': 'No meets found', 'personal_bests': []})
     
     meet_name = recent_meet['meetname']
@@ -224,7 +326,7 @@ def get_personal_bests():
                 'is_first_meet': prev_best is None
             })
     
-    conn.close()
+    release_db_connection(conn)
     
     return jsonify({
         'meet_name': meet_name,
@@ -245,7 +347,7 @@ def get_meets():
     ''')
     meets = [{'name': row['meetname'], 'date': row['meetdate'], 'year': row['compyear']} 
              for row in cursor.fetchall()]
-    conn.close()
+    release_db_connection(conn)
     return jsonify(meets)
 
 @app.route('/api/meet_scores', methods=['GET'])
@@ -269,7 +371,7 @@ def get_meet_scores():
     result = cursor.fetchone()
     
     if not result:
-        conn.close()
+        release_db_connection(conn)
         return jsonify({'error': 'Meet not found', 'scores': []})
     
     comp_year = result['compyear']
@@ -407,7 +509,7 @@ def get_meet_scores():
             'alltime_improvement': round(current_score - alltime_best, 3) if alltime_best and is_alltime_pb else None
         })
     
-    conn.close()
+    release_db_connection(conn)
     
     return jsonify({
         'meet_name': meet_name,
@@ -545,7 +647,7 @@ def get_meet_level_averages():
         
         results.append(meet_data)
     
-    conn.close()
+    release_db_connection(conn)
     
     # Determine which levels have any data
     levels_with_data = []
@@ -593,7 +695,7 @@ def get_athletes():
     
     cursor.execute(query, params)
     athletes = cursor.fetchall()
-    conn.close()
+    release_db_connection(conn)
     
     return jsonify(serialize_rows(athletes))
 
@@ -622,7 +724,7 @@ def update_athlete(athlete_id):
         cursor.execute(f"UPDATE athletes SET {', '.join(updates)} WHERE id = %s", params)
         conn.commit()
     
-    conn.close()
+    release_db_connection(conn)
     return jsonify({'success': True})
 
 @app.route('/api/athletes', methods=['POST'])
@@ -645,23 +747,29 @@ def create_athlete():
         )
         new_id = cursor.fetchone()['id']
         conn.commit()
-        conn.close()
+        release_db_connection(conn)
         return jsonify({'success': True, 'id': new_id})
     except Exception as e:
         conn.rollback()
-        conn.close()
+        release_db_connection(conn)
         return jsonify({'error': str(e)}), 400
 
 # Sessions (Seasons) endpoints
 @app.route('/api/sessions', methods=['GET'])
 def get_sessions():
-    """Get all sessions (seasons)."""
+    """Get all sessions (seasons) - cached."""
+    cached = cache.get('sessions', CACHE_TTL_SESSIONS)
+    if cached is not None:
+        return jsonify(cached)
+    
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute('SELECT * FROM sessions ORDER BY year DESC, start_date DESC')
-    sessions = cursor.fetchall()
-    conn.close()
-    return jsonify(serialize_rows(sessions))
+    sessions = serialize_rows(cursor.fetchall())
+    release_db_connection(conn)
+    
+    cache.set('sessions', sessions)
+    return jsonify(sessions)
 
 @app.route('/api/sessions', methods=['POST'])
 def create_session():
@@ -687,11 +795,12 @@ def create_session():
         ''', (name, year, season, start_date, end_date))
         new_id = cursor.fetchone()['id']
         conn.commit()
-        conn.close()
+        release_db_connection(conn)
+        cache.invalidate('sessions')
         return jsonify({'success': True, 'id': new_id})
     except Exception as e:
         conn.rollback()
-        conn.close()
+        release_db_connection(conn)
         return jsonify({'error': str(e)}), 400
 
 @app.route('/api/sessions/<int:session_id>', methods=['PUT'])
@@ -706,7 +815,8 @@ def update_session(session_id):
         WHERE id = %s
     ''', (data['name'], data['year'], data['season'], data['start_date'], data['end_date'], session_id))
     conn.commit()
-    conn.close()
+    release_db_connection(conn)
+    cache.invalidate('sessions')
     return jsonify({'success': True})
 
 @app.route('/api/sessions/<int:session_id>', methods=['DELETE'])
@@ -716,7 +826,9 @@ def delete_session(session_id):
     cursor = conn.cursor()
     cursor.execute('DELETE FROM sessions WHERE id = %s', (session_id,))
     conn.commit()
-    conn.close()
+    release_db_connection(conn)
+    cache.invalidate('sessions')
+    cache.invalidate('schedules')
     return jsonify({'success': True})
 
 @app.route('/api/sessions/current', methods=['GET'])
@@ -734,7 +846,7 @@ def get_current_session():
         LIMIT 1
     ''', (today, today))
     session = cursor.fetchone()
-    conn.close()
+    release_db_connection(conn)
     
     if session:
         return jsonify(serialize_row(session))
@@ -766,7 +878,7 @@ def get_practice_schedules():
         ''')
     
     schedules = cursor.fetchall()
-    conn.close()
+    release_db_connection(conn)
     return jsonify(serialize_rows(schedules))
 
 @app.route('/api/practice_schedules', methods=['POST'])
@@ -785,11 +897,11 @@ def create_practice_schedule():
         ''', (data['session_id'], data['level'], data['day_of_week'], data['start_time'], data['end_time']))
         new_id = cursor.fetchone()['id']
         conn.commit()
-        conn.close()
+        release_db_connection(conn)
         return jsonify({'success': True, 'id': new_id})
     except Exception as e:
         conn.rollback()
-        conn.close()
+        release_db_connection(conn)
         return jsonify({'error': str(e)}), 400
 
 @app.route('/api/practice_schedules/<int:schedule_id>', methods=['DELETE'])
@@ -799,45 +911,242 @@ def delete_practice_schedule(schedule_id):
     cursor = conn.cursor()
     cursor.execute('DELETE FROM practice_schedules WHERE id = %s', (schedule_id,))
     conn.commit()
-    conn.close()
+    release_db_connection(conn)
     return jsonify({'success': True})
 
-@app.route('/api/todays_practice', methods=['GET'])
-def get_todays_practice():
-    """Get which levels have practice today and the athletes for each level."""
-    from datetime import date
-    today = date.today()
-    day_of_week = today.weekday()  # 0=Monday in Python, but we store 0=Sunday
+# Special Practice Dates endpoints (one-off practices)
+@app.route('/api/special_practice_dates', methods=['GET'])
+def get_special_practice_dates():
+    """Get all special practice dates for a session."""
+    session_id = request.args.get('session_id')
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    # Ensure the table exists
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS special_practice_dates (
+            id SERIAL PRIMARY KEY,
+            session_id INTEGER REFERENCES sessions(id) ON DELETE CASCADE,
+            practice_date DATE NOT NULL,
+            level VARCHAR(10) NOT NULL,
+            start_time TIME NOT NULL,
+            end_time TIME NOT NULL,
+            description TEXT,
+            created_at TIMESTAMP DEFAULT NOW(),
+            UNIQUE(session_id, practice_date, level)
+        )
+    ''')
+    conn.commit()
+    
+    if session_id:
+        cursor.execute('''
+            SELECT spd.*, s.name as session_name 
+            FROM special_practice_dates spd
+            JOIN sessions s ON spd.session_id = s.id
+            WHERE spd.session_id = %s
+            ORDER BY spd.practice_date, spd.level
+        ''', (session_id,))
+    else:
+        cursor.execute('''
+            SELECT spd.*, s.name as session_name 
+            FROM special_practice_dates spd
+            JOIN sessions s ON spd.session_id = s.id
+            ORDER BY spd.practice_date DESC, spd.level
+        ''')
+    
+    dates = cursor.fetchall()
+    release_db_connection(conn)
+    return jsonify(serialize_rows(dates))
+
+@app.route('/api/special_practice_dates', methods=['POST'])
+def create_special_practice_date():
+    """Create a special one-off practice date."""
+    data = request.json
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    # Ensure the table exists
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS special_practice_dates (
+            id SERIAL PRIMARY KEY,
+            session_id INTEGER REFERENCES sessions(id) ON DELETE CASCADE,
+            practice_date DATE NOT NULL,
+            level VARCHAR(10) NOT NULL,
+            start_time TIME NOT NULL,
+            end_time TIME NOT NULL,
+            description TEXT,
+            created_at TIMESTAMP DEFAULT NOW(),
+            UNIQUE(session_id, practice_date, level)
+        )
+    ''')
+    
+    try:
+        cursor.execute('''
+            INSERT INTO special_practice_dates (session_id, practice_date, level, start_time, end_time, description)
+            VALUES (%s, %s, %s, %s, %s, %s)
+            RETURNING id
+        ''', (data['session_id'], data['practice_date'], data['level'], 
+              data['start_time'], data['end_time'], data.get('description')))
+        new_id = cursor.fetchone()['id']
+        conn.commit()
+        release_db_connection(conn)
+        return jsonify({'success': True, 'id': new_id})
+    except Exception as e:
+        conn.rollback()
+        release_db_connection(conn)
+        return jsonify({'error': str(e)}), 400
+
+@app.route('/api/special_practice_dates/<int:date_id>', methods=['DELETE'])
+def delete_special_practice_date(date_id):
+    """Delete a special practice date."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('DELETE FROM special_practice_dates WHERE id = %s', (date_id,))
+    conn.commit()
+    release_db_connection(conn)
+    return jsonify({'success': True})
+
+@app.route('/api/practice_schedules/<int:schedule_id>', methods=['PUT'])
+def update_practice_schedule(schedule_id):
+    """Update an existing practice schedule."""
+    data = request.json
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    try:
+        cursor.execute('''
+            UPDATE practice_schedules 
+            SET level = %s, day_of_week = %s, start_time = %s, end_time = %s
+            WHERE id = %s
+        ''', (data['level'], data['day_of_week'], data['start_time'], data['end_time'], schedule_id))
+        conn.commit()
+        release_db_connection(conn)
+        return jsonify({'success': True})
+    except Exception as e:
+        conn.rollback()
+        release_db_connection(conn)
+        return jsonify({'error': str(e)}), 400
+
+@app.route('/api/practice_schedules/copy', methods=['POST'])
+def copy_practice_schedules():
+    """Copy all schedules from one session to another."""
+    data = request.json
+    source_session_id = data.get('source_session_id')
+    target_session_id = data.get('target_session_id')
+    
+    if not source_session_id or not target_session_id:
+        return jsonify({'error': 'Both source and target session IDs required'}), 400
+    
+    if source_session_id == target_session_id:
+        return jsonify({'error': 'Source and target sessions must be different'}), 400
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    try:
+        # Get all schedules from source session
+        cursor.execute('''
+            SELECT level, day_of_week, start_time, end_time
+            FROM practice_schedules
+            WHERE session_id = %s
+        ''', (source_session_id,))
+        source_schedules = cursor.fetchall()
+        
+        if not source_schedules:
+            release_db_connection(conn)
+            return jsonify({'error': 'No schedules found in source session'}), 400
+        
+        # Insert into target session (skip duplicates)
+        copied = 0
+        for sched in source_schedules:
+            try:
+                cursor.execute('''
+                    INSERT INTO practice_schedules (session_id, level, day_of_week, start_time, end_time)
+                    VALUES (%s, %s, %s, %s, %s)
+                    ON CONFLICT (session_id, level, day_of_week) DO NOTHING
+                ''', (target_session_id, sched['level'], sched['day_of_week'], sched['start_time'], sched['end_time']))
+                if cursor.rowcount > 0:
+                    copied += 1
+            except Exception:
+                pass  # Skip duplicates
+        
+        conn.commit()
+        release_db_connection(conn)
+        return jsonify({'success': True, 'copied': copied, 'total': len(source_schedules)})
+    except Exception as e:
+        conn.rollback()
+        release_db_connection(conn)
+        return jsonify({'error': str(e)}), 400
+
+@app.route('/api/practice_for_date', methods=['GET'])
+def get_practice_for_date():
+    """Get which levels have practice on a specific date and the athletes for each level."""
+    from datetime import date, timedelta
+    
+    date_str = request.args.get('date')
+    if date_str:
+        try:
+            practice_date = date.fromisoformat(date_str)
+        except ValueError:
+            practice_date = date.today()
+    else:
+        practice_date = date.today()
+    
+    day_of_week = practice_date.weekday()  # 0=Monday in Python, but we store 0=Sunday
     # Convert Python's weekday (Mon=0) to our format (Sun=0)
     day_of_week = (day_of_week + 1) % 7
     
     conn = get_db_connection()
     cursor = conn.cursor()
     
-    # Get current session
+    # Get session that contains this date
     cursor.execute('''
         SELECT * FROM sessions 
         WHERE start_date <= %s AND end_date >= %s
         LIMIT 1
-    ''', (today, today))
+    ''', (practice_date, practice_date))
     current_session = cursor.fetchone()
     
     if not current_session:
-        conn.close()
-        return jsonify({'error': 'No active session', 'levels': []})
+        release_db_connection(conn)
+        return jsonify({'error': 'No active session for this date', 'levels': [], 'date': practice_date.isoformat()})
     
-    # Get levels that practice today
+    # Get levels that practice on this day of week (regular schedules)
     cursor.execute('''
         SELECT DISTINCT level, start_time, end_time
         FROM practice_schedules
         WHERE session_id = %s AND day_of_week = %s
         ORDER BY level
     ''', (current_session['id'], day_of_week))
+    levels_regular = cursor.fetchall()
     
-    levels_today = cursor.fetchall()
+    # Also check for special practice dates (table may not exist yet)
+    levels_special = []
+    try:
+        cursor.execute('''
+            SELECT DISTINCT level, start_time, end_time
+            FROM special_practice_dates
+            WHERE session_id = %s AND practice_date = %s
+            ORDER BY level
+        ''', (current_session['id'], practice_date))
+        levels_special = cursor.fetchall()
+    except Exception:
+        conn.rollback()  # Reset transaction state after failed query
+    
+    # Merge regular and special (special overrides if same level)
+    levels_map = {}
+    for lr in levels_regular:
+        levels_map[lr['level']] = lr
+    for ls in levels_special:
+        levels_map[ls['level']] = ls
+    
+    levels_today = list(levels_map.values())
     
     result = {
-        'date': today.isoformat(),
+        'date': practice_date.isoformat(),
         'day_of_week': day_of_week,
         'session': serialize_row(current_session),
         'levels': []
@@ -855,12 +1164,12 @@ def get_todays_practice():
         ''', (level,))
         athletes = cursor.fetchall()
         
-        # Get existing attendance records for today
+        # Get existing attendance records for this date
         cursor.execute('''
             SELECT athlete_id, status, notes, late_minutes
             FROM attendance
             WHERE practice_date = %s AND level = %s
-        ''', (today, level))
+        ''', (practice_date, level))
         attendance_records = {row['athlete_id']: {'status': row['status'], 'notes': row['notes'], 'late_minutes': row['late_minutes']} 
                             for row in cursor.fetchall()}
         
@@ -882,8 +1191,71 @@ def get_todays_practice():
             'athletes': athletes_with_attendance
         })
     
-    conn.close()
+    release_db_connection(conn)
     return jsonify(result)
+
+@app.route('/api/practice_dates', methods=['GET'])
+def get_practice_dates():
+    """Get all dates with scheduled practice in a session (for navigation)."""
+    from datetime import date, timedelta
+    
+    session_id = request.args.get('session_id')
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    if session_id:
+        cursor.execute('SELECT * FROM sessions WHERE id = %s', (session_id,))
+    else:
+        today = date.today()
+        cursor.execute('''
+            SELECT * FROM sessions 
+            WHERE start_date <= %s AND end_date >= %s
+            LIMIT 1
+        ''', (today, today))
+    
+    session = cursor.fetchone()
+    if not session:
+        release_db_connection(conn)
+        return jsonify({'dates': [], 'error': 'No session found'})
+    
+    # Get all unique days of week that have practice
+    cursor.execute('''
+        SELECT DISTINCT day_of_week FROM practice_schedules WHERE session_id = %s
+    ''', (session['id'],))
+    practice_days = set(row['day_of_week'] for row in cursor.fetchall())
+    
+    # Get special practice dates (table may not exist yet)
+    special_dates = set()
+    try:
+        cursor.execute('''
+            SELECT DISTINCT practice_date FROM special_practice_dates WHERE session_id = %s
+        ''', (session['id'],))
+        special_dates = set(row['practice_date'] for row in cursor.fetchall())
+    except Exception:
+        conn.rollback()  # Reset transaction state after failed query
+    
+    # Generate all practice dates
+    practice_dates = []
+    current_date = session['start_date']
+    while current_date <= session['end_date']:
+        dow = (current_date.weekday() + 1) % 7  # Convert to Sun=0 format
+        if dow in practice_days or current_date in special_dates:
+            practice_dates.append(current_date.isoformat())
+        current_date += timedelta(days=1)
+    
+    release_db_connection(conn)
+    return jsonify({
+        'dates': practice_dates,
+        'session': serialize_row(session)
+    })
+
+@app.route('/api/todays_practice', methods=['GET'])
+def get_todays_practice():
+    """Alias for practice_for_date with today's date."""
+    from datetime import date
+    # Redirect to the new endpoint with today's date
+    return get_practice_for_date()
 
 @app.route('/api/attendance', methods=['POST'])
 def record_attendance():
@@ -925,11 +1297,11 @@ def record_attendance():
         
         record_id = cursor.fetchone()['id']
         conn.commit()
-        conn.close()
+        release_db_connection(conn)
         return jsonify({'success': True, 'id': record_id})
     except Exception as e:
         conn.rollback()
-        conn.close()
+        release_db_connection(conn)
         return jsonify({'error': str(e)}), 400
 
 @app.route('/api/attendance/session/<int:session_id>', methods=['GET'])
@@ -945,7 +1317,7 @@ def get_session_attendance(session_id):
     session = cursor.fetchone()
     
     if not session:
-        conn.close()
+        release_db_connection(conn)
         return jsonify({'error': 'Session not found'}), 404
     
     # Get practice schedules for this session
@@ -976,11 +1348,7 @@ def get_session_attendance(session_id):
     current_date = session['start_date']
     end_date = session['end_date']
     
-    from datetime import date
-    today = date.today()
-    if end_date > today:
-        end_date = today  # Don't show future dates
-    
+    # Include all dates up to session end (client will filter display)
     while current_date <= end_date:
         dow = (current_date.weekday() + 1) % 7  # Convert to Sun=0 format
         for lvl, days in schedule_by_level.items():
@@ -1034,7 +1402,7 @@ def get_session_attendance(session_id):
         dates = practice_dates_by_level.get(lvl, [])
         attendance_data = []
         present_count = 0
-        total_count = len(dates)
+        recorded_count = 0  # Only count dates with actual records (not 'none')
         
         # Day of week counts for percentage calc
         dow_counts = {i: {'present': 0, 'total': 0} for i in range(7)}
@@ -1043,17 +1411,22 @@ def get_session_attendance(session_id):
             key = (athlete['id'], d)
             rec = attendance_index.get(key)
             dow = (d.weekday() + 1) % 7
-            dow_counts[dow]['total'] += 1
             
             if rec:
                 status = rec['status']
-                # Present counts as 1, Partial counts as 0.5
-                if status == 'present':
-                    present_count += 1
-                    dow_counts[dow]['present'] += 1
-                elif status == 'partial':
-                    present_count += 0.5
-                    dow_counts[dow]['present'] += 0.5
+                # Only count records that have actual status (present, absent, partial)
+                # 'none' status means no record - don't count towards totals
+                if status in ('present', 'absent', 'partial'):
+                    recorded_count += 1
+                    dow_counts[dow]['total'] += 1
+                    
+                    # Present counts as 1, Partial counts as 0.5
+                    if status == 'present':
+                        present_count += 1
+                        dow_counts[dow]['present'] += 1
+                    elif status == 'partial':
+                        present_count += 0.5
+                        dow_counts[dow]['present'] += 0.5
                 attendance_data.append({
                     'date': d.isoformat(),
                     'status': status,
@@ -1068,23 +1441,23 @@ def get_session_attendance(session_id):
                     'late_minutes': 0
                 })
         
-        # Calculate percentages
-        total_pct = (present_count / total_count * 100) if total_count > 0 else 0
+        # Calculate percentages - only from recorded dates, round to whole numbers
+        total_pct = round(present_count / recorded_count * 100) if recorded_count > 0 else 0
         dow_pcts = {}
         day_names = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
         for dow, counts in dow_counts.items():
             if counts['total'] > 0:
-                dow_pcts[day_names[dow]] = round(counts['present'] / counts['total'] * 100, 1)
+                dow_pcts[day_names[dow]] = round(counts['present'] / counts['total'] * 100)
         
         result['levels'][lvl]['athletes'].append({
             'id': athlete['id'],
             'name': athlete['name'],
             'attendance': attendance_data,
-            'total_pct': round(total_pct, 1),
+            'total_pct': total_pct,
             'dow_pcts': dow_pcts
         })
     
-    conn.close()
+    release_db_connection(conn)
     return jsonify(result)
 
 @app.route('/api/attendance/bulk', methods=['POST'])
@@ -1137,7 +1510,7 @@ def bulk_record_attendance():
             errors.append({'record': rec, 'error': str(e)})
     
     conn.commit()
-    conn.close()
+    release_db_connection(conn)
     
     return jsonify({
         'success': True,
