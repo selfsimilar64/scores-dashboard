@@ -245,7 +245,8 @@ def get_levels():
     return jsonify(levels)
 
 @app.route('/personal-bests')
-def personal_bests_page():
+@app.route('/meet-scores')
+def meet_scores_page():
     return send_from_directory('score_entry_ui', 'personal_bests.html')
 
 @app.route('/api/personal_bests', methods=['GET'])
@@ -386,6 +387,19 @@ def get_meet_scores():
     
     current_scores = cursor.fetchall()
     
+    # Count distinct seasons (CompYears) per athlete+level for all athletes in this meet
+    cursor.execute('''
+        SELECT AthleteName, Level, COUNT(DISTINCT CompYear) as season_count
+        FROM scores
+        WHERE (AthleteName, Level) IN (
+            SELECT DISTINCT AthleteName, Level FROM scores WHERE MeetName = %s AND MeetDate = %s
+        )
+        GROUP BY AthleteName, Level
+    ''', (meet_name, meet_date))
+    seasons_lookup = {}
+    for srow in cursor.fetchall():
+        seasons_lookup[(srow['athletename'], srow['level'])] = srow['season_count']
+    
     all_scores = []
     
     for row in current_scores:
@@ -401,7 +415,8 @@ def get_meet_scores():
                 'level': level,
                 'event': event,
                 'score': None,
-                'place': place
+                'place': place,
+                'seasons_at_level': seasons_lookup.get((athlete, level), 1)
             })
             continue
         
@@ -506,7 +521,8 @@ def get_meet_scores():
             'alltime_best_meet': alltime_best_meet,
             'alltime_best_date': alltime_best_date,
             'year_improvement': round(current_score - year_best, 3) if year_best and is_year_pb else None,
-            'alltime_improvement': round(current_score - alltime_best, 3) if alltime_best and is_alltime_pb else None
+            'alltime_improvement': round(current_score - alltime_best, 3) if alltime_best and is_alltime_pb else None,
+            'seasons_at_level': seasons_lookup.get((athlete, level), 1)
         })
     
     release_db_connection(conn)
