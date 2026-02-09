@@ -1,0 +1,841 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Athlete Profile - Gymfest</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="/shared.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            min-height: 100vh;
+            background-image:
+                radial-gradient(ellipse at 20% 20%, rgba(100, 210, 255, 0.06) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 80%, rgba(48, 209, 88, 0.05) 0%, transparent 50%);
+        }
+
+        .container { max-width: 1200px; margin: 0 auto; padding: 24px; }
+
+        header { text-align: center; margin-bottom: 32px; }
+
+        header h1 {
+            font-size: 2.5rem; font-weight: 700;
+            background: linear-gradient(135deg, var(--accent-secondary), var(--accent-success));
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+            margin-bottom: 8px;
+        }
+
+        header p { color: var(--text-secondary); font-size: 1.1rem; }
+
+        .nav-links { display: flex; justify-content: center; gap: 24px; margin-top: 12px; }
+
+        .nav-link {
+            display: inline-block; color: var(--accent-secondary);
+            text-decoration: none; font-size: 0.95rem;
+        }
+        .nav-link:hover { text-decoration: underline; }
+
+        .card {
+            background: var(--bg-card); border-radius: 16px; padding: 24px;
+            margin-bottom: 24px; border: 1px solid var(--border-color); box-shadow: var(--shadow);
+        }
+
+        .card-title {
+            font-size: 1.25rem; font-weight: 600; display: flex; align-items: center; gap: 10px;
+            margin-bottom: 20px;
+        }
+        .card-title::before {
+            content: ''; width: 4px; height: 24px;
+            background: linear-gradient(180deg, var(--accent-secondary), var(--accent-success));
+            border-radius: 2px;
+        }
+
+        /* Athlete info card */
+        .athlete-info {
+            display: flex; align-items: center; gap: 24px; flex-wrap: wrap;
+        }
+
+        .athlete-info .name {
+            font-size: 2rem; font-weight: 700; padding: 6px 16px;
+            border-radius: 10px;
+        }
+
+        .athlete-info .detail {
+            display: flex; flex-direction: column; gap: 2px;
+        }
+        .athlete-info .detail-label {
+            font-size: 0.75rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px;
+        }
+        .athlete-info .detail-value {
+            font-size: 1.1rem; font-weight: 600; color: var(--text-primary);
+        }
+
+        .level-badge {
+            font-size: 1.1rem;
+        }
+
+        /* Table */
+        .table-container {
+            overflow: auto; max-height: calc(100vh - 500px); min-height: 200px;
+            scrollbar-width: thin; scrollbar-color: var(--bg-elevated) transparent;
+        }
+        .table-container::-webkit-scrollbar { width: 8px; height: 8px; }
+        .table-container::-webkit-scrollbar-track { background: transparent; }
+        .table-container::-webkit-scrollbar-thumb { background: var(--bg-elevated); border-radius: 4px; }
+        .table-container::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+        .table-container::-webkit-scrollbar-corner { background: transparent; }
+
+        table { width: 100%; border-collapse: collapse; }
+
+        th, td { padding: 12px 14px; text-align: left; }
+
+        th {
+            background: var(--bg-elevated); font-weight: 600; font-size: 0.9rem;
+            text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-secondary);
+            border-bottom: 2px solid var(--border-color); position: sticky; top: 0; z-index: 10;
+        }
+
+        /* First column (Meet) shrinks to content */
+        th:first-child, td:first-child {
+            white-space: nowrap; width: 1%;
+        }
+
+        td { border-bottom: 1px solid var(--border-color); font-size: 1.05rem; }
+
+        tr:hover td { background: rgba(100, 210, 255, 0.04); }
+
+        .meet-name-cell { font-weight: 600; color: var(--text-primary); }
+
+        /* Chart tabs */
+        .chart-tabs {
+            display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px;
+        }
+
+        /* Chart */
+        .chart-container {
+            position: relative; width: 100%; aspect-ratio: 4 / 3;
+        }
+
+        /* Legend */
+        .legend-row {
+            display: flex; gap: 20px; flex-wrap: wrap; font-size: 0.85rem;
+            color: var(--text-secondary); margin-bottom: 16px;
+        }
+        .legend-item { display: flex; align-items: center; gap: 8px; }
+        .legend-swatch {
+            display: inline-block; width: 16px; height: 16px; border-radius: 4px;
+        }
+
+        .loading { text-align: center; padding: 48px; color: var(--text-secondary); }
+
+        .empty-state { text-align: center; padding: 48px; color: var(--text-muted); }
+        .empty-state h3 { font-size: 1.2rem; margin-bottom: 8px; color: var(--text-secondary); }
+
+        /* Comp year separator */
+        .comp-year-row td {
+            background: var(--bg-elevated); font-weight: 600; font-size: 0.85rem;
+            color: var(--accent-secondary); letter-spacing: 0.5px; text-transform: uppercase;
+            padding: 8px 14px;
+        }
+
+        /* Athlete selector */
+        .athlete-selector { position: relative; display: inline-block; margin-top: 12px; }
+        .athlete-search {
+            background: var(--bg-elevated); border: 2px solid var(--border-color);
+            border-radius: 10px; padding: 10px 16px; font-family: inherit;
+            font-size: 1rem; color: var(--text-primary); width: 320px;
+            outline: none; transition: border-color 0.2s; text-align: center;
+        }
+        .athlete-search:focus { border-color: var(--accent-secondary); }
+        .athlete-search::placeholder { color: var(--text-muted); }
+        .athlete-dropdown {
+            position: absolute; top: 100%; left: 50%; transform: translateX(-50%);
+            width: 320px; background: var(--bg-elevated); border: 1px solid var(--border-color);
+            border-radius: 10px; margin-top: 4px; max-height: 260px;
+            overflow-y: auto; display: none; z-index: 100; box-shadow: var(--shadow);
+            scrollbar-width: thin; scrollbar-color: var(--bg-dark) transparent;
+        }
+        .athlete-dropdown.open { display: block; }
+        .athlete-option {
+            padding: 10px 16px; cursor: pointer; font-size: 0.95rem;
+            color: var(--text-primary); transition: background 0.15s;
+            display: flex; justify-content: space-between; align-items: center;
+            border-bottom: 1px solid rgba(44, 44, 58, 0.5);
+        }
+        .athlete-option:last-child { border-bottom: none; }
+        .athlete-option:hover { background: rgba(100, 210, 255, 0.08); }
+        .athlete-option .option-level {
+            font-size: 0.8rem; font-weight: 600; padding: 2px 6px; border-radius: 4px;
+        }
+
+        /* Shimmer loading */
+        @keyframes shimmer {
+            0% { background-position: -400px 0; }
+            100% { background-position: 400px 0; }
+        }
+        .shimmer-line {
+            border-radius: 6px;
+            background: linear-gradient(90deg, var(--bg-elevated) 25%, rgba(100,210,255,0.06) 50%, var(--bg-elevated) 75%);
+            background-size: 800px 100%; animation: shimmer 1.8s ease-in-out infinite;
+        }
+
+        /* Level history */
+        .level-history { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
+        .level-history-badge {
+            display: inline-block; padding: 3px 8px; border-radius: 5px;
+            font-size: 0.9rem; font-weight: 600; white-space: nowrap;
+        }
+
+        @media (max-width: 768px) {
+            .container { padding: 16px; }
+            header h1 { font-size: 1.8rem; }
+            .athlete-info { gap: 16px; }
+            .athlete-info .name { font-size: 1.5rem; }
+            .chart-container { aspect-ratio: auto; height: 350px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Athlete Profile</h1>
+            <div class="athlete-selector" id="athleteSelector">
+                <input type="text" id="athleteSearch" class="athlete-search" placeholder="Search athletes..." autocomplete="off">
+                <div class="athlete-dropdown" id="athleteDropdown"></div>
+            </div>
+            <div class="nav-links">
+                <a href="/" class="nav-link">&larr; Score Entry</a>
+                <a href="/meet-scores" class="nav-link">Meet Scores</a>
+                <a href="/meet-averages" class="nav-link">Meet Averages</a>
+            </div>
+        </header>
+
+        <!-- Info Card -->
+        <div class="card" id="infoCard" style="display: none;">
+            <div class="athlete-info" id="athleteInfo"></div>
+        </div>
+
+        <!-- Scores Card -->
+        <div class="card">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 20px;">
+                <div class="card-title" style="margin-bottom: 0;">Scores</div>
+                <div style="display: flex; gap: 16px; align-items: center; flex-wrap: wrap;">
+                    <div class="toggle-row" id="toggleRow" style="display: none; margin-bottom: 0;"></div>
+                    <div class="toggle-row" id="highlightToggle" style="margin-bottom: 0;"></div>
+                </div>
+            </div>
+
+            <div class="legend-row" id="legendRow"></div>
+
+            <div id="scoresContent">
+                <div class="loading"><p>Loading scores...</p></div>
+            </div>
+        </div>
+
+        <!-- Chart Card -->
+        <div class="card">
+            <div class="card-title">Score Progression</div>
+            <div class="chart-tabs" id="chartTabs"></div>
+            <div class="chart-container">
+                <canvas id="scoreChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <script src="/shared.js"></script>
+    <script>
+        const EVENTS = ['Vault', 'Bars', 'Beam', 'Floor', 'All Around'];
+        const EVENT_COLORS = {
+            'Vault': '#e85d75',
+            'Bars': '#64d2ff',
+            'Beam': '#ffd60a',
+            'Floor': '#30d158',
+            'All Around': '#a78bfa'
+        };
+
+        let currentData = null;
+        let chart = null;
+        let showAllLevels = false;
+        let selectedEvent = 'Vault';
+        let highlightMode = 'bests';
+        let allAthletes = [];
+
+        // --- Athlete selector ---
+
+        async function loadAthleteList() {
+            try {
+                const res = await fetch('/api/athletes?active=false');
+                allAthletes = await res.json();
+            } catch (e) { console.error('Failed to load athletes', e); }
+        }
+
+        function setupAthleteSearch() {
+            const input = document.getElementById('athleteSearch');
+            const dropdown = document.getElementById('athleteDropdown');
+            const currentName = getAthleteName();
+            if (currentName) input.value = currentName;
+
+            input.addEventListener('focus', () => {
+                input.select();
+                filterAthletes(input.value);
+                dropdown.classList.add('open');
+            });
+            input.addEventListener('input', () => {
+                filterAthletes(input.value);
+                dropdown.classList.add('open');
+            });
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') { dropdown.classList.remove('open'); input.blur(); }
+            });
+            document.addEventListener('click', (e) => {
+                if (!e.target.closest('.athlete-selector')) dropdown.classList.remove('open');
+            });
+        }
+
+        function filterAthletes(query) {
+            const dropdown = document.getElementById('athleteDropdown');
+            const q = query.toLowerCase().trim();
+            const filtered = q ? allAthletes.filter(a => a.name.toLowerCase().includes(q)) : allAthletes;
+            const limited = filtered.slice(0, 25);
+            if (limited.length === 0) {
+                dropdown.innerHTML = '<div class="athlete-option" style="color: var(--text-muted); cursor: default;">No matches</div>';
+                return;
+            }
+            dropdown.innerHTML = limited.map(a => {
+                const lc = getLevelColor(a.current_level || '');
+                return `<div class="athlete-option" onclick="navigateToAthlete('${a.name.replace(/'/g, "\\'")}')">
+                    <span>${a.name}</span>
+                    ${a.current_level ? `<span class="option-level" style="color: ${lc.text}; background: ${lc.bg};">${a.current_level}</span>` : ''}
+                </div>`;
+            }).join('');
+        }
+
+        function navigateToAthlete(name) {
+            const url = new URL(window.location);
+            url.searchParams.set('name', name);
+            window.history.pushState({}, '', url);
+            document.getElementById('athleteSearch').value = name;
+            document.getElementById('athleteDropdown').classList.remove('open');
+            showAllLevels = false;
+            currentData = null;
+            showLoadingShimmer();
+            loadProfile();
+        }
+
+        // --- Shimmer loading ---
+
+        function showLoadingShimmer() {
+            document.getElementById('scoresContent').innerHTML = `
+                <div style="display: flex; flex-direction: column; gap: 10px; padding: 8px 0;">
+                    <div class="shimmer-line" style="width: 100%; height: 38px;"></div>
+                    <div class="shimmer-line" style="width: 100%; height: 30px;"></div>
+                    <div class="shimmer-line" style="width: 95%; height: 30px;"></div>
+                    <div class="shimmer-line" style="width: 90%; height: 30px;"></div>
+                    <div class="shimmer-line" style="width: 88%; height: 30px;"></div>
+                </div>`;
+            if (chart) { chart.destroy(); chart = null; }
+        }
+
+        // --- Highlight mode toggle ---
+
+        function renderHighlightToggle() {
+            document.getElementById('highlightToggle').innerHTML = `
+                <button class="toggle-btn ${highlightMode === 'bests' ? 'active' : ''}" onclick="setHighlightMode('bests')">Bests</button>
+                <button class="toggle-btn ${highlightMode === 'placements' ? 'active' : ''}" onclick="setHighlightMode('placements')">Placements</button>
+            `;
+        }
+
+        function setHighlightMode(mode) {
+            highlightMode = mode;
+            renderHighlightToggle();
+            renderLegend();
+            if (currentData) renderScoresTable(currentData);
+        }
+
+        function renderLegend() {
+            const el = document.getElementById('legendRow');
+            if (highlightMode === 'bests') {
+                el.innerHTML = `
+                    <div class="legend-item"><span class="legend-swatch" style="background: rgba(255, 215, 0, 0.2); border: 2px solid var(--accent-gold);"></span><span>Season Best</span></div>
+                    <div class="legend-item"><span class="legend-swatch" style="background: #4ebbdc;"></span><span>Level Best (returning at level)</span></div>`;
+            } else {
+                el.innerHTML = '';
+            }
+        }
+
+        // --- Load data ---
+
+        function getAthleteName() {
+            const params = new URLSearchParams(window.location.search);
+            return params.get('name');
+        }
+
+        async function loadProfile() {
+            const name = getAthleteName();
+            if (!name) {
+                document.getElementById('scoresContent').innerHTML = '<div class="empty-state"><h3>No Athlete</h3><p>Search for an athlete above, or navigate here from the Meet Scores page.</p></div>';
+                document.getElementById('infoCard').style.display = 'none';
+                return;
+            }
+
+            document.title = `${name} - Gymfest`;
+
+            try {
+                const url = `/api/athlete_profile?name=${encodeURIComponent(name)}${showAllLevels ? '&all_levels=true' : ''}`;
+                const res = await fetch(url);
+                const data = await res.json();
+
+                if (data.error && !data.athlete) {
+                    document.getElementById('scoresContent').innerHTML = `<div class="empty-state"><h3>Error</h3><p>${data.error}</p></div>`;
+                    return;
+                }
+
+                currentData = data;
+                renderInfoCard(data.athlete);
+                renderToggle(data.athlete);
+                renderScoresTable(data);
+                renderChartTabs(data);
+                try { renderChart(data); } catch (chartErr) { console.error('Chart error:', chartErr); }
+            } catch (err) {
+                console.error(err);
+                document.getElementById('scoresContent').innerHTML = '<div class="empty-state"><h3>Error</h3><p>Failed to load athlete data.</p></div>';
+            }
+        }
+
+        // --- Render info card ---
+
+        function renderInfoCard(athlete) {
+            const card = document.getElementById('infoCard');
+            card.style.display = 'block';
+            const lc = getLevelColor(athlete.level || '');
+
+            let html = `<span class="name" style="color: ${lc.text}; background: ${lc.bg};">${athlete.name}</span>`;
+
+            if (athlete.level) {
+                html += `<div class="detail"><span class="detail-label">Level</span><span class="detail-value"><span class="level-badge" style="color: ${lc.text}; background: ${lc.bg};">${athlete.level}</span></span></div>`;
+            }
+
+            // Level history (reverse chronological, skip current level entry)
+            if (athlete.level_history && athlete.level_history.length > 1) {
+                const history = athlete.level_history.slice(1);
+                html += `<div class="detail"><span class="detail-label">History</span><span class="detail-value level-history">`;
+                history.forEach(lvl => {
+                    const hlc = getLevelColor(lvl);
+                    html += `<span class="level-history-badge" style="color: ${hlc.text}; background: ${hlc.bg};">${lvl}</span>`;
+                });
+                html += '</span></div>';
+            }
+
+            if (athlete.age !== null && athlete.age !== undefined) {
+                html += `<div class="detail"><span class="detail-label">Age</span><span class="detail-value">${athlete.age}</span></div>`;
+            }
+            if (athlete.birthday) {
+                html += `<div class="detail"><span class="detail-label">Birthday</span><span class="detail-value">${formatDate(athlete.birthday)}</span></div>`;
+            }
+
+            document.getElementById('athleteInfo').innerHTML = html;
+        }
+
+        // --- Render toggle ---
+
+        function renderToggle(athlete) {
+            const row = document.getElementById('toggleRow');
+            const uniqueLevels = athlete.level_history ? new Set(athlete.level_history).size : 1;
+            if (uniqueLevels < 2) {
+                row.style.display = 'none';
+                return;
+            }
+            row.style.display = 'flex';
+            row.innerHTML = `
+                <button class="toggle-btn ${!showAllLevels ? 'active' : ''}" onclick="setScope(false)">Current Level</button>
+                <button class="toggle-btn ${showAllLevels ? 'active' : ''}" onclick="setScope(true)">All Levels</button>
+            `;
+        }
+
+        function setScope(all) {
+            showAllLevels = all;
+            document.querySelectorAll('#toggleRow .toggle-btn').forEach(btn => {
+                const isAllBtn = btn.textContent.trim() === 'All Levels';
+                btn.classList.toggle('active', all ? isAllBtn : !isAllBtn);
+            });
+            showLoadingShimmer();
+            loadProfile();
+        }
+
+        // --- Render scores table ---
+
+        function renderScoresTable(data) {
+            const { meets, scores } = data;
+            if (!scores || scores.length === 0) {
+                document.getElementById('scoresContent').innerHTML = '<div class="empty-state"><h3>No Scores</h3><p>No scores found.</p></div>';
+                return;
+            }
+
+            const meetMap = {};
+            scores.forEach(s => {
+                const key = `${s.meet_name}||${s.meet_date}`;
+                if (!meetMap[key]) meetMap[key] = { name: s.meet_name, date: s.meet_date, comp_year: s.comp_year, level: s.level, events: {} };
+                meetMap[key].events[s.event] = s;
+            });
+
+            const meetRows = meets.map(m => meetMap[`${m.name}||${m.date}`]).filter(Boolean).reverse();
+            const showLevel = showAllLevels;
+            const colCount = showLevel ? 7 : 6;
+            const compYears = new Set(meetRows.map(m => m.comp_year));
+            const showSeparators = compYears.size > 1;
+
+            let html = `<div class="table-container"><table><thead><tr>
+                <th>Meet</th>${showLevel ? '<th>Level</th>' : ''}
+                <th>Vault</th><th>Bars</th><th>Beam</th><th>Floor</th><th>AA</th>
+            </tr></thead><tbody>`;
+
+            let lastCompYear = null;
+
+            meetRows.forEach(meet => {
+                if (showSeparators && meet.comp_year !== lastCompYear) {
+                    lastCompYear = meet.comp_year;
+                    html += `<tr class="comp-year-row"><td colspan="${colCount}">Season ${meet.comp_year}</td></tr>`;
+                }
+
+                const mlc = showLevel ? getLevelColor(meet.level) : null;
+                html += `<tr>
+                    <td class="meet-name-cell">${meet.name}</td>
+                    ${showLevel ? `<td><span class="level-badge" style="color: ${mlc.text}; background: ${mlc.bg};">${meet.level}</span></td>` : ''}`;
+
+                EVENTS.forEach(event => {
+                    const s = meet.events[event];
+                    if (s && s.score !== null) {
+                        html += renderScoreCell(s);
+                    } else {
+                        html += '<td class="no-score">\u2014</td>';
+                    }
+                });
+
+                html += '</tr>';
+            });
+
+            html += '</tbody></table></div>';
+            document.getElementById('scoresContent').innerHTML = html;
+        }
+
+        function renderScoreCell(s) {
+            if (highlightMode === 'placements') {
+                let badgeHtml = '';
+                if (s.place) {
+                    const cls = s.place === 1 ? 'gold' : s.place === 2 ? 'silver' : s.place === 3 ? 'bronze' : 'other';
+                    badgeHtml = `<span class="place-badge ${cls}">${getPlaceDisplay(s.place)}</span>`;
+                }
+                return `<td class="score-cell"><span class="score-value">${formatScoreHtml(s.score)}</span>${badgeHtml}</td>`;
+            }
+
+            let cellClass = 'score-cell';
+            const isReturning = !s.is_first_year_at_level;
+
+            const actualSeasonBest = (s.year_best != null && s.year_best > s.score) ? s.year_best : s.score;
+            const seasonImprovement = s.year_improvement != null ? formatScoreDisplay(s.year_improvement) : null;
+
+            let gridRows = '';
+            gridRows += `<span class="label">Season Best</span><span class="score-val">${formatScoreDisplay(actualSeasonBest)}</span>`;
+            gridRows += seasonImprovement ? `<span class="improvement">${seasonImprovement}</span>` : '<span></span>';
+
+            if (isReturning && (s.alltime_best != null || s.is_alltime_pb)) {
+                const levelScoreDisplay = s.is_alltime_pb ? formatScoreDisplay(s.score) : formatScoreDisplay(s.alltime_best);
+                const levelImprovement = s.is_alltime_pb && s.alltime_improvement != null ? formatScoreDisplay(s.alltime_improvement) : null;
+                gridRows += `<span class="label">Level Best</span><span class="score-val">${levelScoreDisplay}</span>`;
+                gridRows += levelImprovement ? `<span class="improvement">${levelImprovement}</span>` : '<span></span>';
+            }
+
+            if (s.is_alltime_pb) cellClass += ' alltime-pb';
+            else if (s.is_year_pb) cellClass += ' year-pb';
+
+            return `<td class="${cellClass}" onmouseenter="positionTooltip(event)">
+                <span class="score-value">${formatScoreHtml(s.score)}</span>
+                <div class="tooltip"><div class="tooltip-grid">${gridRows}</div></div>
+            </td>`;
+        }
+
+        // --- Chart tabs ---
+
+        function renderChartTabs(data) {
+            const tabsEl = document.getElementById('chartTabs');
+            if (!data || !data.scores || data.scores.length === 0) {
+                tabsEl.innerHTML = '';
+                return;
+            }
+            // Chart tabs reflect current level scores only
+            const chartLevel = data.athlete?.level;
+            const chartScores = chartLevel ? data.scores.filter(s => s.level === chartLevel) : data.scores;
+            const availableEvents = EVENTS.filter(event =>
+                chartScores.some(s => s.event === event && s.score !== null)
+            );
+            if (availableEvents.length > 0 && !availableEvents.includes(selectedEvent)) {
+                selectedEvent = availableEvents[0];
+            }
+            tabsEl.innerHTML = availableEvents.map(event => {
+                const label = event === 'All Around' ? 'AA (avg)' : event;
+                const active = selectedEvent === event;
+                return `<button class="toggle-btn${active ? ' active' : ''}" onclick="selectEvent('${event}')">${label}</button>`;
+            }).join('');
+        }
+
+        function selectEvent(event) {
+            selectedEvent = event;
+            renderChartTabs(currentData);
+            renderChart(currentData);
+        }
+
+        // --- Chart plugins ---
+
+        const compYearBgPlugin = {
+            id: 'compYearBg',
+            beforeDraw(chart) {
+                const sections = chart.options.plugins?.compYearBg?.sections;
+                if (!sections || sections.length <= 1) return;
+                const { ctx, chartArea: { left, right, top, bottom }, scales: { x } } = chart;
+                const labelCount = chart.data.labels.length;
+                if (labelCount === 0) return;
+                const halfStep = labelCount > 1
+                    ? (x.getPixelForValue(1) - x.getPixelForValue(0)) / 2
+                    : (right - left) / 2;
+                sections.forEach(section => {
+                    const x1 = Math.max(x.getPixelForValue(section.startIndex) - halfStep, left);
+                    const x2 = Math.min(x.getPixelForValue(section.endIndex) + halfStep, right);
+                    ctx.save();
+                    ctx.fillStyle = section.color;
+                    ctx.fillRect(x1, top, x2 - x1, bottom - top);
+                    ctx.fillStyle = 'rgba(210, 210, 220, 0.85)';
+                    ctx.font = '600 13px Outfit';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(section.label, (x1 + x2) / 2, top + 20);
+                    ctx.restore();
+                });
+            }
+        };
+
+        const lollipopPlugin = {
+            id: 'lollipop',
+            afterDatasetsDraw(chart) {
+                const averages = chart.options.plugins?.lollipop?.averages;
+                if (!averages || averages.length === 0) return;
+                const meta = chart.getDatasetMeta(0);
+                if (!meta || !meta.data.length) return;
+                const { ctx, scales: { x, y }, chartArea: { left, right } } = chart;
+                const labelCount = chart.data.labels.length;
+                if (labelCount === 0) return;
+                const halfStep = labelCount > 1
+                    ? (x.getPixelForValue(1) - x.getPixelForValue(0)) / 2
+                    : (right - left) / 2;
+
+                averages.forEach(avg => {
+                    if (avg.value == null) return;
+                    const yPixel = y.getPixelForValue(avg.value);
+                    const x1 = Math.max(meta.data[avg.startIndex].x - halfStep, left);
+                    const x2 = Math.min(meta.data[avg.endIndex].x + halfStep, right);
+
+                    for (let i = avg.startIndex; i <= avg.endIndex; i++) {
+                        const val = chart.data.datasets[0].data[i];
+                        if (val == null) continue;
+                        const point = meta.data[i];
+                        ctx.save();
+                        ctx.strokeStyle = 'rgba(255, 255, 255, 0.18)';
+                        ctx.lineWidth = 2;
+                        ctx.setLineDash([]);
+                        ctx.beginPath();
+                        ctx.moveTo(point.x, point.y);
+                        ctx.lineTo(point.x, yPixel);
+                        ctx.stroke();
+                        ctx.restore();
+                    }
+
+                    ctx.save();
+                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.35)';
+                    ctx.lineWidth = 1.5;
+                    ctx.setLineDash([6, 4]);
+                    ctx.beginPath();
+                    ctx.moveTo(x1, yPixel);
+                    ctx.lineTo(x2, yPixel);
+                    ctx.stroke();
+                    ctx.restore();
+
+                    ctx.save();
+                    ctx.fillStyle = 'rgba(210, 210, 220, 0.65)';
+                    ctx.font = '500 11px JetBrains Mono';
+                    ctx.textAlign = 'right';
+                    ctx.fillText(`avg ${formatScoreDisplay(avg.value)}`, x2 - 4, yPixel - 6);
+                    ctx.restore();
+                });
+            }
+        };
+
+        Chart.register(compYearBgPlugin, lollipopPlugin);
+
+        // --- Render chart ---
+
+        function renderChart(data) {
+            const { meets, scores } = data;
+            if (!scores || scores.length === 0) return;
+
+            // Chart always shows current level data only
+            const chartLevel = data.athlete?.level;
+            const chartScores = chartLevel ? scores.filter(s => s.level === chartLevel) : scores;
+            const chartMeetKeys = new Set(chartScores.map(s => `${s.meet_name}||${s.meet_date}`));
+            const chartMeets = meets.filter(m => chartMeetKeys.has(`${m.name}||${m.date}`));
+
+            if (chartScores.length === 0) return;
+
+            const event = selectedEvent;
+            const isAA = event === 'All Around';
+
+            const meetMap = {};
+            chartScores.forEach(s => {
+                const key = `${s.meet_name}||${s.meet_date}`;
+                if (!meetMap[key]) meetMap[key] = { compYear: s.comp_year };
+                meetMap[key][s.event] = s.score;
+            });
+
+            const orderedMeets = chartMeets.map(m => ({
+                label: m.name, key: `${m.name}||${m.date}`, compYear: m.comp_year
+            }));
+            const labels = orderedMeets.map(m => m.label);
+
+            const dataPoints = orderedMeets.map(m => {
+                const val = meetMap[m.key]?.[event];
+                if (val == null) return null;
+                return isAA ? Math.round((val / 4) * 1000) / 1000 : val;
+            });
+
+            const validPoints = dataPoints.filter(v => v !== null);
+            const dataMin = validPoints.length > 0 ? Math.min(...validPoints) : 7;
+            const yMin = Math.max(0, Math.floor((dataMin - 0.75) * 2) / 2);
+
+            const sectionColors = [
+                'rgba(100, 210, 255, 0.20)',
+                'rgba(48, 209, 88, 0.20)',
+                'rgba(168, 130, 255, 0.20)',
+                'rgba(255, 214, 10, 0.16)'
+            ];
+            const sections = [];
+            let currentCompYear = null;
+            orderedMeets.forEach((m, i) => {
+                const cy = meetMap[m.key]?.compYear || m.compYear;
+                if (cy !== currentCompYear) {
+                    currentCompYear = cy;
+                    sections.push({
+                        startIndex: i, endIndex: i, compYear: cy,
+                        label: `Season ${cy}`,
+                        color: sectionColors[sections.length % sectionColors.length]
+                    });
+                } else if (sections.length > 0) {
+                    sections[sections.length - 1].endIndex = i;
+                }
+            });
+
+            const averages = sections.map(section => {
+                const pts = [];
+                for (let i = section.startIndex; i <= section.endIndex; i++) {
+                    if (dataPoints[i] != null) pts.push(dataPoints[i]);
+                }
+                return {
+                    value: pts.length > 0 ? Math.round((pts.reduce((a, b) => a + b, 0) / pts.length) * 1000) / 1000 : null,
+                    startIndex: section.startIndex,
+                    endIndex: section.endIndex
+                };
+            }).filter(a => a.value !== null);
+
+            if (chart) chart.destroy();
+
+            const ctx = document.getElementById('scoreChart').getContext('2d');
+            chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels,
+                    datasets: [{
+                        label: isAA ? 'AA (avg)' : event,
+                        data: dataPoints,
+                        borderColor: '#ffffff',
+                        borderWidth: 2,
+                        pointRadius: 6,
+                        pointHoverRadius: 8,
+                        pointBackgroundColor: '#ffffff',
+                        pointBorderColor: '#ffffff',
+                        tension: 0.2,
+                        spanGaps: true,
+                        fill: false
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: '#1a1a22',
+                            titleColor: '#f5f5f7',
+                            bodyColor: '#f5f5f7',
+                            borderColor: '#2c2c3a',
+                            borderWidth: 1,
+                            titleFont: { family: 'Outfit', size: 14, weight: '600' },
+                            bodyFont: { family: 'JetBrains Mono', size: 14, weight: '600' },
+                            padding: 12,
+                            cornerRadius: 10,
+                            callbacks: {
+                                label: function(ctx) {
+                                    const val = ctx.parsed.y;
+                                    if (val == null) return '';
+                                    return `${ctx.dataset.label}: ${formatScoreDisplay(val)}`;
+                                }
+                            }
+                        },
+                        compYearBg: {
+                            sections: sections.length > 1 ? sections : []
+                        },
+                        lollipop: { averages }
+                    },
+                    scales: {
+                        x: {
+                            ticks: {
+                                color: '#b0b0b8',
+                                font: { family: 'Outfit', size: 13, weight: '500' },
+                                maxRotation: 45
+                            },
+                            grid: { color: 'rgba(44, 44, 58, 0.5)' }
+                        },
+                        y: {
+                            ticks: {
+                                color: '#b0b0b8',
+                                font: { family: 'JetBrains Mono', size: 13 },
+                                callback: v => formatScoreDisplay(v)
+                            },
+                            grid: { color: 'rgba(44, 44, 58, 0.5)' },
+                            min: yMin,
+                            max: 10
+                        }
+                    }
+                }
+            });
+        }
+
+        // --- Init ---
+        document.addEventListener('DOMContentLoaded', () => {
+            renderHighlightToggle();
+            renderLegend();
+            loadAthleteList().then(() => setupAthleteSearch());
+            const name = getAthleteName();
+            if (name) {
+                document.getElementById('athleteSearch').value = name;
+                showLoadingShimmer();
+            }
+            loadProfile();
+        });
+    </script>
+</body>
+</html>

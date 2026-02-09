@@ -75,6 +75,30 @@ def release_db_connection(conn):
 with app.app_context():
     init_db_pool()
 
+def run_migrations():
+    """Run safe, idempotent schema migrations on startup."""
+    if not DATABASE_URL:
+        return
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        # Add birthday column to athletes if it doesn't exist
+        cursor.execute('''
+            ALTER TABLE athletes ADD COLUMN IF NOT EXISTS birthday DATE
+        ''')
+        conn.commit()
+        release_db_connection(conn)
+        print("[DB] Migrations complete")
+    except Exception as e:
+        print(f"[DB] Migration error (non-fatal): {e}")
+        try:
+            release_db_connection(conn)
+        except Exception:
+            pass
+
+with app.app_context():
+    run_migrations()
+
 # ============================================================
 # IN-MEMORY CACHE
 # ============================================================
@@ -338,52 +362,82 @@ def get_personal_bests():
 
 @app.route('/api/meets', methods=['GET'])
 def get_meets():
-    """Get list of all meets ordered by date."""
+    """Get list of all meets ordered by date, grouped by name+comp_year."""
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute('''
-        SELECT DISTINCT MeetName, MeetDate, CompYear 
+        SELECT MeetName, CompYear,
+               MIN(MeetDate) as earliest_date,
+               MAX(MeetDate) as latest_date,
+               COUNT(DISTINCT MeetDate) as date_count
         FROM scores 
-        ORDER BY MeetDate DESC
+        GROUP BY MeetName, CompYear
+        ORDER BY MIN(MeetDate) DESC
     ''')
-    meets = [{'name': row['meetname'], 'date': row['meetdate'], 'year': row['compyear']} 
-             for row in cursor.fetchall()]
+    meets = []
+    for row in cursor.fetchall():
+        ed = row['earliest_date']
+        ld = row['latest_date']
+        meet = {
+            'name': row['meetname'],
+            'comp_year': row['compyear'],
+            'earliest_date': ed.isoformat() if hasattr(ed, 'isoformat') else str(ed),
+            'latest_date': ld.isoformat() if hasattr(ld, 'isoformat') else str(ld),
+            'date_count': row['date_count']
+        }
+        meets.append(meet)
     release_db_connection(conn)
     return jsonify(meets)
 
 @app.route('/api/meet_scores', methods=['GET'])
 def get_meet_scores():
-    """Get all scores for a specific meet with PB status."""
+    """Get all scores for a specific meet (all dates) with PB status."""
     meet_name = request.args.get('meet_name')
-    meet_date = request.args.get('meet_date')
+    comp_year = request.args.get('comp_year')
+    # Legacy support: accept meet_date and derive comp_year from it
+    meet_date_legacy = request.args.get('meet_date')
     
-    if not meet_name or not meet_date:
-        return jsonify({'error': 'meet_name and meet_date required'}), 400
+    if not meet_name:
+        return jsonify({'error': 'meet_name is required'}), 400
     
     conn = get_db_connection()
     cursor = conn.cursor()
     
-    # Get the CompYear for this meet
-    cursor.execute('''
-        SELECT CompYear FROM scores 
-        WHERE MeetName = %s AND MeetDate = %s 
-        LIMIT 1
-    ''', (meet_name, meet_date))
-    result = cursor.fetchone()
+    if not comp_year and meet_date_legacy:
+        cursor.execute('''
+            SELECT CompYear FROM scores
+            WHERE MeetName = %s AND MeetDate = %s
+            LIMIT 1
+        ''', (meet_name, meet_date_legacy))
+        result = cursor.fetchone()
+        if result:
+            comp_year = result['compyear']
     
-    if not result:
+    if not comp_year:
+        release_db_connection(conn)
+        return jsonify({'error': 'comp_year is required (or provide meet_date)'}), 400
+    
+    # Get all dates for this meet in this comp year
+    cursor.execute('''
+        SELECT DISTINCT MeetDate FROM scores
+        WHERE MeetName = %s AND CompYear = %s
+        ORDER BY MeetDate
+    ''', (meet_name, comp_year))
+    meet_dates = [row['meetdate'] for row in cursor.fetchall()]
+    
+    if not meet_dates:
         release_db_connection(conn)
         return jsonify({'error': 'Meet not found', 'scores': []})
     
-    comp_year = result['compyear']
+    earliest_date = meet_dates[0]
     
-    # Get all scores from the specified meet
+    # Get all scores from this meet across all its dates
     cursor.execute('''
         SELECT AthleteName, Level, Event, Score, Place
         FROM scores
-        WHERE MeetName = %s AND MeetDate = %s
+        WHERE MeetName = %s AND CompYear = %s
         ORDER BY AthleteName, Event
-    ''', (meet_name, meet_date))
+    ''', (meet_name, comp_year))
     
     current_scores = cursor.fetchall()
     
@@ -392,10 +446,10 @@ def get_meet_scores():
         SELECT AthleteName, Level, COUNT(DISTINCT CompYear) as season_count
         FROM scores
         WHERE (AthleteName, Level) IN (
-            SELECT DISTINCT AthleteName, Level FROM scores WHERE MeetName = %s AND MeetDate = %s
+            SELECT DISTINCT AthleteName, Level FROM scores WHERE MeetName = %s AND CompYear = %s
         )
         GROUP BY AthleteName, Level
-    ''', (meet_name, meet_date))
+    ''', (meet_name, comp_year))
     seasons_lookup = {}
     for srow in cursor.fetchall():
         seasons_lookup[(srow['athletename'], srow['level'])] = srow['season_count']
@@ -420,7 +474,7 @@ def get_meet_scores():
             })
             continue
         
-        # Get best score THIS YEAR (same CompYear, before this meet)
+        # Get best score THIS YEAR (same CompYear, before this meet's earliest date)
         cursor.execute('''
             SELECT Score as best, MeetName as meet_name, MeetDate as meet_date
             FROM scores
@@ -431,7 +485,7 @@ def get_meet_scores():
               AND Score IS NOT NULL
             ORDER BY Score DESC
             LIMIT 1
-        ''', (athlete, event, comp_year, meet_date))
+        ''', (athlete, event, comp_year, earliest_date))
         
         year_result = cursor.fetchone()
         year_best = year_result['best'] if year_result else None
@@ -485,23 +539,16 @@ def get_meet_scores():
         is_first_meet_of_year = year_best is None  # No scores from earlier this year
         
         # TURQUOISE: All-time PB at level (returning athlete beat ALL previous including this year)
-        # Conditions:
-        # 1. Must be second+ year at level (has previous year scores)
-        # 2. Current score STRICTLY > all-time best (which includes this year)
         is_alltime_pb = (
-            not is_first_year_at_level  # returning at this level
+            not is_first_year_at_level
             and alltime_best is not None
-            and current_score > alltime_best  # strictly beat the all-time best
+            and current_score > alltime_best
         )
         
         # GOLD: Year PB (beat all previous scores this year)
-        # Conditions:
-        # 1. Must NOT be first meet of the year (no gold at first meet)
-        # 2. Current score STRICTLY > this year's best
-        # Note: Can overlap with turquoise - frontend will prioritize turquoise
         is_year_pb = (
-            not is_first_meet_of_year  # not first meet of year
-            and current_score > year_best  # strictly beat this year's previous best
+            not is_first_meet_of_year
+            and current_score > year_best
         )
         
         all_scores.append({
@@ -529,8 +576,207 @@ def get_meet_scores():
     
     return jsonify({
         'meet_name': meet_name,
-        'meet_date': meet_date,
+        'meet_dates': [d.isoformat() if hasattr(d, 'isoformat') else str(d) for d in meet_dates],
         'comp_year': comp_year,
+        'scores': all_scores
+    })
+
+@app.route('/athlete')
+def athlete_page():
+    return send_from_directory('score_entry_ui', 'athlete.html')
+
+@app.route('/api/athlete_profile', methods=['GET'])
+def get_athlete_profile():
+    """Get an athlete's profile with scores and PB annotations."""
+    from datetime import date as date_type
+    
+    athlete_name = request.args.get('name')
+    all_levels = request.args.get('all_levels', 'false').lower() == 'true'
+    
+    if not athlete_name:
+        return jsonify({'error': 'name parameter required'}), 400
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    # Get athlete info from athletes table (for birthday etc.)
+    cursor.execute('''
+        SELECT id, name, current_level, active, birthday FROM athletes WHERE name = %s
+    ''', (athlete_name,))
+    athlete_row = cursor.fetchone()
+    
+    # Always get the level from the most recent score (more reliable than athletes table)
+    cursor.execute('''
+        SELECT Level, CompYear FROM scores
+        WHERE AthleteName = %s AND Score IS NOT NULL
+        ORDER BY MeetDate DESC LIMIT 1
+    ''', (athlete_name,))
+    recent_score_row = cursor.fetchone()
+    
+    if not recent_score_row:
+        release_db_connection(conn)
+        athlete_info = {
+            'name': athlete_name,
+            'level': athlete_row['current_level'] if athlete_row else None,
+            'birthday': None, 'age': None, 'active': True
+        }
+        return jsonify({'error': 'No scores found for this athlete', 'athlete': athlete_info})
+    
+    level = recent_score_row['level']
+    
+    birthday = None
+    age = None
+    if athlete_row:
+        birthday = athlete_row.get('birthday')
+        if birthday:
+            today = date_type.today()
+            age = today.year - birthday.year - ((today.month, today.day) < (birthday.month, birthday.day))
+    
+    athlete_info = {
+        'name': athlete_row['name'] if athlete_row else athlete_name,
+        'level': level,
+        'birthday': birthday.isoformat() if birthday else None,
+        'age': age,
+        'active': athlete_row['active'] if athlete_row else True
+    }
+    
+    # Current comp year already fetched from most recent score
+    comp_year = recent_score_row['compyear']
+    
+    # Count seasons at level
+    cursor.execute('''
+        SELECT COUNT(DISTINCT CompYear) as cnt FROM scores WHERE AthleteName = %s AND Level = %s
+    ''', (athlete_name, level))
+    seasons_at_level = cursor.fetchone()['cnt']
+    athlete_info['seasons_at_level'] = seasons_at_level
+    
+    # Level history (one entry per season, reverse chronological)
+    cursor.execute('''
+        SELECT Level, CompYear
+        FROM (
+            SELECT Level, CompYear, MAX(MeetDate) as last_meet
+            FROM scores
+            WHERE AthleteName = %s AND Score IS NOT NULL
+            GROUP BY Level, CompYear
+        ) sub
+        ORDER BY last_meet DESC
+    ''', (athlete_name,))
+    athlete_info['level_history'] = [r['level'] for r in cursor.fetchall()]
+    
+    # Determine score filter: default shows all seasons at current level
+    if all_levels:
+        date_filter = ""
+        date_params = (athlete_name,)
+    else:
+        date_filter = "AND Level = %s"
+        date_params = (athlete_name, level)
+    
+    # Get ordered meets for this athlete
+    cursor.execute(f'''
+        SELECT DISTINCT MeetName, MeetDate, CompYear
+        FROM scores
+        WHERE AthleteName = %s {date_filter}
+        ORDER BY MeetDate ASC
+    ''', date_params)
+    meets = [{'name': r['meetname'], 'date': r['meetdate'], 'comp_year': r['compyear']} for r in cursor.fetchall()]
+    
+    # Get all scores
+    cursor.execute(f'''
+        SELECT AthleteName, Level, Event, Score, Place, MeetName, MeetDate, CompYear
+        FROM scores
+        WHERE AthleteName = %s {date_filter}
+        ORDER BY MeetDate ASC, Event
+    ''', date_params)
+    raw_scores = cursor.fetchall()
+    
+    # Annotate each score with PB info (same logic as meet_scores)
+    all_scores = []
+    for row in raw_scores:
+        athlete = row['athletename']
+        row_level = row['level']
+        event = row['event']
+        current_score = row['score']
+        place = row['place']
+        meet_name_val = row['meetname']
+        meet_date_val = row['meetdate']
+        row_comp_year = row['compyear']
+        
+        meet_date_str = meet_date_val.isoformat() if hasattr(meet_date_val, 'isoformat') else str(meet_date_val)
+        
+        if current_score is None:
+            all_scores.append({
+                'athlete': athlete, 'level': row_level, 'event': event,
+                'score': None, 'place': place,
+                'meet_name': meet_name_val, 'meet_date': meet_date_str,
+                'comp_year': row_comp_year
+            })
+            continue
+        
+        # Best score this comp year before this meet
+        cursor.execute('''
+            SELECT Score as best FROM scores
+            WHERE AthleteName = %s AND Event = %s AND CompYear = %s
+              AND MeetDate < %s AND Score IS NOT NULL
+            ORDER BY Score DESC LIMIT 1
+        ''', (athlete, event, row_comp_year, meet_date_val))
+        yr = cursor.fetchone()
+        year_best = yr['best'] if yr else None
+        
+        # Best score from previous comp years at this level
+        cursor.execute('''
+            SELECT Score as best FROM scores
+            WHERE AthleteName = %s AND Event = %s AND Level = %s
+              AND CompYear != %s AND Score IS NOT NULL
+            ORDER BY Score DESC LIMIT 1
+        ''', (athlete, event, row_level, row_comp_year))
+        pr = cursor.fetchone()
+        prev_year_best = pr['best'] if pr else None
+        
+        # All-time best at level (max of year_best and prev_year_best)
+        if year_best is not None and prev_year_best is not None:
+            alltime_best = max(year_best, prev_year_best)
+        elif year_best is not None:
+            alltime_best = year_best
+        elif prev_year_best is not None:
+            alltime_best = prev_year_best
+        else:
+            alltime_best = None
+        
+        is_first_year = prev_year_best is None
+        is_first_meet = year_best is None
+        
+        is_alltime_pb = (
+            not is_first_year
+            and alltime_best is not None
+            and current_score > alltime_best
+        )
+        is_year_pb = (
+            not is_first_meet
+            and current_score > year_best
+        )
+        
+        all_scores.append({
+            'athlete': athlete, 'level': row_level, 'event': event,
+            'score': float(current_score), 'place': place,
+            'meet_name': meet_name_val, 'meet_date': meet_date_str,
+            'comp_year': row_comp_year,
+            'is_first_year_at_level': is_first_year,
+            'is_first_meet_of_year': is_first_meet,
+            'is_year_pb': is_year_pb,
+            'is_alltime_pb': is_alltime_pb,
+            'year_best': float(year_best) if year_best is not None else None,
+            'alltime_best': float(alltime_best) if alltime_best is not None else None,
+            'year_improvement': round(float(current_score) - float(year_best), 3) if year_best and is_year_pb else None,
+            'alltime_improvement': round(float(current_score) - float(alltime_best), 3) if alltime_best and is_alltime_pb else None,
+            'seasons_at_level': seasons_at_level
+        })
+    
+    release_db_connection(conn)
+    
+    return jsonify({
+        'athlete': athlete_info,
+        'comp_year': comp_year,
+        'meets': [{'name': m['name'], 'date': m['date'].isoformat() if hasattr(m['date'], 'isoformat') else m['date'], 'comp_year': m.get('comp_year')} for m in meets],
         'scores': all_scores
     })
 
@@ -598,12 +844,16 @@ def get_meet_level_averages():
             'comp_year': meet_comp_year,
             'levels': {},
             'gymfest_avg': None,
-            'gymfest_count': 0
+            'gymfest_median': None,
+            'gymfest_count': 0,
+            'gymfest_event_top3': None,
+            'gymfest_team_score': None
         }
         
-        # Get averages and team scores for each level
-        all_aa_scores = []  # All scores for Gymfest average
-        all_aa_with_athletes = []  # All scores with athlete info for Gymfest team score
+        # Get averages, medians, and team scores for each level
+        all_aa_scores = []  # All AA scores for Gymfest average/median
+        # Collect all event scores across levels for Gymfest team score
+        all_event_scores = {ev: [] for ev in ['Vault', 'Bars', 'Beam', 'Floor']}
         
         for level in level_order:
             # Get all AA scores for this level across all dates for this meet, ordered by score descending
@@ -624,42 +874,105 @@ def get_meet_level_averages():
                 scores_list = [row['score'] for row in level_scores]
                 avg_score = sum(scores_list) / len(scores_list)
                 
-                # Top 3 for team score - only if we have at least 3 scores
-                if len(level_scores) >= 3:
-                    top3 = level_scores[:3]
-                    top3_details = [{'athlete': row['athletename'], 'score': row['score']} for row in top3]
-                    team_score = sum(item['score'] for item in top3_details)
+                # Median calculation
+                sorted_scores = sorted(scores_list)
+                n = len(sorted_scores)
+                if n % 2 == 0:
+                    median_score = (sorted_scores[n // 2 - 1] + sorted_scores[n // 2]) / 2
                 else:
-                    top3_details = None
+                    median_score = sorted_scores[n // 2]
+                
+                # Team score: sum of top 3 scores for each event (Vault, Bars, Beam, Floor)
+                team_events = ['Vault', 'Bars', 'Beam', 'Floor']
+                event_top3 = {}
+                team_score = 0
+                has_team_score = True
+                
+                for event in team_events:
+                    cursor.execute('''
+                        SELECT AthleteName, Score
+                        FROM scores
+                        WHERE MeetName = %s
+                          AND CompYear = %s
+                          AND Level = %s
+                          AND Event = %s
+                          AND Score IS NOT NULL
+                        ORDER BY Score DESC
+                        LIMIT 3
+                    ''', (meet_name, meet_comp_year, level, event))
+                    event_rows = cursor.fetchall()
+                    
+                    if len(event_rows) >= 3:
+                        event_top3[event] = [{'athlete': row['athletename'], 'score': row['score']} for row in event_rows]
+                        team_score += sum(item['score'] for item in event_top3[event])
+                    else:
+                        has_team_score = False
+                        break
+                
+                if not has_team_score:
                     team_score = None
+                    event_top3 = None
                 
                 meet_data['levels'][level] = {
-                    'avg': avg_score,  # Don't round - let frontend handle display rounding
+                    'avg': avg_score,
+                    'median': median_score,
                     'count': len(scores_list),
-                    'team_score': team_score,  # None if fewer than 3 scores
-                    'top3': top3_details
+                    'team_score': team_score,
+                    'event_top3': event_top3
                 }
                 
                 # Collect for Gymfest calculations
                 all_aa_scores.extend(scores_list)
-                all_aa_with_athletes.extend([{'athlete': row['athletename'], 'score': row['score'], 'level': level} for row in level_scores])
+                for event in ['Vault', 'Bars', 'Beam', 'Floor']:
+                    cursor.execute('''
+                        SELECT AthleteName, Score
+                        FROM scores
+                        WHERE MeetName = %s
+                          AND CompYear = %s
+                          AND Level = %s
+                          AND Event = %s
+                          AND Score IS NOT NULL
+                        ORDER BY Score DESC
+                    ''', (meet_name, meet_comp_year, level, event))
+                    for row in cursor.fetchall():
+                        all_event_scores[event].append({'athlete': row['athletename'], 'score': row['score'], 'level': level})
             else:
                 meet_data['levels'][level] = None
         
-        # Calculate Gymfest (all levels combined) average and team score
+        # Calculate Gymfest (all levels combined) average, median, and team score
         if all_aa_scores:
             meet_data['gymfest_avg'] = sum(all_aa_scores) / len(all_aa_scores)
             meet_data['gymfest_count'] = len(all_aa_scores)
             
-            # Gymfest team score: top 3 across ALL levels - only if we have at least 3 scores
-            if len(all_aa_with_athletes) >= 3:
-                all_aa_with_athletes.sort(key=lambda x: x['score'], reverse=True)
-                gymfest_top3 = all_aa_with_athletes[:3]
-                meet_data['gymfest_top3'] = gymfest_top3
-                meet_data['gymfest_team_score'] = sum(item['score'] for item in gymfest_top3)
+            sorted_all = sorted(all_aa_scores)
+            n = len(sorted_all)
+            if n % 2 == 0:
+                meet_data['gymfest_median'] = (sorted_all[n // 2 - 1] + sorted_all[n // 2]) / 2
             else:
-                meet_data['gymfest_top3'] = None
+                meet_data['gymfest_median'] = sorted_all[n // 2]
+            
+            # Gymfest team score: top 3 per event across ALL levels
+            gymfest_event_top3 = {}
+            gymfest_team_score = 0
+            has_gymfest_team = True
+            
+            for event in ['Vault', 'Bars', 'Beam', 'Floor']:
+                sorted_event = sorted(all_event_scores[event], key=lambda x: x['score'], reverse=True)
+                if len(sorted_event) >= 3:
+                    gymfest_event_top3[event] = sorted_event[:3]
+                    gymfest_team_score += sum(item['score'] for item in sorted_event[:3])
+                else:
+                    has_gymfest_team = False
+                    break
+            
+            if has_gymfest_team:
+                meet_data['gymfest_event_top3'] = gymfest_event_top3
+                meet_data['gymfest_team_score'] = gymfest_team_score
+            else:
+                meet_data['gymfest_event_top3'] = None
                 meet_data['gymfest_team_score'] = None
+        else:
+            meet_data['gymfest_median'] = None
         
         results.append(meet_data)
     
@@ -697,7 +1010,7 @@ def get_athletes():
     conn = get_db_connection()
     cursor = conn.cursor()
     
-    query = 'SELECT id, name, current_level, active FROM athletes WHERE 1=1'
+    query = 'SELECT id, name, current_level, active, birthday FROM athletes WHERE 1=1'
     params = []
     
     if level:
@@ -734,6 +1047,9 @@ def update_athlete(athlete_id):
     if 'name' in data:
         updates.append('name = %s')
         params.append(data['name'])
+    if 'birthday' in data:
+        updates.append('birthday = %s')
+        params.append(data['birthday'] if data['birthday'] else None)
     
     if updates:
         params.append(athlete_id)
@@ -756,10 +1072,12 @@ def create_athlete():
     conn = get_db_connection()
     cursor = conn.cursor()
     
+    birthday = data.get('birthday')
+    
     try:
         cursor.execute(
-            'INSERT INTO athletes (name, current_level) VALUES (%s, %s) RETURNING id',
-            (name, level)
+            'INSERT INTO athletes (name, current_level, birthday) VALUES (%s, %s, %s) RETURNING id',
+            (name, level, birthday if birthday else None)
         )
         new_id = cursor.fetchone()['id']
         conn.commit()

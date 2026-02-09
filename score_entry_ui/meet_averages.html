@@ -7,23 +7,9 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="/shared.css">
     <style>
-        :root {
-            --bg-dark: #0f0f12;
-            --bg-card: #1a1a22;
-            --bg-elevated: #252532;
-            --accent-primary: #e85d75;
-            --accent-secondary: #64d2ff;
-            --accent-success: #30d158;
-            --accent-warning: #ffd60a;
-            --accent-gold: #ffd700;
-            --text-primary: #f5f5f7;
-            --text-secondary: #98989d;
-            --text-muted: #636366;
-            --border-color: #2c2c3a;
-            --shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-        }
-
         * {
             margin: 0;
             padding: 0;
@@ -222,9 +208,8 @@
             margin-top: 2px;
         }
 
-        .score-cell {
-            font-family: 'JetBrains Mono', monospace;
-            font-weight: 500;
+        /* Override shared score-value size for averages table */
+        .score-cell .score-value {
             font-size: 0.95rem;
         }
 
@@ -308,7 +293,8 @@
             z-index: 1000;
             box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
             pointer-events: none;
-            min-width: 180px;
+            min-width: 220px;
+            max-width: 340px;
         }
 
         .tooltip-title {
@@ -375,6 +361,45 @@
             border: 2px solid #5efaff;
         }
 
+        /* Chart */
+        .chart-container {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 4 / 3;
+        }
+
+        .chart-legend {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+            margin-bottom: 16px;
+            font-size: 0.85rem;
+        }
+
+        .chart-legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+            padding: 4px 10px;
+            border-radius: 6px;
+            transition: opacity 0.2s;
+        }
+
+        .chart-legend-item:hover {
+            background: var(--bg-elevated);
+        }
+
+        .chart-legend-item.hidden {
+            opacity: 0.35;
+        }
+
+        .chart-legend-swatch {
+            width: 20px;
+            height: 3px;
+            border-radius: 2px;
+        }
+
         /* Responsive */
         @media (max-width: 768px) {
             .container {
@@ -403,6 +428,11 @@
             .nav-links {
                 flex-direction: column;
                 gap: 8px;
+            }
+
+            .chart-container {
+                aspect-ratio: auto;
+                height: 350px;
             }
         }
 
@@ -507,6 +537,17 @@
                 width: 10px;
                 height: 10px;
             }
+
+            .chart-container {
+                aspect-ratio: auto;
+                height: 250px;
+            }
+
+            .chart-legend {
+                font-size: 0.7rem;
+                gap: 6px;
+                margin-bottom: 6px;
+            }
         }
 
         /* Small phones */
@@ -553,6 +594,7 @@
                     <label for="displayMode">Show:</label>
                     <select id="displayMode">
                         <option value="avg">Avg All Around</option>
+                        <option value="median">Median All Around</option>
                         <option value="team">Team Score</option>
                     </select>
                     <label for="compYearSelect">Comp Year:</label>
@@ -579,13 +621,25 @@
                 </div>
             </div>
         </div>
+
+        <!-- Chart Card -->
+        <div class="card" id="chartCard" style="display: none;">
+            <div class="card-title">Progression</div>
+            <div class="chart-legend" id="chartLegend"></div>
+            <div class="chart-container">
+                <canvas id="averagesChart"></canvas>
+            </div>
+        </div>
     </div>
 
+    <script src="/shared.js"></script>
     <script>
         let currentCompYear = '2026';
-        let displayMode = 'avg'; // 'avg' or 'team'
+        let displayMode = 'avg'; // 'avg', 'median', or 'team'
         let meetsData = null;
         let levelOrder = null;
+        let chart = null;
+        let hiddenLevels = new Set();
 
         async function loadMeetAverages() {
             try {
@@ -605,6 +659,8 @@
                             <p>No meet data found for ${currentCompYear}</p>
                         </div>
                     `;
+                    document.getElementById('chartCard').style.display = 'none';
+                    if (chart) { chart.destroy(); chart = null; }
                     return;
                 }
                 
@@ -613,6 +669,7 @@
                 levelOrder = data.level_order;
                 
                 renderTable();
+                renderChart();
             } catch (error) {
                 console.error('Error loading meet averages:', error);
                 document.getElementById('content').innerHTML = `
@@ -624,11 +681,17 @@
             }
         }
 
-        // Helper to safely format numbers (handles string decimals from PostgreSQL)
-        function toFixed(val, decimals) {
-            if (val === null || val === undefined) return '-';
-            const num = typeof val === 'string' ? parseFloat(val) : val;
-            return isNaN(num) ? '-' : num.toFixed(decimals);
+        function getDisplayValue(levelData, meet) {
+            // Returns the value to display for a level cell based on current mode
+            if (displayMode === 'team') return levelData ? levelData.team_score : null;
+            if (displayMode === 'median') return levelData ? levelData.median : null;
+            return levelData ? levelData.avg : null;
+        }
+
+        function getGymfestValue(meet) {
+            if (displayMode === 'team') return meet.gymfest_team_score;
+            if (displayMode === 'median') return meet.gymfest_median;
+            return meet.gymfest_avg;
         }
 
         function renderTable() {
@@ -649,7 +712,7 @@
                 levelOrder.forEach(level => {
                     const levelData = meet.levels[level];
                     if (levelData) {
-                        const value = isTeamMode ? levelData.team_score : levelData.avg;
+                        const value = getDisplayValue(levelData, meet);
                         if (value !== null && value !== undefined) {
                             const numVal = parseFloat(value);
                             if (numVal > columnMaxes[level].value) {
@@ -664,7 +727,7 @@
                 });
                 
                 // Track Gymfest column max (but don't include in table max)
-                const gymfestValue = isTeamMode ? meet.gymfest_team_score : meet.gymfest_avg;
+                const gymfestValue = getGymfestValue(meet);
                 if (gymfestValue !== null && gymfestValue !== undefined) {
                     const numVal = parseFloat(gymfestValue);
                     if (numVal > columnMaxes['gymfest'].value) {
@@ -705,7 +768,7 @@
                 levelOrder.forEach((level, levelIdx) => {
                     const levelData = meet.levels[level];
                     if (levelData) {
-                        const value = isTeamMode ? levelData.team_score : levelData.avg;
+                        const value = getDisplayValue(levelData, meet);
                         if (value !== null && value !== undefined) {
                             let cellClass = isTeamMode ? 'score-cell has-value team-score' : 'score-cell has-value';
                             const dataAttr = isTeamMode ? `data-meet="${meetIdx}" data-level="${level}"` : '';
@@ -720,7 +783,8 @@
                                 cellClass += ' col-max';
                             }
                             
-                            html += `<td class="${cellClass}" ${dataAttr}><span class="score-value">${toFixed(value, 1)}</span></td>`;
+                            const dp = isTeamMode ? 1 : 2;
+                            html += `<td class="${cellClass}" ${dataAttr}><span class="score-value">${formatScoreHtml(value, dp)}</span></td>`;
                         } else {
                             html += `<td class="score-cell no-value">—</td>`;
                         }
@@ -730,7 +794,7 @@
                 });
                 
                 // Add Gymfest column
-                const gymfestValue = isTeamMode ? meet.gymfest_team_score : meet.gymfest_avg;
+                const gymfestValue = getGymfestValue(meet);
                 if (gymfestValue !== null && gymfestValue !== undefined) {
                     let gymfestClass = isTeamMode ? 'score-cell has-value gymfest-col team-score' : 'score-cell has-value gymfest-col';
                     const gymfestDataAttr = isTeamMode ? `data-meet="${meetIdx}" data-level="gymfest"` : '';
@@ -740,7 +804,8 @@
                         gymfestClass += ' col-max';
                     }
                     
-                    html += `<td class="${gymfestClass}" ${gymfestDataAttr}><span class="score-value">${toFixed(gymfestValue, 1)}</span></td>`;
+                    const gfDp = isTeamMode ? 1 : 2;
+                    html += `<td class="${gymfestClass}" ${gymfestDataAttr}><span class="score-value">${formatScoreHtml(gymfestValue, gfDp)}</span></td>`;
                 } else {
                     html += `<td class="score-cell no-value gymfest-col">—</td>`;
                 }
@@ -770,37 +835,46 @@
                     const level = cell.dataset.level;
                     const meet = meetsData[meetIdx];
                     
-                    let top3, teamScore, title;
+                    let eventTop3, teamScore, title;
                     
                     if (level === 'gymfest') {
-                        // Gymfest column - top 3 across all levels
-                        if (!meet.gymfest_top3) return;
-                        top3 = meet.gymfest_top3;
+                        if (!meet.gymfest_event_top3) return;
+                        eventTop3 = meet.gymfest_event_top3;
                         teamScore = meet.gymfest_team_score;
-                        title = 'Top 3 - All Levels';
+                        title = 'Team Score - All Levels';
                     } else {
-                        // Level-specific column
                         const levelData = meet.levels[level];
-                        if (!levelData || !levelData.top3) return;
-                        top3 = levelData.top3;
+                        if (!levelData || !levelData.event_top3) return;
+                        eventTop3 = levelData.event_top3;
                         teamScore = levelData.team_score;
-                        title = `Top 3 - Level ${level}`;
+                        title = `Team Score - Level ${level}`;
                     }
                     
                     let tooltipHtml = `<div class="tooltip-title">${title}</div>`;
-                    top3.forEach((item, idx) => {
-                        const levelLabel = item.level ? ` (${item.level})` : '';
+                    const events = ['Vault', 'Bars', 'Beam', 'Floor'];
+                    events.forEach(event => {
+                        const top3 = eventTop3[event];
+                        if (!top3) return;
+                        const eventSum = top3.reduce((s, item) => s + parseFloat(item.score), 0);
+                        // Build athlete badges
+                        const badgesHtml = top3.map(item => {
+                            const lc = getLevelColor(level !== 'gymfest' ? level : (item.level || ''));
+                            return `<span style="display:inline-block;padding:2px 6px;border-radius:5px;font-size:0.75rem;font-weight:600;color:${lc.text};background:${lc.bg};margin-right:3px;">${firstName(item.athlete)}</span>`;
+                        }).join('');
                         tooltipHtml += `
                             <div class="tooltip-row">
-                                <span class="tooltip-athlete">${idx + 1}. ${item.athlete}${levelLabel}</span>
-                                <span class="tooltip-score">${toFixed(item.score, 2)}</span>
+                                <span class="tooltip-athlete">${event}</span>
+                                <span style="font-family:'JetBrains Mono',monospace;font-weight:600;color:#fff;">${toFixed(eventSum, 2)}</span>
+                            </div>
+                            <div style="padding-left:12px;padding-bottom:6px;line-height:1.8;">
+                                ${badgesHtml}
                             </div>
                         `;
                     });
                     tooltipHtml += `
                         <div class="tooltip-row tooltip-total">
-                            <span>Team Score</span>
-                            <span class="tooltip-score">${toFixed(teamScore, 2)}</span>
+                            <span>Total</span>
+                            <span style="font-family:'JetBrains Mono',monospace;font-weight:600;color:#fff;">${toFixed(teamScore, 2)}</span>
                         </div>
                     `;
                     
@@ -831,50 +905,151 @@
             });
         }
 
-        function parseDate(dateStr) {
-            if (!dateStr) return null;
-            let date;
-            if (typeof dateStr === 'string') {
-                // If it's already an ISO string with time, use it directly
-                // Otherwise append T00:00:00 for date-only strings
-                if (dateStr.includes('T')) {
-                    date = new Date(dateStr);
-                } else {
-                    date = new Date(dateStr + 'T00:00:00');
+        function renderChart() {
+            const chartCard = document.getElementById('chartCard');
+            if (!meetsData || meetsData.length === 0 || !levelOrder || levelOrder.length === 0) {
+                chartCard.style.display = 'none';
+                return;
+            }
+            chartCard.style.display = 'block';
+
+            // X-axis: meet names
+            const labels = meetsData.map(m => m.meet_name);
+
+            // Build datasets: one line per level + Gymfest
+            const datasets = [];
+            const isTeamMode = displayMode === 'team';
+
+            levelOrder.forEach(level => {
+                const color = getLevelChartColor(level);
+                const data = meetsData.map(meet => {
+                    const ld = meet.levels[level];
+                    if (!ld) return null;
+                    const val = getDisplayValue(ld, meet);
+                    return val !== null && val !== undefined ? parseFloat(val) : null;
+                });
+                // Only add if there's at least one data point
+                if (data.some(v => v !== null)) {
+                    datasets.push({
+                        label: level,
+                        data,
+                        borderColor: color,
+                        backgroundColor: color,
+                        borderWidth: 2.5,
+                        pointRadius: 5,
+                        pointHoverRadius: 7,
+                        pointBackgroundColor: color,
+                        pointBorderColor: color,
+                        tension: 0.25,
+                        spanGaps: true,
+                        hidden: hiddenLevels.has(level)
+                    });
                 }
-            } else {
-                date = new Date(dateStr);
-            }
-            return isNaN(date.getTime()) ? null : date;
-        }
-
-        function formatDate(dateStr) {
-            const date = parseDate(dateStr);
-            if (!date) return '';
-            return date.toLocaleDateString('en-US', { 
-                year: 'numeric', 
-                month: 'short', 
-                day: 'numeric' 
             });
+
+            // Calculate Y-axis range
+            let allValues = [];
+            datasets.forEach(ds => {
+                if (!ds.hidden) {
+                    ds.data.forEach(v => { if (v !== null) allValues.push(v); });
+                }
+            });
+            if (allValues.length === 0) allValues = [0, 10];
+
+            const dataMin = Math.min(...allValues);
+            const dataMax = Math.max(...allValues);
+            const range = dataMax - dataMin;
+            const padding = Math.max(range * 0.15, isTeamMode ? 2 : 0.5);
+            const yMin = Math.max(0, Math.floor((dataMin - padding) * 2) / 2);
+            const yMax = Math.ceil((dataMax + padding) * 2) / 2;
+
+            if (chart) chart.destroy();
+
+            const ctx = document.getElementById('averagesChart').getContext('2d');
+            chart = new Chart(ctx, {
+                type: 'line',
+                data: { labels, datasets },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    layout: {
+                        padding: { left: 4, right: 4, top: 8, bottom: 4 }
+                    },
+                    interaction: { mode: 'index', intersect: false },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: '#1a1a22',
+                            titleColor: '#f5f5f7',
+                            bodyColor: '#f5f5f7',
+                            borderColor: '#2c2c3a',
+                            borderWidth: 1,
+                            titleFont: { family: 'Outfit', size: 14, weight: '600' },
+                            bodyFont: { family: 'JetBrains Mono', size: 13, weight: '500' },
+                            padding: 12,
+                            cornerRadius: 10,
+                            itemSort: (a, b) => (b.raw || 0) - (a.raw || 0),
+                            filter: (item) => item.raw !== null,
+                            callbacks: {
+                                label: function(ctx) {
+                                    return ` ${ctx.dataset.label}: ${toFixed(ctx.parsed.y, isTeamMode ? 1 : 2)}`;
+                                },
+                                labelColor: function(ctx) {
+                                    return {
+                                        borderColor: ctx.dataset.borderColor,
+                                        backgroundColor: ctx.dataset.borderColor,
+                                        borderWidth: 2,
+                                        borderRadius: 2
+                                    };
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            ticks: {
+                                color: '#e0e0e4',
+                                font: { family: 'Outfit', size: 14, weight: '600' },
+                                maxRotation: 45
+                            },
+                            grid: { color: 'rgba(44, 44, 58, 0.5)' }
+                        },
+                        y: {
+                            ticks: {
+                                color: '#e0e0e4',
+                                font: { family: 'JetBrains Mono', size: 14, weight: '500' },
+                                callback: v => toFixed(v, isTeamMode ? 0 : 1),
+                                padding: 8
+                            },
+                            grid: { color: 'rgba(44, 44, 58, 0.5)' },
+                            min: yMin,
+                            max: yMax
+                        }
+                    }
+                }
+            });
+
+            renderChartLegend(datasets);
         }
 
-        function formatMeetDates(dates) {
-            if (!dates || dates.length === 0) return '';
-            if (dates.length === 1) return formatDate(dates[0]);
-            
-            // Multiple dates - show count or abbreviated list
-            const formatted = dates.map(d => {
-                const date = parseDate(d);
-                if (!date) return '';
-                return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-            }).filter(d => d);
-            
-            if (formatted.length === 0) return '';
-            if (formatted.length <= 3) {
-                return formatted.join(', ');
+        function renderChartLegend(datasets) {
+            const el = document.getElementById('chartLegend');
+            el.innerHTML = datasets.map(ds => {
+                const isHidden = hiddenLevels.has(ds.label);
+                return `<div class="chart-legend-item ${isHidden ? 'hidden' : ''}" onclick="toggleLevel('${ds.label}')">
+                    <span class="chart-legend-swatch" style="background: ${ds.borderColor};"></span>
+                    <span style="color: ${isHidden ? 'var(--text-muted)' : ds.borderColor};">${ds.label}</span>
+                </div>`;
+            }).join('');
+        }
+
+        function toggleLevel(level) {
+            if (hiddenLevels.has(level)) {
+                hiddenLevels.delete(level);
             } else {
-                return `${formatted[0]} + ${dates.length - 1} more`;
+                hiddenLevels.add(level);
             }
+            renderChart();
         }
 
         // Initialize
@@ -893,6 +1068,7 @@
                     const existingTooltip = document.querySelector('.tooltip');
                     if (existingTooltip) existingTooltip.remove();
                     renderTable();
+                    renderChart();
                 }
             });
         });
