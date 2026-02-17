@@ -7,6 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/shared.css">
     <style>
         :root {
             --bg-dark: #0f0f12;
@@ -147,14 +148,12 @@
             padding: 10px;
         }
 
-        /* Score Entry Layout - now vertical */
         .entry-layout {
             display: flex;
             flex-direction: column;
             gap: 24px;
         }
 
-        /* Events Grid */
         .events-grid {
             display: grid;
             grid-template-columns: repeat(5, 1fr);
@@ -209,10 +208,7 @@
             align-items: center;
         }
 
-        /* Keypad Styles */
-        .keypad-section {
-            width: 100%;
-        }
+        .keypad-section { width: 100%; }
         
         .keypad-layout {
             display: grid;
@@ -222,15 +218,10 @@
         }
         
         @media (max-width: 900px) {
-            .keypad-layout {
-                grid-template-columns: 1fr;
-            }
+            .keypad-layout { grid-template-columns: 1fr; }
         }
 
-        .keypad-toggle {
-            display: flex;
-            gap: 6px;
-        }
+        .keypad-toggle { display: flex; gap: 6px; }
 
         .toggle-btn {
             padding: 10px 16px;
@@ -251,10 +242,7 @@
             color: white;
         }
 
-        .keypad-tabs {
-            display: flex;
-            gap: 6px;
-        }
+        .keypad-tabs { display: flex; gap: 6px; }
 
         .tab-btn {
             padding: 10px 20px;
@@ -274,15 +262,9 @@
             color: white;
         }
 
-        .keypad-content {
-            display: none;
-        }
+        .keypad-content { display: none; }
+        .keypad-content.active { display: block; }
 
-        .keypad-content.active {
-            display: block;
-        }
-
-        /* Score Keypad */
         .major-keys {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
@@ -304,19 +286,9 @@
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
         }
 
-        .major-key:hover {
-            transform: translateY(-2px);
-            background: linear-gradient(135deg, #3d3d58, #35354d);
-        }
-
-        .major-key:active {
-            transform: translateY(0);
-        }
-
-        .major-key.selected {
-            background: linear-gradient(135deg, var(--accent-primary), #c94860);
-            box-shadow: 0 4px 20px rgba(232, 93, 117, 0.4);
-        }
+        .major-key:hover { transform: translateY(-2px); background: linear-gradient(135deg, #3d3d58, #35354d); }
+        .major-key:active { transform: translateY(0); }
+        .major-key.selected { background: linear-gradient(135deg, var(--accent-primary), #c94860); box-shadow: 0 4px 20px rgba(232, 93, 117, 0.4); }
 
         .minor-keys {
             display: grid;
@@ -325,10 +297,7 @@
             gap: 8px;
         }
 
-        .minor-keys .gap {
-            width: 16px;
-            pointer-events: none;
-        }
+        .minor-keys .gap { width: 16px; pointer-events: none; }
 
         .minor-key {
             padding: 16px 6px;
@@ -344,45 +313,16 @@
             white-space: nowrap;
         }
 
-        .minor-key:hover {
-            background: #35354d;
-            transform: translateY(-1px);
-        }
+        .minor-key:hover { background: #35354d; transform: translateY(-1px); }
+        .minor-key:active { transform: translateY(0); }
+        .minor-key.selected { background: var(--accent-secondary); color: var(--bg-dark); }
+        .minor-key.selected .digit-row2, .minor-key.selected .digit-row3, .minor-key.selected .digit-row4 { color: var(--bg-dark); }
 
-        .minor-key:active {
-            transform: translateY(0);
-        }
+        .digit-row2 { color: #ff9f43; }
+        .digit-row3 { color: #54a0ff; }
+        .digit-row4 { color: #a29bfe; }
 
-        .minor-key.selected {
-            background: var(--accent-secondary);
-            color: var(--bg-dark);
-        }
-
-        .minor-key.selected .digit-row2,
-        .minor-key.selected .digit-row3,
-        .minor-key.selected .digit-row4 {
-            color: var(--bg-dark);
-        }
-
-        /* Row-based coloring for extra digits */
-        .digit-row2 {
-            color: #ff9f43;
-        }
-
-        .digit-row3 {
-            color: #54a0ff;
-        }
-
-        .digit-row4 {
-            color: #a29bfe;
-        }
-
-        /* Place Keypad */
-        .place-keys {
-            display: grid;
-            grid-template-columns: repeat(5, 1fr);
-            gap: 10px;
-        }
+        .place-keys { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; }
 
         .place-key {
             padding: 20px;
@@ -398,21 +338,10 @@
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
         }
 
-        .place-key:hover {
-            transform: translateY(-2px);
-            background: linear-gradient(135deg, #3d3d58, #35354d);
-        }
+        .place-key:hover { transform: translateY(-2px); background: linear-gradient(135deg, #3d3d58, #35354d); }
+        .place-key.selected { background: linear-gradient(135deg, var(--accent-success), #28b84a); box-shadow: 0 4px 20px rgba(48, 209, 88, 0.4); }
 
-        .place-key.selected {
-            background: linear-gradient(135deg, var(--accent-success), #28b84a);
-            box-shadow: 0 4px 20px rgba(48, 209, 88, 0.4);
-        }
-
-        /* Action Buttons */
-        .actions {
-            display: flex;
-            gap: 10px;
-        }
+        .actions { display: flex; gap: 10px; }
 
         .btn {
             padding: 10px 18px;
@@ -431,10 +360,7 @@
             box-shadow: 0 4px 12px rgba(48, 209, 88, 0.3);
         }
 
-        .btn-primary:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 6px 16px rgba(48, 209, 88, 0.4);
-        }
+        .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(48, 209, 88, 0.4); }
 
         .btn-secondary {
             background: var(--bg-elevated);
@@ -442,11 +368,8 @@
             border: 2px solid var(--border-color);
         }
 
-        .btn-secondary:hover {
-            border-color: var(--text-muted);
-        }
+        .btn-secondary:hover { border-color: var(--text-muted); }
         
-        /* Card header with title and actions */
         .card-header {
             display: flex;
             justify-content: space-between;
@@ -456,11 +379,8 @@
             gap: 12px;
         }
         
-        .card-header .card-title {
-            margin-bottom: 0;
-        }
+        .card-header .card-title { margin-bottom: 0; }
 
-        /* Toast Notification */
         .toast {
             position: fixed;
             bottom: 24px;
@@ -470,20 +390,20 @@
             border-radius: 12px;
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
             border-left: 4px solid var(--accent-success);
-            transform: translateX(120%);
+            transform: translateX(calc(100% + 48px));
             transition: transform 0.3s ease;
             z-index: 1000;
+            opacity: 0;
+            pointer-events: none;
         }
 
         .toast.show {
             transform: translateX(0);
+            opacity: 1;
+            pointer-events: auto;
         }
+        .toast.error { border-left-color: var(--accent-primary); }
 
-        .toast.error {
-            border-left-color: var(--accent-primary);
-        }
-
-        /* Current Focus Indicator */
         .focus-indicator {
             background: var(--bg-elevated);
             border-radius: 8px;
@@ -493,18 +413,9 @@
             gap: 10px;
         }
 
-        .focus-indicator .label {
-            color: var(--text-secondary);
-            font-size: 0.85rem;
-        }
+        .focus-indicator .label { color: var(--text-secondary); font-size: 0.85rem; }
+        .focus-indicator .value { font-weight: 600; font-size: 1.1rem; color: var(--accent-secondary); }
 
-        .focus-indicator .value {
-            font-weight: 600;
-            font-size: 1.1rem;
-            color: var(--accent-secondary);
-        }
-
-        /* Clear button for fields */
         .clear-field-btn {
             padding: 6px 10px;
             font-size: 0.75rem;
@@ -516,258 +427,250 @@
             margin-top: 6px;
         }
 
-        .clear-field-btn:hover {
-            border-color: var(--accent-primary);
-            color: var(--accent-primary);
+        .clear-field-btn:hover { border-color: var(--accent-primary); color: var(--accent-primary); }
+
+        .athlete-row { display: flex; gap: 16px; align-items: flex-end; }
+        .athlete-row .form-group { flex: 1; }
+        .athlete-row .form-group:last-child { flex: 0 0 150px; }
+
+        /* ========== Mobile View (hidden on desktop) ========== */
+        #mobileView { display: none; }
+
+        .mobile-event-header { text-align: center; margin-bottom: 16px; }
+
+        .mobile-event-name {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--accent-secondary);
+            text-transform: uppercase;
+            letter-spacing: 2px;
         }
 
-        /* Athlete Input Row */
-        .athlete-row {
+        .mobile-event-counter { font-size: 0.85rem; color: var(--text-secondary); margin-top: 2px; }
+
+        .mobile-progress-dots { display: flex; justify-content: center; gap: 10px; margin: 12px 0; }
+
+        .mobile-dot {
+            width: 12px; height: 12px; border-radius: 50%;
+            background: var(--bg-elevated); border: 2px solid var(--border-color);
+            cursor: pointer; transition: all 0.2s; padding: 0;
+        }
+
+        .mobile-dot.active { background: var(--accent-primary); border-color: var(--accent-primary); transform: scale(1.3); }
+        .mobile-dot.completed { background: var(--accent-success); border-color: var(--accent-success); }
+
+        .mobile-score-display {
+            text-align: center; padding: 16px;
+            background: var(--bg-elevated); border-radius: 12px; margin-bottom: 16px;
+        }
+
+        .mobile-score-value {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 2.5rem; font-weight: 700;
+            color: var(--accent-warning); letter-spacing: 2px;
+        }
+
+        .mobile-score-value .dim { opacity: 0.25; }
+        .mobile-place-display { font-size: 0.95rem; color: var(--text-secondary); margin-top: 6px; }
+
+        .mobile-step-label {
+            text-align: center; font-size: 0.9rem; font-weight: 600;
+            color: var(--text-muted); margin-bottom: 12px;
+            text-transform: uppercase; letter-spacing: 1px;
+        }
+
+        .mobile-keypad { display: grid; gap: 10px; margin-bottom: 16px; }
+        .mobile-keypad.cols-3 { grid-template-columns: repeat(3, 1fr); }
+        .mobile-keypad.cols-2 { grid-template-columns: repeat(2, 1fr); }
+        .mobile-keypad.cols-5 { grid-template-columns: repeat(5, 1fr); }
+
+        .mobile-key {
+            padding: 20px 12px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.5rem; font-weight: 700;
+            border: none; border-radius: 14px;
+            background: linear-gradient(135deg, #2d2d42, #252538);
+            color: var(--text-primary);
+            cursor: pointer; transition: all 0.12s;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            min-height: 60px;
+            display: flex; align-items: center; justify-content: center;
+            -webkit-tap-highlight-color: transparent; user-select: none;
+        }
+
+        .mobile-key:active { transform: scale(0.93); background: linear-gradient(135deg, #3d3d58, #35354d); }
+
+        .mobile-nav { display: flex; gap: 10px; margin-bottom: 16px; }
+
+        .mobile-nav-btn {
+            flex: 1; padding: 12px;
+            border: 2px solid var(--border-color);
+            background: var(--bg-elevated); color: var(--text-secondary);
+            border-radius: 10px; font-family: inherit; font-size: 0.9rem; font-weight: 600;
+            cursor: pointer; transition: all 0.15s; -webkit-tap-highlight-color: transparent;
+        }
+
+        .mobile-nav-btn:active { background: var(--border-color); }
+
+        .mobile-nav-btn.back-step {
+            flex: 0 0 auto; padding: 12px 18px;
+            color: var(--accent-primary); border-color: rgba(232, 93, 117, 0.4);
+        }
+
+        /* Mobile summary / review */
+        .mobile-summary { padding: 8px 0; }
+        .mobile-summary-title { text-align: center; font-size: 1.15rem; font-weight: 600; color: var(--accent-success); margin-bottom: 16px; }
+
+        .mobile-summary-row {
+            display: grid;
+            grid-template-columns: 1fr auto 48px;
+            gap: 8px;
+            align-items: center;
+            padding: 10px 12px;
+            border-bottom: 1px solid var(--border-color);
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+
+        .mobile-summary-row:active { background: var(--bg-elevated); }
+        .mobile-summary-row:last-of-type { border-bottom: none; }
+
+        .mobile-summary-event {
+            font-weight: 600; color: var(--accent-secondary);
+            text-transform: uppercase; font-size: 0.85rem; letter-spacing: 0.5px;
+        }
+
+        .mobile-summary-score {
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 600; font-size: 1.05rem;
+            color: var(--accent-warning); text-align: right;
+        }
+
+        .mobile-summary-place { text-align: center; }
+
+        .mobile-submit-actions { display: flex; gap: 12px; margin-top: 20px; }
+        .mobile-submit-actions .btn { flex: 1; padding: 16px; font-size: 1.05rem; }
+
+        /* Mobile setup screen */
+        .mobile-setup { padding: 8px 0; }
+
+        .mobile-setup-title {
+            font-size: 1.3rem; font-weight: 700; text-align: center;
+            margin-bottom: 20px;
+            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+        }
+
+        .mobile-setup-form {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .mobile-setup-form .form-group.full-width { grid-column: 1 / -1; }
+
+        .mobile-session-bar {
             display: flex;
-            gap: 16px;
-            align-items: flex-end;
+            align-items: center;
+            justify-content: space-between;
+            background: var(--bg-elevated);
+            border-radius: 10px;
+            padding: 10px 14px;
+            margin-bottom: 16px;
+            font-size: 0.85rem;
+            cursor: pointer;
         }
 
-        .athlete-row .form-group {
+        .mobile-session-bar:active { background: var(--border-color); }
+
+        .mobile-session-info {
+            color: var(--text-secondary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
             flex: 1;
         }
 
-        .athlete-row .form-group:last-child {
-            flex: 0 0 150px;
+        .mobile-session-edit {
+            color: var(--accent-secondary);
+            font-weight: 600;
+            font-size: 0.8rem;
+            margin-left: 12px;
+            flex-shrink: 0;
         }
 
-        /* Mobile responsiveness */
+        /* ========== Mobile Responsiveness ========== */
         @media (max-width: 768px) {
-            .container {
-                padding: 16px;
-            }
-            
-            header h1 {
-                font-size: 1.8rem;
+            .container { padding: 12px; }
+            header { margin-bottom: 12px; }
+            header h1 { font-size: 1.5rem; margin-bottom: 4px; }
+            header p { display: none; }
+
+            .card { padding: 16px; margin-bottom: 12px; border-radius: 12px; }
+            .card-title { font-size: 1rem; }
+
+            /* Hide both cards and desktop layout on mobile */
+            #sessionSetupCard, #athleteEntryCard { display: none !important; }
+
+            /* Show mobile view */
+            #mobileView {
+                display: block !important;
+                background: var(--bg-card);
+                border-radius: 16px;
+                padding: 20px 16px;
+                border: 1px solid var(--border-color);
+                box-shadow: var(--shadow);
             }
 
-            .form-row {
-                grid-template-columns: repeat(2, 1fr);
-            }
+            input, select { padding: 10px 12px; font-size: 16px; }
 
-            .athlete-row {
-                flex-direction: column;
-            }
-
-            .athlete-row .form-group:last-child {
-                flex: 1;
-            }
-
-            .keypad-layout {
-                grid-template-columns: 1fr;
-            }
-
-            .major-keys {
-                grid-template-columns: repeat(6, 1fr);
-            }
-
-            .major-key {
-                padding: 16px;
-                font-size: 1.5rem;
-            }
-
-            .minor-keys {
-                grid-template-columns: repeat(5, 1fr) 8px repeat(5, 1fr);
-            }
-
-            .minor-key {
-                padding: 12px 4px;
-                font-size: 0.9rem;
-            }
-
-            .place-keys {
-                grid-template-columns: repeat(5, 1fr);
-            }
-
-            .place-key {
-                padding: 14px;
-                font-size: 1.2rem;
-            }
+            .mobile-key { min-height: 56px; padding: 16px 10px; font-size: 1.4rem; }
+            .mobile-score-value { font-size: 2.2rem; }
         }
 
         /* Landscape phone optimization */
         @media (max-height: 500px) and (orientation: landscape) {
-            .container {
-                padding: 12px 16px;
-            }
-
-            header {
-                margin-bottom: 16px;
-            }
-
-            header h1 {
-                font-size: 1.5rem;
-                margin-bottom: 4px;
-            }
-
-            header p {
-                font-size: 0.9rem;
-            }
-
-            .card {
-                padding: 16px;
-                margin-bottom: 16px;
-            }
-
-            .card-title {
-                font-size: 1.1rem;
-                margin-bottom: 12px;
-            }
-
-            .form-row {
-                grid-template-columns: repeat(4, 1fr);
-                gap: 12px;
-                margin-bottom: 12px;
-            }
-
-            .form-group {
-                gap: 4px;
-            }
-
-            label {
-                font-size: 0.75rem;
-            }
-
-            input, select {
-                padding: 8px 12px;
-                font-size: 0.9rem;
-            }
-
-            .events-grid {
-                grid-template-columns: repeat(5, 1fr);
-                gap: 8px;
-            }
-
-            .event-card {
-                padding: 10px;
-                border-radius: 8px;
-            }
-
-            .event-card h3 {
-                font-size: 0.75rem;
-                margin-bottom: 8px;
-            }
-
-            input.score-input {
-                font-size: 1.1rem;
-                padding: 6px;
-            }
-
-            input.place-input {
-                font-size: 1rem;
-                width: 60px;
-                padding: 6px;
-            }
-
-            .clear-field-btn {
-                padding: 4px 8px;
-                font-size: 0.65rem;
-                margin-top: 4px;
-            }
-
-            .entry-layout {
-                gap: 16px;
-            }
-
-            .keypad-layout {
-                gap: 16px;
-            }
-
-            .major-keys {
-                gap: 6px;
-            }
-
-            .major-key {
-                padding: 14px 16px;
-                font-size: 1.4rem;
-            }
-
-            .minor-keys {
-                gap: 4px;
-            }
-
-            .minor-key {
-                padding: 10px 4px;
-                font-size: 0.85rem;
-            }
-
-            .place-keys {
-                gap: 6px;
-            }
-
-            .place-key {
-                padding: 12px;
-                font-size: 1.2rem;
-            }
-
-            .focus-indicator {
-                padding: 8px 12px;
-            }
-
-            .focus-indicator .label {
-                font-size: 0.75rem;
-            }
-
-            .focus-indicator .value {
-                font-size: 0.95rem;
-            }
-
-            .toggle-btn, .tab-btn {
-                padding: 8px 12px;
-                font-size: 0.8rem;
-            }
-
-            .btn {
-                padding: 8px 14px;
-                font-size: 0.85rem;
-            }
+            .container { padding: 12px 16px; }
+            header { margin-bottom: 16px; }
+            header h1 { font-size: 1.5rem; margin-bottom: 4px; }
+            header p { font-size: 0.9rem; }
+            .card { padding: 16px; margin-bottom: 16px; }
+            .card-title { font-size: 1.1rem; margin-bottom: 12px; }
+            .form-row { grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 12px; }
+            .form-group { gap: 4px; }
+            label { font-size: 0.75rem; }
+            input, select { padding: 8px 12px; font-size: 0.9rem; }
+            .events-grid { grid-template-columns: repeat(5, 1fr); gap: 8px; }
+            .event-card { padding: 10px; border-radius: 8px; }
+            .event-card h3 { font-size: 0.75rem; margin-bottom: 8px; }
+            input.score-input { font-size: 1.1rem; padding: 6px; }
+            input.place-input { font-size: 1rem; width: 60px; padding: 6px; }
+            .clear-field-btn { padding: 4px 8px; font-size: 0.65rem; margin-top: 4px; }
+            .entry-layout { gap: 16px; }
+            .keypad-layout { gap: 16px; }
+            .major-keys { gap: 6px; }
+            .major-key { padding: 14px 16px; font-size: 1.4rem; }
+            .minor-keys { gap: 4px; }
+            .minor-key { padding: 10px 4px; font-size: 0.85rem; }
+            .place-keys { gap: 6px; }
+            .place-key { padding: 12px; font-size: 1.2rem; }
+            .focus-indicator { padding: 8px 12px; }
+            .focus-indicator .label { font-size: 0.75rem; }
+            .focus-indicator .value { font-size: 0.95rem; }
+            .toggle-btn, .tab-btn { padding: 8px 12px; font-size: 0.8rem; }
+            .btn { padding: 8px 14px; font-size: 0.85rem; }
         }
 
         /* Small phones */
-        @media (max-width: 480px) {
-            header h1 {
-                font-size: 1.5rem;
-            }
-
-            .card {
-                padding: 16px;
-                border-radius: 12px;
-            }
-
-            .card-title {
-                font-size: 1rem;
-            }
-
-            .form-row {
-                grid-template-columns: 1fr;
-            }
-
-            .events-grid {
-                grid-template-columns: repeat(3, 1fr);
-            }
-
-            .event-card h3 {
-                font-size: 0.8rem;
-            }
-
-            input.score-input {
-                font-size: 1.2rem;
-            }
-
-            .major-key {
-                padding: 18px 20px;
-                font-size: 1.6rem;
-            }
-
-            .minor-key {
-                padding: 14px 4px;
-                font-size: 0.95rem;
-            }
+        @media (max-width: 400px) {
+            .container { padding: 8px; }
+            #mobileView { padding: 16px 12px; }
+            .mobile-setup-form { grid-template-columns: 1fr; }
+            .mobile-setup-form .form-group.full-width { grid-column: 1; }
+            .mobile-key { min-height: 52px; padding: 14px 8px; font-size: 1.3rem; }
+            .mobile-score-value { font-size: 2rem; }
+            .mobile-event-name { font-size: 1.3rem; }
         }
     </style>
 </head>
@@ -782,8 +685,8 @@
             </div>
         </header>
 
-        <!-- Session Setup -->
-        <div class="card">
+        <!-- Session Setup (visible on desktop, hidden on mobile) -->
+        <div class="card" id="sessionSetupCard">
             <div class="card-title">Session Setup</div>
             <div class="form-row">
                 <div class="form-group">
@@ -824,8 +727,8 @@
             </div>
         </div>
 
-        <!-- Athlete Entry -->
-        <div class="card">
+        <!-- Athlete Entry (visible on desktop, hidden on mobile) -->
+        <div class="card" id="athleteEntryCard">
             <div class="card-header">
                 <div class="card-title">Athlete Scores</div>
                 <div class="actions">
@@ -845,7 +748,6 @@
             <div class="entry-layout">
                 <div class="events-section">
                     <div class="events-grid" id="eventsGrid">
-                        <!-- Events will be generated by JS -->
                     </div>
                 </div>
 
@@ -856,63 +758,78 @@
                                 <span class="label">Current Field:</span>
                                 <span class="value" id="currentFieldLabel">None</span>
                             </div>
-                            
                             <div style="display: flex; gap: 8px;">
                                 <div class="keypad-toggle" style="margin-bottom: 0;">
                                     <button class="toggle-btn active" id="simpleToggle" onclick="setMode('simple')">Simple</button>
                                     <button class="toggle-btn" id="extendedToggle" onclick="setMode('extended')">Extended</button>
                                 </div>
-                                
                                 <div class="keypad-tabs" style="margin-bottom: 0;">
                                     <button class="tab-btn active" id="scoreTab" onclick="showKeypad('score')">Score</button>
                                     <button class="tab-btn" id="placeTab" onclick="showKeypad('place')">Place</button>
                                 </div>
                             </div>
                         </div>
-
-                        <!-- Score Keypad -->
                         <div class="keypad-content active" id="scoreKeypad">
                             <div class="keypad-layout">
-                                <div class="major-keys" id="majorKeys">
-                                    <!-- Generated by JS -->
-                                </div>
-                                <div class="minor-keys" id="minorKeys">
-                                    <!-- Generated by JS -->
-                                </div>
+                                <div class="major-keys" id="majorKeys"></div>
+                                <div class="minor-keys" id="minorKeys"></div>
                             </div>
                         </div>
-
-                        <!-- Place Keypad -->
                         <div class="keypad-content" id="placeKeypad">
-                            <div class="place-keys" id="placeKeys">
-                                <!-- Generated by JS -->
-                            </div>
+                            <div class="place-keys" id="placeKeys"></div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
+
+        <!-- Mobile score entry view (hidden on desktop, replaces both cards on mobile) -->
+        <div id="mobileView"></div>
     </div>
 
-    <!-- Toast Notification -->
     <div class="toast" id="toast"></div>
 
     <script>
-        // Events configuration
         const EVENTS = ['Vault', 'Bars', 'Beam', 'Floor', 'All Around'];
-        
-        // Field navigation order: all scores, then all places
+        const LEVEL_OPTIONS = [
+            {v:'',t:'Select Level'},{v:'1',t:'Level 1'},{v:'2',t:'Level 2'},{v:'3',t:'Level 3'},
+            {v:'4',t:'Level 4'},{v:'5',t:'Level 5'},{v:'6',t:'Level 6'},{v:'7',t:'Level 7'},
+            {v:'8',t:'Level 8'},{v:'9',t:'Level 9'},{v:'10',t:'Level 10'},
+            {v:'XB',t:'Xcel Bronze'},{v:'XS',t:'Xcel Silver'},{v:'XG',t:'Xcel Gold'},
+            {v:'XP',t:'Xcel Platinum'},{v:'XD',t:'Xcel Diamond'},{v:'XSA',t:'Xcel Sapphire'}
+        ];
+
+        // Desktop state
         let fieldOrder = [];
         let currentFieldIndex = 0;
         let currentMode = 'simple';
         let currentKeypad = 'score';
-        
-        // Selected values for current field
         let selectedMajor = null;
         let selectedMinor = null;
 
-        // Initialize the UI
+        // Mobile state
+        let isMobile = false;
+        const mobileQuery = window.matchMedia('(max-width: 768px)');
+        let mobileEventIndex = 0;
+        let mobileStep = 'setup'; // 'setup', 'major', 'minor', 'extraMinor', 'place'
+        let mobileMajor = null;
+        let mobileMinor = null;
+        let mobileExtra = null;
+
+        function haptic() { if (navigator.vibrate) navigator.vibrate(10); }
+
+        function getPlaceBadgeClass(place) {
+            const p = parseInt(place);
+            if (p === 1) return 'gold';
+            if (p === 2) return 'silver';
+            if (p === 3) return 'bronze';
+            return 'other';
+        }
+
+        // ========== Initialization ==========
         function init() {
+            isMobile = mobileQuery.matches;
+
             generateEventsGrid();
             generateMajorKeys();
             generateMinorKeys();
@@ -920,17 +837,23 @@
             buildFieldOrder();
             loadAutocompleteData();
             
-            // Set default date to today
             document.getElementById('meetDate').valueAsDate = new Date();
-            
-            // Set default year
             document.getElementById('compYear').value = new Date().getFullYear().toString();
             
-            // Focus first field
-            if (fieldOrder.length > 0) {
-                focusField(0);
+            if (isMobile) {
+                mobileInit();
+            } else {
+                if (fieldOrder.length > 0) focusField(0);
             }
+
+            mobileQuery.addEventListener('change', (e) => {
+                isMobile = e.matches;
+                if (isMobile) mobileInit();
+                else if (fieldOrder.length > 0) focusField(0);
+            });
         }
+
+        // ========== Desktop Functions ==========
 
         function generateEventsGrid() {
             const grid = document.getElementById('eventsGrid');
@@ -945,41 +868,28 @@
                     <h3>${event}</h3>
                     <div class="field-group">
                         <span class="field-label">${isAllAround ? 'Score (Auto)' : 'Score'}</span>
-                        <input type="text" 
-                               class="score-input ${isAllAround ? 'auto-calculated' : ''}" 
-                               id="score-${idx}" 
-                               data-event="${event}"
-                               data-type="score"
-                               data-index="${idx}"
-                               readonly
-                               placeholder="—"
+                        <input type="text" class="score-input ${isAllAround ? 'auto-calculated' : ''}" 
+                               id="score-${idx}" data-event="${event}" data-type="score" data-index="${idx}"
+                               readonly placeholder="—"
                                ${isAllAround ? 'style="background: #1a1a2e; color: var(--accent-warning);"' : ''}>
                     </div>
                     <div class="field-group" style="margin-top: 8px;">
                         <span class="field-label">Place</span>
-                        <input type="text" 
-                               class="place-input" 
-                               id="place-${idx}" 
-                               data-event="${event}"
-                               data-type="place"
-                               data-index="${idx}"
-                               readonly
-                               placeholder="—">
+                        <input type="text" class="place-input" id="place-${idx}" 
+                               data-event="${event}" data-type="place" data-index="${idx}" readonly placeholder="—">
                     </div>
                     ${isAllAround ? '' : `<button class="clear-field-btn" onclick="clearEvent(${idx})">Clear</button>`}
                 `;
                 grid.appendChild(card);
             });
 
-            // Add click handlers to inputs (except All Around score which is auto-calculated)
             document.querySelectorAll('.score-input:not(.auto-calculated), .place-input').forEach(input => {
                 input.addEventListener('click', () => {
+                    if (isMobile) return;
                     const idx = parseInt(input.dataset.index);
                     const type = input.dataset.type;
                     const fieldIdx = fieldOrder.findIndex(f => f.index === idx && f.type === type);
-                    if (fieldIdx !== -1) {
-                        focusField(fieldIdx);
-                    }
+                    if (fieldIdx !== -1) focusField(fieldIdx);
                 });
             });
         }
@@ -987,11 +897,9 @@
         function generateMajorKeys() {
             const container = document.getElementById('majorKeys');
             container.innerHTML = '';
-            
             [4, 5, 6, 7, 8, 9].forEach(num => {
                 const btn = document.createElement('button');
-                btn.className = 'major-key';
-                btn.textContent = num;
+                btn.className = 'major-key'; btn.textContent = num;
                 btn.onclick = () => selectMajor(num);
                 container.appendChild(btn);
             });
@@ -1000,87 +908,18 @@
         function generateMinorKeys() {
             const container = document.getElementById('minorKeys');
             container.innerHTML = '';
-            
-            // Format value without trailing zeros, but keep at least one digit after decimal
-            const formatMinor = (val) => {
-                // Convert to string with 3 decimal places, then trim trailing zeros
-                let str = val.toFixed(3);
-                // Remove trailing zeros after decimal, but keep at least one digit
-                str = str.replace(/(\.\d*?)0+$/, '$1');
-                // If we end up with just "0.", make it "0.0"
-                if (str.endsWith('.')) str += '0';
-                // Remove leading zero
-                return str.replace(/^0/, '');
-            };
-            
-            // Get the row type (which determines the colored suffix)
-            // Row 0: .X00 -> no suffix (e.g., .1, .2)
-            // Row 1: .X25 -> suffix "25" colored (orange)
-            // Row 2: .X50 -> suffix "5" colored (blue)
-            // Row 3: .X75 -> suffix "75" colored (purple)
-            const getRowType = (val) => {
-                // Use string parsing to avoid floating point issues
-                const str = val.toFixed(3); // "0.025", "0.125", etc.
-                const hundredths = parseInt(str[3]);  // position 0.0X0
-                const thousandths = parseInt(str[4]); // position 0.00X
-                
-                if (hundredths === 0 && thousandths === 0) return 0; // .X00
-                if (hundredths === 2 && thousandths === 5) return 1; // .X25
-                if (hundredths === 5 && thousandths === 0) return 2; // .X50
-                if (hundredths === 7 && thousandths === 5) return 3; // .X75
-                return 0;
-            };
-            
-            // Create display HTML with colored suffix
-            const createDisplayHTML = (val, rowType) => {
-                const formatted = formatMinor(val);
-                // Row 0: no coloring (just tenths like .1, .2)
-                if (rowType === 0) return formatted;
-                
-                // For other rows, color the extra digits after the tenths place
-                // e.g., .125 -> tenths="1", suffix="25"
-                const tenths = formatted.slice(0, 2); // ".X"
-                const suffix = formatted.slice(2);    // remaining digits
-                
-                const colorClass = `digit-row${rowType + 1}`;
-                return `${tenths}<span class="${colorClass}">${suffix}</span>`;
-            };
-            
-            // Full layout with all values
-            const fullLayout = [
-                [0.000, 0.100, 0.200, 0.300, 0.400, 0.500, 0.600, 0.700, 0.800, 0.900],
-                [0.025, 0.125, 0.225, 0.325, 0.425, 0.525, 0.625, 0.725, 0.825, 0.925],
-                [0.050, 0.150, 0.250, 0.350, 0.450, 0.550, 0.650, 0.750, 0.850, 0.950],
-                [0.075, 0.175, 0.275, 0.375, 0.475, 0.575, 0.675, 0.775, 0.875, 0.975]
-            ];
-            
-            // Simple layout (only .X00 and .X50 values)
-            const simpleLayout = [
-                [0.000, 0.100, 0.200, 0.300, 0.400, 0.500, 0.600, 0.700, 0.800, 0.900],
-                [0.050, 0.150, 0.250, 0.350, 0.450, 0.550, 0.650, 0.750, 0.850, 0.950]
-            ];
-            
+            const formatMinor = (val) => { let str = val.toFixed(3); str = str.replace(/(\.\d*?)0+$/, '$1'); if (str.endsWith('.')) str += '0'; return str.replace(/^0/, ''); };
+            const getRowType = (val) => { const str = val.toFixed(3); const h = parseInt(str[3]); const t = parseInt(str[4]); if (h===0&&t===0) return 0; if (h===2&&t===5) return 1; if (h===5&&t===0) return 2; if (h===7&&t===5) return 3; return 0; };
+            const createDisplayHTML = (val, rowType) => { const f = formatMinor(val); if (rowType === 0) return f; const tenths = f.slice(0,2); const suffix = f.slice(2); return `${tenths}<span class="digit-row${rowType+1}">${suffix}</span>`; };
+            const fullLayout = [[0.000,0.100,0.200,0.300,0.400,0.500,0.600,0.700,0.800,0.900],[0.025,0.125,0.225,0.325,0.425,0.525,0.625,0.725,0.825,0.925],[0.050,0.150,0.250,0.350,0.450,0.550,0.650,0.750,0.850,0.950],[0.075,0.175,0.275,0.375,0.475,0.575,0.675,0.775,0.875,0.975]];
+            const simpleLayout = [[0.000,0.100,0.200,0.300,0.400,0.500,0.600,0.700,0.800,0.900],[0.050,0.150,0.250,0.350,0.450,0.550,0.650,0.750,0.850,0.950]];
             const layout = currentMode === 'simple' ? simpleLayout : fullLayout;
-            
             for (let row = 0; row < layout.length; row++) {
                 for (let col = 0; col < 10; col++) {
-                    // Add gap spacer after column 5 (index 4)
-                    if (col === 5) {
-                        const gap = document.createElement('div');
-                        gap.className = 'gap';
-                        container.appendChild(gap);
-                    }
-                    
-                    const value = layout[row][col];
-                    const btn = document.createElement('button');
-                    const rowType = getRowType(value);
-                    
-                    btn.className = 'minor-key';
-                    btn.innerHTML = createDisplayHTML(value, rowType);
-                    btn.dataset.value = value.toFixed(3);
-                    btn.onclick = () => selectMinor(value);
-                    
-                    container.appendChild(btn);
+                    if (col === 5) { const gap = document.createElement('div'); gap.className = 'gap'; container.appendChild(gap); }
+                    const value = layout[row][col]; const btn = document.createElement('button'); const rowType = getRowType(value);
+                    btn.className = 'minor-key'; btn.innerHTML = createDisplayHTML(value, rowType); btn.dataset.value = value.toFixed(3);
+                    btn.onclick = () => selectMinor(value); container.appendChild(btn);
                 }
             }
         }
@@ -1088,198 +927,377 @@
         function generatePlaceKeys() {
             const container = document.getElementById('placeKeys');
             container.innerHTML = '';
-            
-            for (let i = 1; i <= 10; i++) {
-                const btn = document.createElement('button');
-                btn.className = 'place-key';
-                btn.textContent = i;
-                btn.onclick = () => selectPlace(i);
-                container.appendChild(btn);
-            }
+            for (let i = 1; i <= 10; i++) { const btn = document.createElement('button'); btn.className = 'place-key'; btn.textContent = i; btn.onclick = () => selectPlace(i); container.appendChild(btn); }
         }
 
         function buildFieldOrder() {
             fieldOrder = [];
-            
-            // First scores for Vault, Bars, Beam, Floor (NOT All Around - it's auto-calculated)
-            for (let idx = 0; idx < 4; idx++) {
-                fieldOrder.push({ type: 'score', index: idx, event: EVENTS[idx] });
-            }
-            
-            // Then all places (including All Around)
-            EVENTS.forEach((event, idx) => {
-                fieldOrder.push({ type: 'place', index: idx, event: event });
-            });
+            for (let idx = 0; idx < 4; idx++) fieldOrder.push({ type: 'score', index: idx, event: EVENTS[idx] });
+            EVENTS.forEach((event, idx) => fieldOrder.push({ type: 'place', index: idx, event: event }));
         }
         
         function calculateAllAround() {
-            let total = 0;
-            let validScores = 0;
-            
-            // Sum Vault (0), Bars (1), Beam (2), Floor (3)
-            for (let idx = 0; idx < 4; idx++) {
-                const scoreVal = document.getElementById(`score-${idx}`).value;
-                if (scoreVal && !isNaN(parseFloat(scoreVal))) {
-                    total += parseFloat(scoreVal);
-                    validScores++;
-                }
-            }
-            
-            // Only set All Around if all 4 events have scores
+            let total = 0, validScores = 0;
+            for (let idx = 0; idx < 4; idx++) { const v = document.getElementById(`score-${idx}`).value; if (v && !isNaN(parseFloat(v))) { total += parseFloat(v); validScores++; } }
             const aaInput = document.getElementById('score-4');
-            if (validScores === 4) {
-                aaInput.value = total.toFixed(3);
-            } else {
-                aaInput.value = '';
-            }
+            aaInput.value = validScores === 4 ? total.toFixed(3) : '';
         }
 
         function focusField(index) {
             if (index < 0 || index >= fieldOrder.length) return;
-            
             currentFieldIndex = index;
             const field = fieldOrder[index];
-            
-            // Update visual indicators
-            document.querySelectorAll('.event-card').forEach(card => card.classList.remove('active'));
+            document.querySelectorAll('.event-card').forEach(c => c.classList.remove('active'));
             document.getElementById(`event-card-${field.index}`).classList.add('active');
-            
-            // Update focus label
-            const typeLabel = field.type === 'score' ? 'Score' : 'Place';
-            document.getElementById('currentFieldLabel').textContent = `${field.event} ${typeLabel}`;
-            
-            // Switch to appropriate keypad
+            document.getElementById('currentFieldLabel').textContent = `${field.event} ${field.type === 'score' ? 'Score' : 'Place'}`;
             showKeypad(field.type);
-            
-            // Reset selections
-            selectedMajor = null;
-            selectedMinor = null;
-            updateKeySelections();
-            
-            // Focus the input element
-            const inputId = `${field.type}-${field.index}`;
-            document.getElementById(inputId).focus();
+            selectedMajor = null; selectedMinor = null; updateKeySelections();
+            document.getElementById(`${field.type}-${field.index}`).focus();
         }
 
-        function advanceToNextField() {
-            const nextIndex = currentFieldIndex + 1;
-            if (nextIndex < fieldOrder.length) {
-                focusField(nextIndex);
-            }
-        }
+        function advanceToNextField() { const n = currentFieldIndex + 1; if (n < fieldOrder.length) focusField(n); }
 
-        function selectMajor(num) {
-            selectedMajor = num;
-            updateKeySelections();
-            updateCurrentScoreDisplay();
-        }
+        function selectMajor(num) { selectedMajor = num; updateKeySelections(); updateCurrentScoreDisplay(); }
 
         function selectMinor(value) {
-            if (selectedMajor === null) {
-                showToast('Select a major score (4-9) first', true);
-                return;
-            }
-            
-            selectedMinor = value;
-            updateKeySelections();
-            updateCurrentScoreDisplay();
-            
-            // Auto-advance to next score field or switch to place
-            advanceToNextField();
+            if (selectedMajor === null) { showToast('Select a major score (4-9) first', true); return; }
+            selectedMinor = value; updateKeySelections(); updateCurrentScoreDisplay(); advanceToNextField();
         }
 
         function selectPlace(num) {
             const field = fieldOrder[currentFieldIndex];
-            if (field.type !== 'place') {
-                // Find the corresponding place field
-                const placeFieldIndex = fieldOrder.findIndex(f => f.type === 'place' && f.index === field.index);
-                if (placeFieldIndex !== -1) {
-                    currentFieldIndex = placeFieldIndex;
-                }
-            }
-            
-            // Set the place value
-            const currentField = fieldOrder[currentFieldIndex];
-            const inputId = `place-${currentField.index}`;
-            document.getElementById(inputId).value = num;
-            
-            updatePlaceKeySelections(num);
-            
-            // Auto-advance
-            advanceToNextField();
+            if (field.type !== 'place') { const pi = fieldOrder.findIndex(f => f.type === 'place' && f.index === field.index); if (pi !== -1) currentFieldIndex = pi; }
+            const cf = fieldOrder[currentFieldIndex];
+            document.getElementById(`place-${cf.index}`).value = num;
+            updatePlaceKeySelections(num); advanceToNextField();
         }
 
         function updateCurrentScoreDisplay() {
             if (selectedMajor === null) return;
-            
-            const field = fieldOrder[currentFieldIndex];
-            if (field.type !== 'score') return;
-            
-            const minor = selectedMinor !== null ? selectedMinor : 0;
-            const score = selectedMajor + minor;
-            
-            const inputId = `score-${field.index}`;
-            document.getElementById(inputId).value = score.toFixed(3);
-            
-            // Recalculate All Around whenever any event score changes
+            const field = fieldOrder[currentFieldIndex]; if (field.type !== 'score') return;
+            const score = selectedMajor + (selectedMinor !== null ? selectedMinor : 0);
+            document.getElementById(`score-${field.index}`).value = score.toFixed(3);
             calculateAllAround();
         }
 
         function updateKeySelections() {
-            // Update major keys
-            document.querySelectorAll('.major-key').forEach(btn => {
-                btn.classList.toggle('selected', parseInt(btn.textContent) === selectedMajor);
-            });
-            
-            // Update minor keys
-            document.querySelectorAll('.minor-key').forEach(btn => {
-                const val = parseFloat(btn.dataset.value);
-                btn.classList.toggle('selected', val === selectedMinor);
-            });
+            document.querySelectorAll('.major-key').forEach(b => b.classList.toggle('selected', parseInt(b.textContent) === selectedMajor));
+            document.querySelectorAll('.minor-key').forEach(b => b.classList.toggle('selected', parseFloat(b.dataset.value) === selectedMinor));
         }
 
-        function updatePlaceKeySelections(selected) {
-            document.querySelectorAll('.place-key').forEach(btn => {
-                btn.classList.toggle('selected', parseInt(btn.textContent) === selected);
-            });
-        }
+        function updatePlaceKeySelections(sel) { document.querySelectorAll('.place-key').forEach(b => b.classList.toggle('selected', parseInt(b.textContent) === sel)); }
 
         function showKeypad(type) {
             currentKeypad = type;
-            
             document.getElementById('scoreKeypad').classList.toggle('active', type === 'score');
             document.getElementById('placeKeypad').classList.toggle('active', type === 'place');
-            
             document.getElementById('scoreTab').classList.toggle('active', type === 'score');
             document.getElementById('placeTab').classList.toggle('active', type === 'place');
         }
 
         function setMode(mode) {
             currentMode = mode;
-            
             document.getElementById('simpleToggle').classList.toggle('active', mode === 'simple');
             document.getElementById('extendedToggle').classList.toggle('active', mode === 'extended');
-            
-            // Regenerate minor keys with new layout
             generateMinorKeys();
         }
 
-        function clearEvent(index) {
-            document.getElementById(`score-${index}`).value = '';
-            document.getElementById(`place-${index}`).value = '';
-            // Recalculate All Around
-            calculateAllAround();
-        }
+        function clearEvent(index) { document.getElementById(`score-${index}`).value = ''; document.getElementById(`place-${index}`).value = ''; calculateAllAround(); }
 
         function clearAthlete() {
             document.getElementById('athleteName').value = '';
-            // Clear all events including All Around
-            EVENTS.forEach((_, idx) => {
-                document.getElementById(`score-${idx}`).value = '';
-                document.getElementById(`place-${idx}`).value = '';
-            });
-            focusField(0);
+            EVENTS.forEach((_, idx) => { document.getElementById(`score-${idx}`).value = ''; document.getElementById(`place-${idx}`).value = ''; });
+            if (isMobile) { mobileEventIndex = 0; mobileStep = 'setup'; mobileMajor = null; mobileMinor = null; mobileExtra = null; mobileRender(); }
+            else focusField(0);
         }
+
+        // ========== Mobile Functions ==========
+
+        function mobileInit() {
+            mobileStep = 'setup';
+            mobileEventIndex = 0;
+            mobileMajor = null; mobileMinor = null; mobileExtra = null;
+            mobileRender();
+        }
+
+        function mobileRender() {
+            const container = document.getElementById('mobileView');
+            if (!container || !isMobile) return;
+
+            if (mobileStep === 'setup') { container.innerHTML = mobileRenderSetup(); return; }
+
+            const event = EVENTS[mobileEventIndex];
+            const isAA = mobileEventIndex === 4;
+
+            if (isAA && (mobileStep === 'major' || mobileStep === 'minor' || mobileStep === 'extraMinor')) {
+                mobileStep = 'place';
+            }
+
+            let html = '';
+            html += mobileRenderSessionBar();
+            html += mobileRenderHeader(event);
+            html += mobileRenderScoreDisplay(isAA);
+            html += mobileRenderNav();
+            html += mobileRenderKeypad(isAA);
+            container.innerHTML = html;
+        }
+
+        function mobileRenderSetup() {
+            const mn = document.getElementById('meetName').value;
+            const md = document.getElementById('meetDate').value;
+            const cy = document.getElementById('compYear').value;
+            const lv = document.getElementById('level').value;
+            const an = document.getElementById('athleteName').value;
+
+            const levelOpts = LEVEL_OPTIONS.map(o => `<option value="${o.v}" ${o.v === lv ? 'selected' : ''}>${o.t}</option>`).join('');
+
+            return `
+                <div class="mobile-setup">
+                    <div class="mobile-setup-title">Score Entry</div>
+                    <div class="mobile-setup-form">
+                        <div class="form-group full-width">
+                            <label>Meet Name</label>
+                            <input type="text" id="m-meetName" value="${mn}" placeholder="e.g., Winter Classic 2026" list="meetsList">
+                        </div>
+                        <div class="form-group">
+                            <label>Meet Date</label>
+                            <input type="date" id="m-meetDate" value="${md}">
+                        </div>
+                        <div class="form-group">
+                            <label>Comp Year</label>
+                            <input type="text" id="m-compYear" value="${cy}" placeholder="e.g., 2026">
+                        </div>
+                        <div class="form-group full-width">
+                            <label>Level</label>
+                            <select id="m-level">${levelOpts}</select>
+                        </div>
+                        <div class="form-group full-width">
+                            <label>Athlete Name</label>
+                            <input type="text" id="m-athleteName" value="${an}" placeholder="Enter athlete name" list="athletesList">
+                        </div>
+                    </div>
+                    <button class="btn btn-primary" style="width:100%; padding:16px; font-size:1.1rem;" onclick="mobileStartEntry()">Start Entry &rarr;</button>
+                </div>
+            `;
+        }
+
+        function mobileStartEntry() {
+            haptic();
+            const fields = {meetName:'m-meetName', meetDate:'m-meetDate', compYear:'m-compYear', level:'m-level', athleteName:'m-athleteName'};
+            for (const [real, mobile] of Object.entries(fields)) {
+                document.getElementById(real).value = document.getElementById(mobile).value;
+            }
+
+            const mn = document.getElementById('meetName').value.trim();
+            const md = document.getElementById('meetDate').value;
+            const cy = document.getElementById('compYear').value.trim();
+            const lv = document.getElementById('level').value;
+            const an = document.getElementById('athleteName').value.trim();
+
+            if (!mn || !md || !cy || !lv || !an) {
+                showToast('Please fill in all fields', true);
+                return;
+            }
+
+            mobileEventIndex = 0;
+            mobileStep = 'major';
+            mobileMajor = null; mobileMinor = null; mobileExtra = null;
+            mobileRender();
+        }
+
+        function mobileRenderSessionBar() {
+            const mn = document.getElementById('meetName').value.trim();
+            const lv = document.getElementById('level');
+            const lt = lv.options[lv.selectedIndex]?.text || '';
+            const an = document.getElementById('athleteName').value.trim();
+            const info = [mn, lt && lv.value ? lt : '', an].filter(Boolean).join(' \u00B7 ');
+            return `<div class="mobile-session-bar" onclick="mobileGoSetup()"><span class="mobile-session-info">${info}</span><span class="mobile-session-edit">Edit</span></div>`;
+        }
+
+        function mobileGoSetup() { haptic(); mobileStep = 'setup'; mobileRender(); }
+
+        function mobileRenderHeader(event) {
+            const dots = EVENTS.map((e, i) => {
+                const sv = document.getElementById(`score-${i}`).value;
+                const pv = document.getElementById(`place-${i}`).value;
+                const done = sv && pv;
+                const active = i === mobileEventIndex;
+                let cls = 'mobile-dot';
+                if (active) cls += ' active'; else if (done) cls += ' completed';
+                return `<button class="${cls}" onclick="mobileGoToEvent(${i})" aria-label="${EVENTS[i]}"></button>`;
+            }).join('');
+            return `<div class="mobile-event-header"><div class="mobile-event-name">${event}</div><div class="mobile-event-counter">${mobileEventIndex+1} of ${EVENTS.length}</div><div class="mobile-progress-dots">${dots}</div></div>`;
+        }
+
+        function mobileRenderScoreDisplay(isAA) {
+            const existingScore = document.getElementById(`score-${mobileEventIndex}`).value;
+            const existingPlace = document.getElementById(`place-${mobileEventIndex}`).value;
+            let scoreHtml = '';
+
+            if (isAA) {
+                scoreHtml = existingScore ? parseFloat(existingScore).toFixed(3) : '<span class="dim">Auto</span>';
+            } else if (mobileStep === 'major') {
+                scoreHtml = existingScore ? parseFloat(existingScore).toFixed(3) : '<span class="dim">&mdash;.&mdash;&mdash;&mdash;</span>';
+            } else if (mobileStep === 'minor') {
+                scoreHtml = `${mobileMajor}<span class="dim">.&mdash;&mdash;&mdash;</span>`;
+            } else if (mobileStep === 'extraMinor') {
+                scoreHtml = `${mobileMajor}.${Math.round(mobileMinor*10)}<span class="dim">&mdash;&mdash;</span>`;
+            } else if (mobileStep === 'place') {
+                scoreHtml = existingScore ? parseFloat(existingScore).toFixed(3) : '<span class="dim">&mdash;.&mdash;&mdash;&mdash;</span>';
+            }
+
+            let placeHtml = 'Place: &mdash;';
+            if (existingPlace) {
+                const cls = getPlaceBadgeClass(existingPlace);
+                placeHtml = `Place: <span class="place-badge ${cls}">${existingPlace}</span>`;
+            }
+
+            return `<div class="mobile-score-display"><div class="mobile-score-value">${scoreHtml}</div><div class="mobile-place-display">${placeHtml}</div></div>`;
+        }
+
+        function mobileRenderNav() {
+            const isAA = mobileEventIndex === 4;
+            const canBackStep = mobileStep !== 'major' && !(isAA && mobileStep === 'place');
+            let html = '<div class="mobile-nav">';
+            if (canBackStep) html += `<button class="mobile-nav-btn back-step" onclick="mobileBackStep()">&larr; Back</button>`;
+            if (mobileEventIndex > 0) html += `<button class="mobile-nav-btn" onclick="mobilePrevEvent()">&laquo; Prev</button>`;
+            if (mobileEventIndex < EVENTS.length - 1) {
+                html += `<button class="mobile-nav-btn" onclick="mobileNextEvent()">Next &raquo;</button>`;
+            } else {
+                html += `<button class="mobile-nav-btn" onclick="mobileShowSummary()" style="color:var(--accent-success);border-color:var(--accent-success);">Review &raquo;</button>`;
+            }
+            html += '</div>';
+            return html;
+        }
+
+        function mobileRenderKeypad(isAA) {
+            let html = '';
+            if (mobileStep === 'major') {
+                html += `<div class="mobile-step-label">Select Score</div><div class="mobile-keypad cols-3">`;
+                [4,5,6,7,8,9].forEach(n => { html += `<button class="mobile-key" onclick="mobileSelectMajor(${n})">${n}</button>`; });
+                html += `</div>`;
+            } else if (mobileStep === 'minor') {
+                html += `<div class="mobile-step-label">Select Tenths</div><div class="mobile-keypad cols-5">`;
+                for (let i = 0; i <= 9; i++) html += `<button class="mobile-key" onclick="mobileSelectMinor(${i})">${i}</button>`;
+                html += `</div>`;
+            } else if (mobileStep === 'extraMinor') {
+                html += `<div class="mobile-step-label">Adjust Hundredths</div><div class="mobile-keypad cols-3">`;
+                html += `<button class="mobile-key" onclick="mobileSelectExtra(0.025)">.025</button>`;
+                html += `<button class="mobile-key" onclick="mobileSelectExtra(0.050)">.050</button>`;
+                html += `<button class="mobile-key" onclick="mobileSelectExtra(0.075)">.075</button>`;
+                html += `</div>`;
+            } else if (mobileStep === 'place') {
+                html += `<div class="mobile-step-label">Select Placement</div><div class="mobile-keypad cols-5">`;
+                for (let i = 1; i <= 10; i++) html += `<button class="mobile-key" onclick="mobileSelectPlace(${i})">${i}</button>`;
+                html += `</div>`;
+            }
+            return html;
+        }
+
+        function mobileSelectMajor(num) { haptic(); mobileMajor = num; mobileMinor = null; mobileExtra = null; mobileStep = 'minor'; mobileRender(); }
+
+        function mobileSelectMinor(tenths) { haptic(); mobileMinor = tenths / 10; mobileExtra = null; mobileStep = 'extraMinor'; mobileRender(); }
+
+        function mobileSelectExtra(value) {
+            haptic(); mobileExtra = value;
+            const finalScore = mobileMajor + mobileMinor + mobileExtra;
+            document.getElementById(`score-${mobileEventIndex}`).value = finalScore.toFixed(3);
+            calculateAllAround();
+            mobileStep = 'place'; mobileRender();
+        }
+
+        function mobileSelectPlace(num) {
+            haptic();
+            document.getElementById(`place-${mobileEventIndex}`).value = num;
+            if (mobileEventIndex < EVENTS.length - 1) {
+                mobileEventIndex++;
+                mobileStep = (mobileEventIndex === 4) ? 'place' : 'major';
+                mobileMajor = null; mobileMinor = null; mobileExtra = null;
+                mobileRender();
+            } else { mobileShowSummary(); }
+        }
+
+        function mobileBackStep() {
+            haptic();
+            if (mobileStep === 'minor') { mobileStep = 'major'; mobileMajor = null; }
+            else if (mobileStep === 'extraMinor') { mobileStep = 'minor'; mobileMinor = null; }
+            else if (mobileStep === 'place') {
+                if (mobileEventIndex === 4) return;
+                mobileStep = 'extraMinor'; mobileExtra = null;
+                document.getElementById(`score-${mobileEventIndex}`).value = '';
+                calculateAllAround();
+            }
+            mobileRender();
+        }
+
+        function mobileNextEvent() {
+            haptic();
+            // On extraMinor step, "Next" = no hundredths adjustment, proceed to place
+            if (mobileStep === 'extraMinor') {
+                mobileSelectExtra(0);
+                return;
+            }
+            if (mobileEventIndex < EVENTS.length - 1) {
+                mobileEventIndex++;
+                mobileStep = (mobileEventIndex === 4) ? 'place' : 'major';
+                mobileMajor = null; mobileMinor = null; mobileExtra = null;
+                mobileRender();
+            }
+        }
+
+        function mobilePrevEvent() {
+            haptic();
+            if (mobileEventIndex > 0) {
+                mobileEventIndex--;
+                mobileStep = (mobileEventIndex === 4) ? 'place' : 'major';
+                mobileMajor = null; mobileMinor = null; mobileExtra = null;
+                mobileRender();
+            }
+        }
+
+        function mobileGoToEvent(index) {
+            haptic(); mobileEventIndex = index;
+            mobileStep = (index === 4) ? 'place' : 'major';
+            mobileMajor = null; mobileMinor = null; mobileExtra = null;
+            mobileRender();
+        }
+
+        function mobileShowSummary() {
+            const container = document.getElementById('mobileView');
+            if (!container) return;
+
+            let html = `<div class="mobile-summary">`;
+            html += mobileRenderSessionBar();
+            html += `<div class="mobile-summary-title">Review Scores</div>`;
+            html += `<div class="mobile-progress-dots" style="margin-bottom:16px;">${EVENTS.map((e,i) => {
+                const sv = document.getElementById(`score-${i}`).value;
+                const pv = document.getElementById(`place-${i}`).value;
+                return `<button class="mobile-dot${(sv||pv) ? ' completed' : ''}" onclick="mobileGoToEvent(${i})" aria-label="${e}"></button>`;
+            }).join('')}</div>`;
+
+            EVENTS.forEach((event, idx) => {
+                const score = document.getElementById(`score-${idx}`).value;
+                const place = document.getElementById(`place-${idx}`).value;
+                let placeBadge = '';
+                if (place) {
+                    const cls = getPlaceBadgeClass(place);
+                    placeBadge = `<span class="place-badge ${cls}">${place}</span>`;
+                }
+                html += `<div class="mobile-summary-row" onclick="mobileGoToEvent(${idx})">
+                    <span class="mobile-summary-event">${event}</span>
+                    <span class="mobile-summary-score">${score || '&mdash;'}</span>
+                    <span class="mobile-summary-place">${placeBadge}</span>
+                </div>`;
+            });
+
+            html += `<div class="mobile-submit-actions">
+                <button class="btn btn-secondary" onclick="clearAthlete()">Clear All</button>
+                <button class="btn btn-primary" onclick="submitScores()">Submit Scores</button>
+            </div></div>`;
+            container.innerHTML = html;
+        }
+
+        // ========== Submission & Utilities ==========
 
         async function submitScores() {
             const meetName = document.getElementById('meetName').value.trim();
@@ -1297,47 +1315,27 @@
             EVENTS.forEach((event, idx) => {
                 const score = document.getElementById(`score-${idx}`).value;
                 const place = document.getElementById(`place-${idx}`).value;
-                
-                if (score) {
-                    events.push({
-                        event: event,
-                        score: score,
-                        place: place || null
-                    });
-                }
+                if (score) events.push({ event, score, place: place || null });
             });
             
-            if (events.length === 0) {
-                showToast('Please enter at least one score', true);
-                return;
-            }
+            if (events.length === 0) { showToast('Please enter at least one score', true); return; }
             
             try {
                 const response = await fetch('/api/submit_scores', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        meetName,
-                        meetDate,
-                        compYear,
-                        level,
-                        athleteName,
-                        events
-                    })
+                    body: JSON.stringify({ meetName, meetDate, compYear, level, athleteName, events })
                 });
-                
                 const result = await response.json();
-                
                 if (result.success) {
-                    showToast(`✓ ${result.message}`);
-                    clearAthlete();
-                    document.getElementById('athleteName').focus();
-                } else {
-                    showToast(result.error || 'Error submitting scores', true);
-                }
-            } catch (error) {
-                showToast('Network error: ' + error.message, true);
-            }
+                    showToast(`\u2713 ${result.message}`);
+                    // Clear athlete but keep session details
+                    document.getElementById('athleteName').value = '';
+                    EVENTS.forEach((_, idx) => { document.getElementById(`score-${idx}`).value = ''; document.getElementById(`place-${idx}`).value = ''; });
+                    if (isMobile) { mobileEventIndex = 0; mobileStep = 'setup'; mobileMajor = null; mobileMinor = null; mobileExtra = null; mobileRender(); }
+                    else { clearAthlete(); document.getElementById('athleteName').focus(); }
+                } else { showToast(result.error || 'Error submitting scores', true); }
+            } catch (error) { showToast('Network error: ' + error.message, true); }
         }
 
         function showToast(message, isError = false) {
@@ -1345,70 +1343,30 @@
             toast.textContent = message;
             toast.classList.toggle('error', isError);
             toast.classList.add('show');
-            
-            setTimeout(() => {
-                toast.classList.remove('show');
-            }, 3000);
+            setTimeout(() => toast.classList.remove('show'), 3000);
         }
 
         async function loadAutocompleteData() {
             try {
-                const [athletesRes, meetsRes] = await Promise.all([
-                    fetch('/api/recent_athletes'),
-                    fetch('/api/recent_meets')
-                ]);
-                
+                const [athletesRes, meetsRes] = await Promise.all([fetch('/api/recent_athletes'), fetch('/api/recent_meets')]);
                 const athletes = await athletesRes.json();
                 const meets = await meetsRes.json();
-                
-                const athletesList = document.getElementById('athletesList');
-                athletes.forEach(name => {
-                    const option = document.createElement('option');
-                    option.value = name;
-                    athletesList.appendChild(option);
-                });
-                
-                const meetsList = document.getElementById('meetsList');
-                meets.forEach(name => {
-                    const option = document.createElement('option');
-                    option.value = name;
-                    meetsList.appendChild(option);
-                });
-            } catch (error) {
-                console.log('Could not load autocomplete data');
-            }
+                const al = document.getElementById('athletesList');
+                athletes.forEach(name => { const o = document.createElement('option'); o.value = name; al.appendChild(o); });
+                const ml = document.getElementById('meetsList');
+                meets.forEach(name => { const o = document.createElement('option'); o.value = name; ml.appendChild(o); });
+            } catch (error) { console.log('Could not load autocomplete data'); }
         }
 
-        // Keyboard navigation
+        // Keyboard navigation (desktop only)
         document.addEventListener('keydown', (e) => {
-            // Tab/Enter to advance
-            if (e.key === 'Tab' && !e.shiftKey) {
-                e.preventDefault();
-                advanceToNextField();
-            } else if (e.key === 'Tab' && e.shiftKey) {
-                e.preventDefault();
-                if (currentFieldIndex > 0) {
-                    focusField(currentFieldIndex - 1);
-                }
-            }
-            
-            // Number keys for quick entry when in keypad mode
-            if (currentKeypad === 'score' && fieldOrder[currentFieldIndex]?.type === 'score') {
-                const num = parseInt(e.key);
-                if (num >= 4 && num <= 9) {
-                    selectMajor(num);
-                }
-            } else if (currentKeypad === 'place' && fieldOrder[currentFieldIndex]?.type === 'place') {
-                const num = parseInt(e.key);
-                if (num >= 1 && num <= 9) {
-                    selectPlace(num);
-                } else if (e.key === '0') {
-                    selectPlace(10);
-                }
-            }
+            if (isMobile) return;
+            if (e.key === 'Tab' && !e.shiftKey) { e.preventDefault(); advanceToNextField(); }
+            else if (e.key === 'Tab' && e.shiftKey) { e.preventDefault(); if (currentFieldIndex > 0) focusField(currentFieldIndex - 1); }
+            if (currentKeypad === 'score' && fieldOrder[currentFieldIndex]?.type === 'score') { const n = parseInt(e.key); if (n >= 4 && n <= 9) selectMajor(n); }
+            else if (currentKeypad === 'place' && fieldOrder[currentFieldIndex]?.type === 'place') { const n = parseInt(e.key); if (n >= 1 && n <= 9) selectPlace(n); else if (e.key === '0') selectPlace(10); }
         });
 
-        // Initialize on load
         document.addEventListener('DOMContentLoaded', init);
     </script>
 </body>
