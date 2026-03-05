@@ -63,13 +63,20 @@ def get_db_connection():
         return psycopg2.connect(DATABASE_URL, cursor_factory=RealDictCursor)
 
 def release_db_connection(conn):
-    """Return a connection to the pool."""
+    """Return a connection to the pool, clearing any failed transaction state."""
     global db_pool
     if db_pool and conn:
         try:
-            db_pool.putconn(conn)
+            conn.rollback()
         except Exception:
             pass
+        try:
+            db_pool.putconn(conn)
+        except Exception:
+            try:
+                db_pool.putconn(conn, close=True)
+            except Exception:
+                pass
 
 # Initialize pool on startup
 with app.app_context():

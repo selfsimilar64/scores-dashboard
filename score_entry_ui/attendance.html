@@ -104,7 +104,7 @@
         }
 
         .view-tab.active {
-            background: var(--accent-success);
+            background: var(--text-primary);
             color: var(--bg-dark);
             font-weight: 600;
         }
@@ -164,6 +164,8 @@
             display: flex;
             align-items: center;
             justify-content: center;
+            user-select: none;
+            -webkit-touch-callout: none;
             min-height: 100px;
         }
 
@@ -188,6 +190,17 @@
 
         .athlete-card.status-partial { background: var(--status-partial); }
         .athlete-card.status-partial .athlete-card-name { color: var(--status-partial-text); }
+
+        .athlete-card.has-note::after {
+            content: '';
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.35);
+        }
 
         .athlete-card-name {
             font-weight: 600;
@@ -739,6 +752,34 @@
             border-radius: 8px;
         }
 
+        /* Column skeleton for desktop day view */
+        .skeleton-columns {
+            display: flex;
+            gap: 6px;
+            align-items: flex-start;
+        }
+
+        .skeleton-column {
+            flex: 0 1 180px;
+            max-width: 180px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .skeleton-col-header {
+            background: var(--bg-elevated);
+            border-radius: 10px;
+            height: 38px;
+        }
+
+        .skeleton-col-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            height: 40px;
+        }
+
         .skeleton-table {
             display: flex;
             flex-direction: column;
@@ -1160,6 +1201,18 @@
             }
         }
 
+        /* Desktop / tablet: move legend out of absolute position so it doesn't overlap columns */
+        @media (min-width: 768px) {
+            .day-view-card .status-legend.vertical {
+                position: static;
+                flex-direction: row;
+                flex-wrap: wrap;
+                justify-content: flex-end;
+                gap: 14px;
+                margin-bottom: 6px;
+            }
+        }
+
         /* ============================================================
            ACCESSIBILITY: Reduced Motion
            ============================================================ */
@@ -1454,6 +1507,109 @@
         .empty-state p {
             font-size: clamp(0.8rem, 2vw, 0.9rem);
         }
+
+        /* Desktop columnar all-levels view */
+        .level-columns {
+            display: flex;
+            gap: 6px;
+            align-items: flex-start;
+        }
+
+        .level-column {
+            flex: 0 1 180px;
+            max-width: 180px;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .level-col-header {
+            text-align: center;
+            padding: 8px 4px;
+            border-radius: 10px;
+            font-weight: 700;
+            font-size: 0.95rem;
+            letter-spacing: 0.3px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            white-space: nowrap;
+        }
+
+        .level-col-header .col-count {
+            font-weight: 500;
+            font-size: 0.8rem;
+            opacity: 0.75;
+        }
+
+        .level-col-card {
+            border-radius: 8px;
+            padding: 10px 6px;
+            cursor: pointer;
+            transition: all 0.12s ease;
+            position: relative;
+            text-align: center;
+            min-height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            user-select: none;
+            -webkit-touch-callout: none;
+        }
+
+        .level-col-card:hover {
+            filter: brightness(1.12);
+            transform: scale(1.02);
+        }
+
+        .level-col-card:active {
+            transform: scale(0.97);
+        }
+
+        .level-col-card.status-none { background: var(--status-none); }
+        .level-col-card.status-none .col-card-name { color: var(--status-none-text); }
+        .level-col-card.status-present { background: var(--status-present); }
+        .level-col-card.status-present .col-card-name { color: var(--status-present-text); }
+        .level-col-card.status-absent { background: var(--status-absent); }
+        .level-col-card.status-absent .col-card-name { color: var(--status-absent-text); }
+        .level-col-card.status-partial { background: var(--status-partial); }
+        .level-col-card.status-partial .col-card-name { color: var(--status-partial-text); }
+
+        .level-col-card.animating {
+            animation: statusPulse 0.2s ease;
+        }
+
+        .col-card-name {
+            font-weight: 600;
+            font-size: 0.85rem;
+            line-height: 1.2;
+            transition: color 0.12s ease;
+        }
+
+        /* Has-note indicator dot for column cards */
+        .level-col-card.has-note::after {
+            content: '';
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.4);
+        }
+
+        /* Present count in level tabs (mobile) */
+        .level-tab .present-count {
+            font-size: 0.75em;
+            opacity: 0.7;
+            margin-left: 2px;
+        }
+
+        .level-tab.active .present-count {
+            opacity: 0.85;
+        }
     </style>
 </head>
 <body>
@@ -1702,6 +1858,7 @@
     <!-- Toast -->
     <div class="toast" id="toast"></div>
 
+    <script src="/shared.js"></script>
     <script>
         // State
         let currentSession = null;
@@ -1850,17 +2007,31 @@
         
         // Shimmer loading skeleton generators
         function showDayShimmer() {
-            // Put skeleton tabs directly (level-tabs class provides flex and margin)
-            document.getElementById('levelTabs').innerHTML = `
-                <div class="skeleton-tab shimmer"></div>
-                <div class="skeleton-tab shimmer"></div>
-                <div class="skeleton-tab shimmer"></div>
-            `;
-            document.getElementById('todayContent').innerHTML = `
-                <div class="skeleton-grid">
-                    ${Array(8).fill('<div class="skeleton-card shimmer"></div>').join('')}
-                </div>
-            `;
+            if (isDesktopMode()) {
+                document.getElementById('levelTabs').innerHTML = '';
+                document.getElementById('levelTabs').style.display = 'none';
+                const colCount = Math.min(6, Math.floor(window.innerWidth / 190));
+                const cols = Array(colCount).fill(0).map((_, i) => {
+                    const cardCount = 3 + (i % 3) * 2;
+                    return `<div class="skeleton-column">
+                        <div class="skeleton-col-header shimmer"></div>
+                        ${Array(cardCount).fill('<div class="skeleton-col-card shimmer"></div>').join('')}
+                    </div>`;
+                }).join('');
+                document.getElementById('todayContent').innerHTML = `<div class="skeleton-columns">${cols}</div>`;
+            } else {
+                document.getElementById('levelTabs').style.display = '';
+                document.getElementById('levelTabs').innerHTML = `
+                    <div class="skeleton-tab shimmer"></div>
+                    <div class="skeleton-tab shimmer"></div>
+                    <div class="skeleton-tab shimmer"></div>
+                `;
+                document.getElementById('todayContent').innerHTML = `
+                    <div class="skeleton-grid">
+                        ${Array(8).fill('<div class="skeleton-card shimmer"></div>').join('')}
+                    </div>
+                `;
+            }
         }
 
         function showSessionShimmer() {
@@ -1937,18 +2108,22 @@
                 // Sort levels in proper order
                 const sortedLevels = sortLevels(todayData.levels);
                 
-                const tabsHtml = sortedLevels.map((level, i) => `
+                // Build tabs with present counts (used on mobile)
+                const tabsHtml = sortedLevels.map((level, i) => {
+                    const present = level.athletes.filter(a => a.status === 'present').length;
+                    const total = level.athletes.length;
+                    return `
                     <button class="level-tab ${i === 0 ? 'active' : ''}" 
                             data-level="${level.level}"
                             onclick="selectTodayLevel('${level.level}')">
-                        ${level.level}
+                        ${level.level} <span class="present-count">${present}/${total}</span>
                     </button>
-                `).join('');
+                `;}).join('');
                 document.getElementById('levelTabs').innerHTML = tabsHtml;
 
                 if (sortedLevels.length > 0) {
                     currentLevel = sortedLevels[0].level;
-                    renderTodayAthletes();
+                    handleResponsiveRender();
                 }
             } catch (error) {
                 console.error('Error loading day practice:', error);
@@ -2031,32 +2206,122 @@
             document.querySelectorAll('#levelTabs .level-tab').forEach(t => {
                 t.classList.toggle('active', t.dataset.level === level);
             });
-            renderTodayAthletes();
+            handleResponsiveRender();
+        }
+
+        const NOTE_ICON = `<svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>`;
+
+        function isDesktopMode() {
+            return window.innerWidth >= 768;
+        }
+
+        function shortenName(fullName) {
+            return (fullName || '').trim().split(/\s+/)[0];
+        }
+
+        function cardDataAttrs(athlete, levelValue) {
+            return `data-athlete-id="${athlete.id}" data-athlete-name="${athlete.name.replace(/"/g, '&quot;')}" data-level="${levelValue}" data-date="${todayData.date}" data-notes="${(athlete.notes || '').replace(/"/g, '&quot;')}" data-late="${athlete.late_minutes || 0}"`;
+        }
+
+        function buildAthleteCardsHtml(levelData, levelValue) {
+            return levelData.athletes.map(athlete => `
+                <div class="athlete-card status-${athlete.status}${athlete.notes || athlete.late_minutes ? ' has-note' : ''}" 
+                     id="card-${athlete.id}"
+                     ${cardDataAttrs(athlete, levelValue)}
+                     onclick="handleCardTap(this)"
+                     onmousedown="startCardLongPress(this, event)"
+                     onmouseup="cancelCardLongPress()"
+                     onmouseleave="cancelCardLongPress()"
+                     ontouchstart="startCardLongPress(this, event)"
+                     ontouchend="cancelCardLongPress()"
+                     oncontextmenu="return false">
+                    <div class="athlete-card-name">${athlete.name}</div>
+                </div>
+            `).join('');
+        }
+
+        function buildColumnCardsHtml(levelData, levelValue) {
+            return levelData.athletes.map(athlete => `
+                <div class="level-col-card status-${athlete.status}${athlete.notes || athlete.late_minutes ? ' has-note' : ''}" 
+                     id="card-${athlete.id}"
+                     ${cardDataAttrs(athlete, levelValue)}
+                     onclick="handleCardTap(this)"
+                     onmousedown="startCardLongPress(this, event)"
+                     onmouseup="cancelCardLongPress()"
+                     onmouseleave="cancelCardLongPress()"
+                     ontouchstart="startCardLongPress(this, event)"
+                     ontouchend="cancelCardLongPress()"
+                     oncontextmenu="return false">
+                    <div class="col-card-name">${shortenName(athlete.name)}</div>
+                </div>
+            `).join('');
         }
 
         function renderTodayAthletes() {
             const levelData = todayData.levels.find(l => l.level === currentLevel);
             if (!levelData) return;
 
-            const noteIcon = `<svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>`;
-
             const html = `
                 <div class="athlete-grid">
-                    ${levelData.athletes.map(athlete => `
-                        <div class="athlete-card status-${athlete.status}" 
-                             id="card-${athlete.id}"
-                             onclick="cycleStatus(${athlete.id}, '${currentLevel}')">
-                            <button class="note-btn ${athlete.notes || athlete.late_minutes ? 'has-note' : ''}" 
-                                    onclick="event.stopPropagation(); openNoteModal(${athlete.id}, '${athlete.name.replace(/'/g, "\\'")}', '${currentLevel}', '${todayData.date}', \`${(athlete.notes || '').replace(/`/g, '\\`')}\`, ${athlete.late_minutes || 0}, '${athlete.status}')">
-                                ${noteIcon}
-                            </button>
-                            <div class="athlete-card-name">${athlete.name}</div>
-                        </div>
-                    `).join('')}
+                    ${buildAthleteCardsHtml(levelData, currentLevel)}
                 </div>
             `;
             document.getElementById('todayContent').innerHTML = html;
         }
+
+        function renderAllLevels() {
+            if (!todayData || !todayData.levels) return;
+            const sortedLevels = sortLevels(todayData.levels);
+
+            const cols = sortedLevels.map(levelData => {
+                const lc = getLevelColor(levelData.level);
+                const presentCount = levelData.athletes.filter(a => a.status === 'present').length;
+                const totalCount = levelData.athletes.length;
+
+                return `
+                <div class="level-column">
+                    <div class="level-col-header" style="color: ${lc.text}; background: ${lc.bg};">
+                        ${levelData.level} <span class="col-count" id="level-count-${levelData.level}">${presentCount}/${totalCount}</span>
+                    </div>
+                    ${buildColumnCardsHtml(levelData, levelData.level)}
+                </div>
+                `;
+            }).join('');
+
+            document.getElementById('todayContent').innerHTML = `<div class="level-columns">${cols}</div>`;
+        }
+
+        function handleResponsiveRender() {
+            if (!todayData || !todayData.levels || todayData.levels.length === 0) return;
+
+            if (isDesktopMode()) {
+                document.getElementById('levelTabs').style.display = 'none';
+                renderAllLevels();
+            } else {
+                document.getElementById('levelTabs').style.display = '';
+                renderTodayAthletes();
+            }
+        }
+
+        function updatePresentCounts() {
+            if (!todayData || !todayData.levels) return;
+            todayData.levels.forEach(levelData => {
+                const count = levelData.athletes.filter(a => a.status === 'present').length;
+                const total = levelData.athletes.length;
+
+                const colEl = document.getElementById(`level-count-${levelData.level}`);
+                if (colEl) colEl.textContent = `${count}/${total}`;
+
+                const tabBtn = document.querySelector(`#levelTabs .level-tab[data-level="${levelData.level}"] .present-count`);
+                if (tabBtn) tabBtn.textContent = `${count}/${total}`;
+            });
+        }
+
+        let resizeTimer = null;
+        window.addEventListener('resize', () => {
+            clearTimeout(resizeTimer);
+            resizeTimer = setTimeout(handleResponsiveRender, 150);
+        });
 
         function cycleStatus(athleteId, level) {
             const levelData = todayData.levels.find(l => l.level === level);
@@ -2069,7 +2334,8 @@
             athlete.status = newStatus;
             const card = document.getElementById(`card-${athleteId}`);
             if (card) {
-                card.className = `athlete-card status-${newStatus} animating`;
+                const baseClass = card.classList.contains('level-col-card') ? 'level-col-card' : 'athlete-card';
+                card.className = `${baseClass} status-${newStatus} animating`;
                 setTimeout(() => card.classList.remove('animating'), 200);
             }
 
@@ -2084,6 +2350,44 @@
                 late_minutes: athlete.late_minutes || 0,
                 session_id: currentSession.id
             });
+
+            updatePresentCounts();
+        }
+
+        // Long-press on day view cards to open note modal
+        let cardLongPressTimer = null;
+        let cardLongPressTriggered = false;
+
+        function startCardLongPress(card, event) {
+            cardLongPressTriggered = false;
+            cardLongPressTimer = setTimeout(() => {
+                cardLongPressTriggered = true;
+                const id = parseInt(card.dataset.athleteId);
+                const name = card.dataset.athleteName;
+                const level = card.dataset.level;
+                const date = card.dataset.date;
+                const notes = card.dataset.notes || '';
+                const late = parseInt(card.dataset.late) || 0;
+                const status = card.className.match(/status-(\w+)/)?.[1] || 'none';
+                openNoteModal(id, name, level, date, notes, late, status);
+            }, 500);
+        }
+
+        function cancelCardLongPress() {
+            if (cardLongPressTimer) {
+                clearTimeout(cardLongPressTimer);
+                cardLongPressTimer = null;
+            }
+        }
+
+        function handleCardTap(card) {
+            if (cardLongPressTriggered) {
+                cardLongPressTriggered = false;
+                return;
+            }
+            const id = parseInt(card.dataset.athleteId);
+            const level = card.dataset.level;
+            cycleStatus(id, level);
         }
 
         // ============
@@ -2100,11 +2404,23 @@
             noteAthleteId = athleteId;
             noteLevel = level;
             notePracticeDate = practiceDate;
+            // Pull fresh values from in-memory data when available
             noteStatus = status;
-            selectedLateTime = lateMinutes || 0;
+            let freshNote = currentNote;
+            let freshLate = lateMinutes;
+            if (todayData && todayData.levels) {
+                const ld = todayData.levels.find(l => l.level === level);
+                const ath = ld && ld.athletes.find(a => a.id === athleteId);
+                if (ath) {
+                    noteStatus = ath.status;
+                    freshNote = ath.notes || '';
+                    freshLate = ath.late_minutes || 0;
+                }
+            }
+            selectedLateTime = freshLate || 0;
             
             document.getElementById('noteAthleteName').textContent = athleteName;
-            document.getElementById('noteText').value = currentNote || '';
+            document.getElementById('noteText').value = freshNote || '';
             
             // Set late time selection
             document.querySelectorAll('.late-time-btn').forEach(btn => {
@@ -2150,7 +2466,7 @@
             closeNoteModal();
             
             if (athlete) {
-                renderTodayAthletes();
+                handleResponsiveRender();
             }
 
             try {
