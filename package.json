@@ -1,0 +1,17 @@
+{
+  "name": "gymfest-scores-dashboard",
+  "private": true,
+  "scripts": {
+    "dev": "wrangler pages dev score_entry_ui --compatibility-date=2024-12-01",
+    "deploy": "wrangler pages deploy score_entry_ui --project-name=gymfest-scores",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@neondatabase/serverless": "^1.0.0"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.0.0",
+    "typescript": "^5.7.0",
+    "wrangler": "^4.0.0"
+  }
+}
