@@ -1,5 +1,5 @@
 import type { AppHandler } from "./types";
-import { todayISO } from "./types";
+import { todayISO, toDateStr, toNoonUTC } from "./types";
 
 export const onRequestGet: AppHandler = async ({ request, data: { sql } }) => {
   const url = new URL(request.url);
@@ -35,15 +35,15 @@ export const onRequestGet: AppHandler = async ({ request, data: { sql } }) => {
     const spRows = await sql`
       SELECT DISTINCT practice_date FROM special_practice_dates WHERE session_id = ${session.id}
     `;
-    for (const r of spRows) specialDates.add(String(r.practice_date));
+    for (const r of spRows) specialDates.add(toDateStr(r.practice_date));
   } catch {
     // Table may not exist
   }
 
   // Generate all practice dates within the session range
   const dates: string[] = [];
-  const start = new Date(String(session.start_date) + "T12:00:00Z");
-  const end = new Date(String(session.end_date) + "T12:00:00Z");
+  const start = toNoonUTC(session.start_date);
+  const end = toNoonUTC(session.end_date);
 
   const current = new Date(start);
   while (current <= end) {

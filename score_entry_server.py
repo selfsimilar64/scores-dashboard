@@ -813,21 +813,20 @@ def get_meet_level_averages():
     ''', (comp_year,))
     meets_raw = cursor.fetchall()
     
-    # Sort with States and Regionals at the end (States before Regionals)
-    def meet_sort_key(meet):
-        name = meet['meetname'].lower()
-        if name == 'states':
-            return (1, meet['earliestdate'])
-        elif name == 'regionals':
-            return (2, meet['earliestdate'])
-        else:
-            return (0, meet['earliestdate'])
-    
-    meets = sorted(meets_raw, key=meet_sort_key)
+    meets = sorted(meets_raw, key=lambda m: m['earliestdate'])
     
     # Define level order
     level_order = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'XB', 'XS', 'XG', 'XP', 'XD', 'XSA']
     
+    def _median(values):
+        s = sorted(values)
+        n = len(s)
+        if n == 0:
+            return None
+        if n % 2 == 0:
+            return (s[n // 2 - 1] + s[n // 2]) / 2
+        return s[n // 2]
+
     # Get average All Around score for each meet/level combination
     results = []
     
@@ -859,7 +858,7 @@ def get_meet_level_averages():
         
         # Get averages, medians, and team scores for each level
         all_aa_scores = []  # All AA scores for Gymfest average/median
-        # Collect all event scores across levels for Gymfest team score
+        # Collect all event scores across levels for Gymfest team score and median
         all_event_scores = {ev: [] for ev in ['Vault', 'Bars', 'Beam', 'Floor']}
         
         for level in level_order:
@@ -881,19 +880,12 @@ def get_meet_level_averages():
                 scores_list = [row['score'] for row in level_scores]
                 avg_score = sum(scores_list) / len(scores_list)
                 
-                # Median calculation
-                sorted_scores = sorted(scores_list)
-                n = len(sorted_scores)
-                if n % 2 == 0:
-                    median_score = (sorted_scores[n // 2 - 1] + sorted_scores[n // 2]) / 2
-                else:
-                    median_score = sorted_scores[n // 2]
-                
-                # Team score: sum of top 3 scores for each event (Vault, Bars, Beam, Floor)
+                # Fetch per-event scores for median, team score, and Gymfest collection
                 team_events = ['Vault', 'Bars', 'Beam', 'Floor']
                 event_top3 = {}
                 team_score = 0
                 has_team_score = True
+                level_event_scores = {}
                 
                 for event in team_events:
                     cursor.execute('''
@@ -905,20 +897,29 @@ def get_meet_level_averages():
                           AND Event = %s
                           AND Score IS NOT NULL
                         ORDER BY Score DESC
-                        LIMIT 3
                     ''', (meet_name, meet_comp_year, level, event))
                     event_rows = cursor.fetchall()
+                    level_event_scores[event] = [row['score'] for row in event_rows]
                     
                     if len(event_rows) >= 3:
-                        event_top3[event] = [{'athlete': row['athletename'], 'score': row['score']} for row in event_rows]
+                        event_top3[event] = [{'athlete': row['athletename'], 'score': row['score']} for row in event_rows[:3]]
                         team_score += sum(item['score'] for item in event_top3[event])
                     else:
                         has_team_score = False
-                        break
+                    
+                    for row in event_rows:
+                        all_event_scores[event].append({'athlete': row['athletename'], 'score': row['score'], 'level': level})
                 
                 if not has_team_score:
                     team_score = None
                     event_top3 = None
+                
+                # Median: sum of per-event medians (Vault + Bars + Beam + Floor)
+                event_medians = [_median(level_event_scores[ev]) for ev in team_events]
+                if all(m is not None for m in event_medians):
+                    median_score = sum(event_medians)
+                else:
+                    median_score = None
                 
                 meet_data['levels'][level] = {
                     'avg': avg_score,
@@ -930,19 +931,6 @@ def get_meet_level_averages():
                 
                 # Collect for Gymfest calculations
                 all_aa_scores.extend(scores_list)
-                for event in ['Vault', 'Bars', 'Beam', 'Floor']:
-                    cursor.execute('''
-                        SELECT AthleteName, Score
-                        FROM scores
-                        WHERE MeetName = %s
-                          AND CompYear = %s
-                          AND Level = %s
-                          AND Event = %s
-                          AND Score IS NOT NULL
-                        ORDER BY Score DESC
-                    ''', (meet_name, meet_comp_year, level, event))
-                    for row in cursor.fetchall():
-                        all_event_scores[event].append({'athlete': row['athletename'], 'score': row['score'], 'level': level})
             else:
                 meet_data['levels'][level] = None
         
@@ -951,12 +939,12 @@ def get_meet_level_averages():
             meet_data['gymfest_avg'] = sum(all_aa_scores) / len(all_aa_scores)
             meet_data['gymfest_count'] = len(all_aa_scores)
             
-            sorted_all = sorted(all_aa_scores)
-            n = len(sorted_all)
-            if n % 2 == 0:
-                meet_data['gymfest_median'] = (sorted_all[n // 2 - 1] + sorted_all[n // 2]) / 2
+            # Gymfest median: sum of per-event medians across all levels
+            gymfest_event_medians = [_median([item['score'] for item in all_event_scores[ev]]) for ev in ['Vault', 'Bars', 'Beam', 'Floor']]
+            if all(m is not None for m in gymfest_event_medians):
+                meet_data['gymfest_median'] = sum(gymfest_event_medians)
             else:
-                meet_data['gymfest_median'] = sorted_all[n // 2]
+                meet_data['gymfest_median'] = None
             
             # Gymfest team score: top 3 per event across ALL levels
             gymfest_event_top3 = {}

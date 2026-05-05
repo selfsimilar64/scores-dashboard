@@ -28,14 +28,9 @@ export const onRequestGet: AppHandler = async ({ request, data: { sql } }) => {
     ORDER BY MIN(MeetDate) ASC
   `;
 
-  // Sort: regular meets by date, then States, then Regionals
+  // Sort chronologically by earliest date (ascending)
   const meets = [...meetsRaw].sort((a, b) => {
-    const aName = String(a.meetname).toLowerCase();
-    const bName = String(b.meetname).toLowerCase();
-    const aOrd = aName === "states" ? 1 : aName === "regionals" ? 2 : 0;
-    const bOrd = bName === "states" ? 1 : bName === "regionals" ? 2 : 0;
-    if (aOrd !== bOrd) return aOrd - bOrd;
-    return String(a.earliestdate) < String(b.earliestdate) ? -1 : 1;
+    return toDateStr(a.earliestdate) < toDateStr(b.earliestdate) ? -1 : 1;
   });
 
   // Bulk-fetch ALL AA scores and ALL event scores for this comp year in two queries
@@ -113,25 +108,33 @@ export const onRequestGet: AppHandler = async ({ request, data: { sql } }) => {
 
       const scoresList = aaEntries.map((e) => e.score);
       const avg = scoresList.reduce((a, b) => a + b, 0) / scoresList.length;
-      const med = median(scoresList);
 
       // Team score: sum of top 3 per event
       let teamScore = 0;
       let hasTeamScore = true;
       const eventTop3: Record<string, { athlete: string; score: number }[]> = {};
+      const eventScoresForMedian: Record<string, number[]> = {};
 
       for (const event of TEAM_EVENTS) {
         const evKey = `${meetName}|${lvl}|${event}`;
         const entries = eventByMeetLevelEvent[evKey] ?? [];
+        eventScoresForMedian[event] = entries.map((e) => e.score);
         if (entries.length >= 3) {
           const top3 = entries.slice(0, 3);
           eventTop3[event] = top3.map((e) => ({ athlete: e.athletename, score: e.score }));
           teamScore += top3.reduce((s, e) => s + e.score, 0);
         } else {
           hasTeamScore = false;
-          break;
         }
       }
+
+      // Median: sum of per-event medians (Vault + Bars + Beam + Floor)
+      const eventMedians = TEAM_EVENTS.map((ev) =>
+        eventScoresForMedian[ev]?.length > 0 ? median(eventScoresForMedian[ev]) : null
+      );
+      const med = eventMedians.every((m) => m !== null)
+        ? (eventMedians as number[]).reduce((a, b) => a + b, 0)
+        : null;
 
       levels[lvl] = {
         avg, median: med, count: scoresList.length,
@@ -152,7 +155,14 @@ export const onRequestGet: AppHandler = async ({ request, data: { sql } }) => {
     if (allAAForGymfest.length > 0) {
       meetData.gymfest_avg = allAAForGymfest.reduce((a, b) => a + b, 0) / allAAForGymfest.length;
       meetData.gymfest_count = allAAForGymfest.length;
-      meetData.gymfest_median = median(allAAForGymfest);
+
+      // Gymfest median: sum of per-event medians across all levels
+      const gymfestEventMedians = TEAM_EVENTS.map((ev) =>
+        allEventForGymfest[ev].length > 0 ? median(allEventForGymfest[ev].map((e) => e.score)) : null
+      );
+      meetData.gymfest_median = gymfestEventMedians.every((m) => m !== null)
+        ? (gymfestEventMedians as number[]).reduce((a, b) => a + b, 0)
+        : null;
 
       let gymfestTeamScore = 0;
       let hasGymfestTeam = true;

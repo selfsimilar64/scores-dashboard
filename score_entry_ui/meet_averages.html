@@ -6,7 +6,7 @@
     <title>Meet Averages - Gymfest</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="/shared.css">
     <style>
@@ -17,13 +17,11 @@
         }
 
         body {
-            font-family: 'Outfit', sans-serif;
+            font-family: 'Plus Jakarta Sans', sans-serif;
             background: var(--bg-dark);
             color: var(--text-primary);
             min-height: 100vh;
-            background-image: 
-                radial-gradient(ellipse at 20% 20%, rgba(100, 210, 255, 0.06) 0%, transparent 50%),
-                radial-gradient(ellipse at 80% 80%, rgba(232, 93, 117, 0.05) 0%, transparent 50%);
+            padding-bottom: 80px;
         }
 
         .container {
@@ -32,46 +30,9 @@
             padding: 24px;
         }
 
-        header {
-            text-align: center;
-            margin-bottom: 32px;
-        }
-
-        header h1 {
-            font-size: 2.5rem;
-            font-weight: 700;
-            background: linear-gradient(135deg, var(--accent-secondary), var(--accent-primary));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            margin-bottom: 8px;
-        }
-
-        header p {
-            color: var(--text-secondary);
-            font-size: 1.1rem;
-        }
-
-        .nav-links {
-            display: flex;
-            justify-content: center;
-            gap: 24px;
-            margin-top: 12px;
-        }
-
-        .nav-link {
-            color: var(--accent-secondary);
-            text-decoration: none;
-            font-size: 0.95rem;
-        }
-
-        .nav-link:hover {
-            text-decoration: underline;
-        }
-
         .card {
             background: var(--bg-card);
-            border-radius: 16px;
+            border-radius: 8px;
             padding: 24px;
             margin-bottom: 24px;
             border: 1px solid var(--border-color);
@@ -85,14 +46,6 @@
             display: flex;
             align-items: center;
             gap: 10px;
-        }
-
-        .card-title::before {
-            content: '';
-            width: 4px;
-            height: 24px;
-            background: linear-gradient(180deg, var(--accent-secondary), var(--accent-primary));
-            border-radius: 2px;
         }
 
         .card-header {
@@ -123,7 +76,7 @@
             border: 1px solid var(--border-color);
             border-radius: 8px;
             padding: 8px 12px;
-            font-family: 'Outfit', sans-serif;
+            font-family: 'Plus Jakarta Sans', sans-serif;
             font-size: 0.9rem;
             cursor: pointer;
         }
@@ -171,7 +124,7 @@
             left: 0;
             z-index: 20;
             background: var(--bg-elevated);
-            box-shadow: 2px 0 8px rgba(0, 0, 0, 0.3);
+            box-shadow: 2px 0 6px rgba(0, 0, 0, 0.06);
         }
 
         td {
@@ -185,16 +138,16 @@
             position: sticky;
             left: 0;
             z-index: 5;
-            background: var(--bg-card);
-            box-shadow: 2px 0 8px rgba(0, 0, 0, 0.3);
+            background: var(--bg-surface);
+            box-shadow: 2px 0 6px rgba(0, 0, 0, 0.06);
         }
 
         tr:hover td:first-child {
-            background: var(--bg-card);
+            background: var(--bg-surface);
         }
 
         tr:hover td {
-            background: rgba(100, 210, 255, 0.03);
+            background: rgba(61, 90, 128, 0.04);
         }
 
         .meet-name {
@@ -221,32 +174,47 @@
             color: var(--text-muted);
         }
 
-        /* Column max - Gold highlighting */
+        /* Column max - gold highlight (same as year-pb) */
         .score-cell.col-max .score-value {
             color: var(--accent-gold);
-            background: rgba(255, 215, 0, 0.15);
-            padding: 4px 8px;
-            border-radius: 6px;
+            background: var(--accent-gold-bg);
             font-weight: 600;
         }
 
-        /* Table max (excluding Gymfest) - Turquoise highlighting */
+        /* Table max - gold + star (same as alltime-pb) */
         .score-cell.table-max .score-value {
-            color: #5efaff;
-            background: #204348;
-            padding: 4px 8px;
-            border-radius: 6px;
-            font-weight: 600;
+            color: var(--accent-gold);
+            background: var(--accent-gold-bg);
+            font-weight: 700;
+            position: relative;
+            padding-left: 18px;
+        }
+
+        .score-cell.table-max .score-value::before {
+            content: '\2605';
+            position: absolute;
+            left: 4px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 0.6rem;
+            line-height: 1;
+            color: var(--accent-gold-bright);
+        }
+
+        .score-cell.col-max .score-minor,
+        .score-cell.table-max .score-minor {
+            color: inherit;
+            opacity: 0.7;
         }
 
         .gymfest-col {
             background: rgba(100, 210, 255, 0.05);
-            border-left: 2px solid var(--accent-secondary);
+            border-left: 2px solid var(--accent-interactive);
         }
 
         th.gymfest-col {
-            color: var(--accent-secondary);
-            background: rgba(100, 210, 255, 0.1);
+            color: var(--accent-interactive);
+            background: rgba(61, 90, 128, 0.06);
         }
 
         .empty-state {
@@ -281,7 +249,7 @@
         }
 
         .score-cell.team-score:hover {
-            background: rgba(100, 210, 255, 0.1);
+            background: rgba(61, 90, 128, 0.08);
         }
 
         .tooltip {
@@ -291,7 +259,7 @@
             border-radius: 10px;
             padding: 12px 16px;
             z-index: 1000;
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
             pointer-events: none;
             min-width: 220px;
             max-width: 340px;
@@ -299,7 +267,7 @@
 
         .tooltip-title {
             font-weight: 600;
-            color: var(--accent-secondary);
+            color: var(--accent-interactive);
             margin-bottom: 8px;
             font-size: 0.85rem;
         }
@@ -316,7 +284,8 @@
         }
 
         .tooltip-score {
-            font-family: 'JetBrains Mono', monospace;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            font-variant-numeric: tabular-nums;
             color: var(--accent-gold);
             font-weight: 500;
         }
@@ -352,13 +321,18 @@
         }
 
         .legend-swatch.gold {
-            background: rgba(255, 215, 0, 0.3);
+            background: var(--accent-gold-bg);
             border: 2px solid var(--accent-gold);
         }
 
-        .legend-swatch.turquoise {
-            background: #204348;
-            border: 2px solid #5efaff;
+        .legend-swatch.star {
+            background: var(--accent-gold-bg);
+            border: 2px solid var(--accent-gold);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--accent-gold-bright);
+            font-size: 8px;
         }
 
         /* Chart */
@@ -406,10 +380,6 @@
                 padding: 16px;
             }
             
-            header h1 {
-                font-size: 1.8rem;
-            }
-
             .card-header {
                 flex-direction: column;
                 align-items: flex-start;
@@ -425,11 +395,6 @@
                 min-width: 120px;
             }
 
-            .nav-links {
-                flex-direction: column;
-                gap: 8px;
-            }
-
             .chart-container {
                 aspect-ratio: auto;
                 height: 350px;
@@ -440,34 +405,6 @@
         @media (max-height: 500px) and (orientation: landscape) {
             .container {
                 padding: 8px 12px;
-            }
-
-            header {
-                margin-bottom: 8px;
-                display: flex;
-                align-items: center;
-                justify-content: space-between;
-                flex-wrap: wrap;
-                gap: 8px;
-                text-align: left;
-            }
-
-            header h1 {
-                font-size: 1.2rem;
-                margin-bottom: 0;
-            }
-
-            header p {
-                display: none;
-            }
-
-            .nav-links {
-                margin-top: 0;
-                gap: 12px;
-            }
-
-            .nav-link {
-                font-size: 0.8rem;
             }
 
             .card {
@@ -481,11 +418,6 @@
 
             .card-title {
                 font-size: 0.95rem;
-            }
-
-            .card-title::before {
-                width: 3px;
-                height: 18px;
             }
 
             .controls {
@@ -552,13 +484,9 @@
 
         /* Small phones */
         @media (max-width: 480px) {
-            header h1 {
-                font-size: 1.5rem;
-            }
-
             .card {
                 padding: 16px;
-                border-radius: 12px;
+                border-radius: 8px;
             }
 
             .card-title {
@@ -578,15 +506,6 @@
 </head>
 <body>
     <div class="container">
-        <header>
-            <h1>📊 Meet Averages</h1>
-            <p>Average All Around scores by Meet and Level</p>
-            <div class="nav-links">
-                <a href="/" class="nav-link">← Score Entry</a>
-                <a href="/meet-scores" class="nav-link">Meet Scores</a>
-            </div>
-        </header>
-
         <div class="card">
             <div class="card-header">
                 <div class="card-title">All Around Averages by Level</div>
@@ -594,7 +513,7 @@
                     <label for="displayMode">Show:</label>
                     <select id="displayMode">
                         <option value="avg">Avg All Around</option>
-                        <option value="median">Median All Around</option>
+                        <option value="median">Sum of Event Medians</option>
                         <option value="team">Team Score</option>
                     </select>
                     <label for="compYearSelect">Comp Year:</label>
@@ -610,7 +529,7 @@
                     <span>Column Best</span>
                 </div>
                 <div class="legend-item">
-                    <span class="legend-swatch turquoise"></span>
+                    <span class="legend-swatch star">&#9733;</span>
                     <span>Table Best (excl. Gymfest)</span>
                 </div>
             </div>
@@ -864,7 +783,7 @@
                         tooltipHtml += `
                             <div class="tooltip-row">
                                 <span class="tooltip-athlete">${event}</span>
-                                <span style="font-family:'JetBrains Mono',monospace;font-weight:600;color:#fff;">${toFixed(eventSum, 2)}</span>
+                                <span style="font-family:'Plus Jakarta Sans',sans-serif;font-variant-numeric:tabular-nums;font-weight:600;color:var(--text-primary);">${toFixed(eventSum, 2)}</span>
                             </div>
                             <div style="padding-left:12px;padding-bottom:6px;line-height:1.8;">
                                 ${badgesHtml}
@@ -874,7 +793,7 @@
                     tooltipHtml += `
                         <div class="tooltip-row tooltip-total">
                             <span>Total</span>
-                            <span style="font-family:'JetBrains Mono',monospace;font-weight:600;color:#fff;">${toFixed(teamScore, 2)}</span>
+                            <span style="font-family:'Plus Jakarta Sans',sans-serif;font-variant-numeric:tabular-nums;font-weight:600;color:var(--text-primary);">${toFixed(teamScore, 2)}</span>
                         </div>
                     `;
                     
@@ -935,7 +854,7 @@
                         data,
                         borderColor: color,
                         backgroundColor: color,
-                        borderWidth: 2.5,
+                        borderWidth: 3,
                         pointRadius: 5,
                         pointHoverRadius: 7,
                         pointBackgroundColor: color,
@@ -979,13 +898,13 @@
                     plugins: {
                         legend: { display: false },
                         tooltip: {
-                            backgroundColor: '#1a1a22',
-                            titleColor: '#f5f5f7',
-                            bodyColor: '#f5f5f7',
-                            borderColor: '#2c2c3a',
+                            backgroundColor: '#ffffff',
+                            titleColor: '#1c1c1e',
+                            bodyColor: '#1c1c1e',
+                            borderColor: '#e8e8e6',
                             borderWidth: 1,
-                            titleFont: { family: 'Outfit', size: 14, weight: '600' },
-                            bodyFont: { family: 'JetBrains Mono', size: 13, weight: '500' },
+                            titleFont: { family: 'Plus Jakarta Sans', size: 14, weight: '600' },
+                            bodyFont: { family: 'Plus Jakarta Sans', size: 13, weight: '500' },
                             padding: 12,
                             cornerRadius: 10,
                             itemSort: (a, b) => (b.raw || 0) - (a.raw || 0),
@@ -1008,20 +927,20 @@
                     scales: {
                         x: {
                             ticks: {
-                                color: '#e0e0e4',
-                                font: { family: 'Outfit', size: 14, weight: '600' },
+                                color: '#6b6b73',
+                                font: { family: 'Plus Jakarta Sans', size: 14, weight: '600' },
                                 maxRotation: 45
                             },
-                            grid: { color: 'rgba(44, 44, 58, 0.5)' }
+                            grid: { color: 'rgba(0, 0, 0, 0.05)' }
                         },
                         y: {
                             ticks: {
-                                color: '#e0e0e4',
-                                font: { family: 'JetBrains Mono', size: 14, weight: '500' },
+                                color: '#6b6b73',
+                                font: { family: 'Plus Jakarta Sans', size: 14, weight: '500' },
                                 callback: v => toFixed(v, isTeamMode ? 0 : 1),
                                 padding: 8
                             },
-                            grid: { color: 'rgba(44, 44, 58, 0.5)' },
+                            grid: { color: 'rgba(0, 0, 0, 0.05)' },
                             min: yMin,
                             max: yMax
                         }
@@ -1073,5 +992,23 @@
             });
         });
     </script>
+    <nav class="tab-bar">
+        <a href="/">
+            <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            <span>Entry</span>
+        </a>
+        <a href="/meet-scores">
+            <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>
+            <span>Scores</span>
+        </a>
+        <a href="/meet-averages" class="active">
+            <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+            <span>Averages</span>
+        </a>
+        <a href="/attendance">
+            <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            <span>Attendance</span>
+        </a>
+    </nav>
 </body>
 </html>

@@ -1,5 +1,5 @@
 import type { Env, AppData } from "../../types";
-import { jsonResponse } from "../../types";
+import { jsonResponse, toDateStr, toNoonUTC } from "../../types";
 
 export const onRequestGet: PagesFunction<Env, string, AppData> = async ({ params, request, data: { sql } }) => {
   const sessionId = Number(params.session_id);
@@ -36,8 +36,8 @@ export const onRequestGet: PagesFunction<Env, string, AppData> = async ({ params
 
   // Generate practice dates per level
   const practiceDatesByLevel: Record<string, string[]> = {};
-  const startDate = new Date(String(session.start_date) + "T12:00:00Z");
-  const endDate = new Date(String(session.end_date) + "T12:00:00Z");
+  const startDate = toNoonUTC(session.start_date);
+  const endDate = toNoonUTC(session.end_date);
 
   const cur = new Date(startDate);
   while (cur <= endDate) {
@@ -61,7 +61,7 @@ export const onRequestGet: PagesFunction<Env, string, AppData> = async ({ params
 
   const attIndex: Record<string, (typeof attRecords)[0]> = {};
   for (const rec of attRecords) {
-    attIndex[`${rec.athlete_id}|${rec.practice_date}`] = rec;
+    attIndex[`${rec.athlete_id}|${toDateStr(rec.practice_date)}`] = rec;
   }
 
   // Athletes

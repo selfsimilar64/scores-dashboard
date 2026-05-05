@@ -93,17 +93,17 @@ function formatMeetDates(dates) {
 const LEVEL_ORDER = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'XB', 'XS', 'XG', 'XP', 'XD', 'XSA'];
 
 const LEVEL_GRADIENT_STOPS = [
-    [70, 200, 170], [55, 140, 220], [80, 90, 235],
-    [150, 70, 220], [210, 65, 160], [235, 75, 110]
+    [10, 150, 110], [15, 105, 185], [60, 55, 200],
+    [130, 30, 180], [185, 25, 120], [205, 40, 65]
 ];
 
 const XCEL_COLORS = {
-    'XB': { text: '#cd7f32', bg: 'rgba(205,127,50,0.15)' },
-    'XS': { text: '#c0c0c0', bg: 'rgba(192,192,192,0.15)' },
-    'XG': { text: '#ffd700', bg: 'rgba(255,215,0,0.12)' },
-    'XP': { text: '#e5e4e2', bg: 'rgba(229,228,226,0.12)' },
-    'XD': { text: '#64d2ff', bg: 'rgba(100,210,255,0.12)' },
-    'XSA': { text: '#4f8fcc', bg: 'rgba(15,82,186,0.18)' }
+    'XB': { text: '#a0520e', bg: 'rgba(160, 82, 14, 0.13)' },
+    'XS': { text: '#5a6a82', bg: 'rgba(90, 106, 130, 0.12)' },
+    'XG': { text: '#a07b08', bg: 'rgba(160, 123, 8, 0.13)' },
+    'XP': { text: '#6b7280', bg: 'rgba(107, 114, 128, 0.1)' },
+    'XD': { text: '#1570a6', bg: 'rgba(21, 112, 166, 0.12)' },
+    'XSA': { text: '#1a4f92', bg: 'rgba(26, 79, 146, 0.12)' }
 };
 
 function _interpolateLevelColor(level) {
@@ -122,20 +122,20 @@ function _interpolateLevelColor(level) {
 function getLevelColor(level) {
     if (XCEL_COLORS[level]) return XCEL_COLORS[level];
     const rgb = _interpolateLevelColor(level);
-    if (rgb) return { text: `rgb(${rgb.r},${rgb.g},${rgb.b})`, bg: `rgba(${rgb.r},${rgb.g},${rgb.b},0.12)` };
-    return { text: '#64d2ff', bg: 'rgba(100,210,255,0.12)' };
+    if (rgb) return { text: `rgb(${rgb.r},${rgb.g},${rgb.b})`, bg: `rgba(${rgb.r},${rgb.g},${rgb.b},0.13)` };
+    return { text: '#3d5a80', bg: 'rgba(61,90,128,0.1)' };
 }
 
 /** Get level color as a single CSS color string (for chart lines, etc). */
 function getLevelChartColor(level) {
     const xcelSolid = {
-        'XB': '#cd7f32', 'XS': '#c0c0c0', 'XG': '#ffd700',
-        'XP': '#e5e4e2', 'XD': '#64d2ff', 'XSA': '#4f8fcc'
+        'XB': '#a0520e', 'XS': '#5a6a82', 'XG': '#a07b08',
+        'XP': '#6b7280', 'XD': '#1570a6', 'XSA': '#1a4f92'
     };
     if (xcelSolid[level]) return xcelSolid[level];
     const rgb = _interpolateLevelColor(level);
     if (rgb) return `rgb(${rgb.r},${rgb.g},${rgb.b})`;
-    return '#64d2ff';
+    return '#3d5a80';
 }
 
 /** Numeric sort order for levels. Unknown levels sort last. */
@@ -148,7 +148,7 @@ function getLevelSortOrder(level) {
 
 /** Position a tooltip element above (or below) its parent cell within the viewport. */
 function positionTooltip(event) {
-    const cell = event.currentTarget;
+    const cell = event.currentTarget || event.target.closest('.score-cell');
     const tooltip = cell.querySelector('.tooltip');
     if (!tooltip) return;
     const rect = cell.getBoundingClientRect();
